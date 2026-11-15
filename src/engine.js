@@ -122,7 +122,8 @@ class Tracker{
 
 /* RepCounter: online rep segmentation on the primary signal */
 class RepCounter{
-  constructor({rest,far,startThr=.5,endThr=.2}){this.rest=rest;this.far=far;this.startThr=startThr;this.endThr=endThr;this.state='rest';this.count=0;this.restV=null;this.lastRestT=null;this.seenRest=false;this.cur=null;this.buf=[]}
+  // minDur：短于这个秒数的"一下"不算（比如弓步换脚、调整站位时膝盖晃一下）
+  constructor({rest,far,startThr=.5,endThr=.2,minDur=.6}){this.rest=rest;this.far=far;this.startThr=startThr;this.endThr=endThr;this.minDur=minDur;this.state='rest';this.count=0;this.restV=null;this.lastRestT=null;this.seenRest=false;this.cur=null;this.buf=[]}
   prog(v){return (v-this.rest)/(this.far-this.rest)}
   push(t,v,vals){
     if(isNaN(v))return null; const p=this.prog(v);
@@ -139,6 +140,9 @@ class RepCounter{
     const c=this.cur; c.newFar=false;
     if(this.buf.length<2000) this.buf.push(sample);
     if(p>this.prog(c.farV)){c.farV=v;c.farT=t;c.vals={...vals};c.newFar=true}
+    if(p<=this.endThr&&t-c.start<this.minDur){
+      this.state='rest'; this.restV=v; this.lastRestT=t; this.buf=p<=.15?[sample]:[]; this.cur=null; return null;
+    }
     if(p<=this.endThr){
       this.count++; this.state='rest'; this.restV=v; this.lastRestT=t;
       const rep={n:this.count,start:c.start,farT:c.farT,end:t,farV:c.farV,restBefore:c.restBefore,vals:c.vals,out:c.farT-c.start,back:t-c.farT,samples:this.buf};

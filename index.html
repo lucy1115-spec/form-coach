@@ -234,6 +234,7 @@ const isMobile=/iPhone|iPad|Android/i.test(navigator.userAgent);
 const S={preset:PRESETS[0],mode:'ref',profiles:[],landmarker:null,modelKind:null,loop:null,stream:null,src:null,
   ref:null,pendingProfile:null,live:null};
 const video=$('video'),canvas=$('overlay'),ctx=canvas.getContext('2d');
+if(location.hostname==='localhost') window.__S=S; // 只在本地开发时给测试脚本看状态
 
 /* ---------- setup controls ---------- */
 const exSel=$('exSel');

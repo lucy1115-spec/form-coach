@@ -41,6 +41,20 @@ test('RepCounter：幅度只到一半的抖动不算一下', () => {
   assert.equal(reps.length, 0);
 });
 
+test('RepCounter：不到 0.6 秒的快速晃动（换脚、调整站位）不算一下', () => {
+  const c = new RepCounter({rest: 170, far: 60});
+  const series = [];
+  for (let i = 0; i <= 30; i++) series.push({t: i / 30, v: 170});                       // 站着
+  for (let i = 1; i <= 12; i++) series.push({t: 1 + i / 30, v: 170 - 70 * Math.sin(Math.PI * i / 12)}); // 0.4 秒晃到 100°
+  for (let i = 1; i <= 15; i++) series.push({t: 1.4 + i / 30, v: 170});
+  const quick = series.map(s => c.push(s.t, s.v, {kneeMin: s.v})).filter(Boolean);
+  assert.equal(quick.length, 0);
+  // 之后一下正常的仍然能数出来
+  const normal = synthSeries(1).map(s => c.push(s.t + 2, s.values.kneeMin, s.values)).filter(Boolean);
+  assert.equal(normal.length, 1);
+  assert.equal(normal[0].n, 1);
+});
+
 test('RepCounter：视频从最低点开始时，开头那半下不算', () => {
   // 先从 60° 站起来（半下），再完整做 2 下
   const s = synthSeries(2, {lead: 1.5});
@@ -235,16 +249,42 @@ test('教练示范：新指标在合理范围', {skip: !coach && '缺少 fixture
 // 用户自己的第一段视频（2026-11-15）：前 15 秒从背后拍，之后换到正侧面
 const me1 = loadFixture('me-reverse-lunge-1');
 
-test('我的视频 1：背后拍的 2 下不评估，侧面拍的 9 下都评估', {skip: !(coach && me1) && '缺少 fixture'}, () => {
-  const p = preset('smith-reverse-lunge'), spec = specFor(p);
-  const prof = analyzeReference(toSeries(coach, spec), spec);
+function runSet(prof, p, fx) {
   const c = new RepCounter({rest: prof.rest, far: prof.far}), reps = [];
-  for (const x of toSeries(me1, specFor(p, prof))) {
+  for (const x of toSeries(fx, specFor(p, prof))) {
     const r = c.push(x.t, x.values[prof.primary], x.values);
     if (r) { r.cmp = compareRep(r, prof, p, 1); reps.push(r); }
   }
-  assert.equal(reps.length, 11);
-  assert.deepEqual(reps.filter(r => r.cmp.skipped).map(r => r.n), [1, 2]);
-  for (const r of reps.slice(2)) assert.ok(r.start > 15, `第 ${r.n} 下从 ${r.start}s 开始`);
-  assert.equal(summarizeSet(reps, prof).skipped, 2);
+  return reps;
+}
+
+// 画面核对过：背后拍时 1 下（另有一个 0.5 秒的晃动不算），换到侧面后 9 下；46 秒左右撤步调整不算
+test('我的视频 1：背后拍的 1 下不评估，侧面拍的 9 下都评估', {skip: !(coach && me1) && '缺少 fixture'}, () => {
+  const p = preset('smith-reverse-lunge'), spec = specFor(p);
+  const reps = runSet(analyzeReference(toSeries(coach, spec), spec), p, me1);
+  assert.equal(reps.length, 10);
+  assert.deepEqual(reps.filter(r => r.cmp.skipped).map(r => r.n), [1]);
+  for (const r of reps.slice(1)) assert.ok(r.start > 15, `第 ${r.n} 下从 ${r.start}s 开始`);
+});
+
+// Pexels 6525491：正侧面、徒手、手叉腰；开头在最低点，中间完整 1 下，结尾停在最低点
+const pexels = loadFixture('pexels-reverse-lunge-side');
+
+test('Pexels 侧面标准：只认出中间完整的 1 下，是正侧面', {skip: !pexels && '缺少 fixture'}, () => {
+  const p = preset('smith-reverse-lunge'), spec = specFor(p);
+  const prof = analyzeReference(toSeries(pexels, spec), spec);
+  assert.equal(prof.error, undefined);
+  assert.equal(prof.reps, 1);
+  assert.ok(prof.rest > 165 && prof.far > 60 && prof.far < 85, `${prof.rest} → ${prof.far}`);
+  assert.ok(prof.repList[0].samples.every(s => s.vals.viewRatio < 0.25), '应是正侧面');
+});
+
+test('我的视频 1 对 Pexels 侧面标准：9 下都评估，撤步调整不算一下，不再提示低头', {skip: !(pexels && me1) && '缺少 fixture'}, () => {
+  const p = preset('smith-reverse-lunge'), spec = specFor(p);
+  const prof = analyzeReference(toSeries(pexels, spec), spec);
+  const reps = runSet(prof, p, me1);
+  const done = reps.filter(r => !r.cmp.skipped);
+  assert.equal(done.length, 9);
+  assert.ok(done.every(r => r.out + r.back > 1.5), '每一下都应是完整动作');
+  assert.equal(done.filter(r => r.cmp.issues.some(i => i.key === 'neck')).length, 0);
 });
