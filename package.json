@@ -1,0 +1,10 @@
+{
+  "name": "form-coach",
+  "private": true,
+  "type": "module",
+  "description": "动作教练网页 App：MediaPipe 姿态识别 + 和教练示范对比",
+  "scripts": {
+    "dev": "node tools/serve.mjs",
+    "test": "node --test test/*.test.js"
+  }
+}

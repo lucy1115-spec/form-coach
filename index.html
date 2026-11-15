@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Form Coach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: gym-whiteboard tool. Camera stage on the left, a coaching panel on the right; stacks on phones. */
+:root{
+  --bg:#EEF0EE; --surface:#FFFFFF; --sunk:#E3E7E5; --ink:#15191C; --muted:#5B636B; --line:#D3D8D5;
+  --accent:#1F5FBF; --accent-ink:#FFFFFF; --good:#1D8049; --warn:#A86C12; --bad:#BE3328;
+  --good-bg:#E2F2E8; --warn-bg:#F7EBD6; --bad-bg:#F8E1DE; --stage:#0E1114;
+  --f-display:"Barlow Condensed","PingFang SC","Microsoft YaHei",sans-serif;
+  --f-body:"Barlow",-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --r:10px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101315; --surface:#181C1F; --sunk:#20262A; --ink:#E8ECEE; --muted:#97A1A9; --line:#2A3136;
+  --accent:#6EA2F0; --accent-ink:#0B1420; --good:#4CC27D; --warn:#E3A94C; --bad:#F06B5F;
+  --good-bg:#16301F; --warn-bg:#33270F; --bad-bg:#3A1A17; --stage:#050607; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101315; --surface:#181C1F; --sunk:#20262A; --ink:#E8ECEE; --muted:#97A1A9; --line:#2A3136;
+  --accent:#6EA2F0; --accent-ink:#0B1420; --good:#4CC27D; --warn:#E3A94C; --bad:#F06B5F;
+  --good-bg:#16301F; --warn-bg:#33270F; --bad-bg:#3A1A17; --stage:#050607; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);
+  padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(16px,env(safe-area-inset-left,0px))}
+[hidden]{display:none!important}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1280px;margin:0 auto;padding-block:16px 40px;display:flex;flex-direction:column;gap:16px}
+
+header{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 24px;justify-content:space-between}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand h1{font:700 30px/1 var(--f-display);letter-spacing:.02em;margin:0;text-transform:uppercase}
+.brand span{color:var(--muted);font-size:13px}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;max-width:100%}
+.tabs{display:inline-flex;background:var(--sunk);border-radius:9px;padding:3px;gap:3px}
+.tabs button{border:0;background:transparent;padding:7px 14px;border-radius:7px;font-weight:600;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+
+.grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+.stage{background:var(--stage);border-radius:var(--r);overflow:hidden;position:relative;min-height:240px;display:flex;align-items:center;justify-content:center}
+.vidbox{position:relative;width:100%;margin:0 auto}
+.vidbox video,.vidbox canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.vidbox video.mirror{transform:scaleX(-1)}
+.hud-count{position:absolute;top:12px;right:12px;min-width:84px;padding:6px 14px;border-radius:12px;background:rgba(10,12,14,.72);color:#fff;text-align:center}
+.hud-count b{display:block;font:700 56px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.hud-count small{font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
+.hud-cue{position:absolute;left:12px;right:12px;bottom:12px;padding:10px 14px;border-radius:10px;background:rgba(10,12,14,.78);color:#fff;font-size:18px;font-weight:600;text-align:center}
+.hud-cue.good{background:rgba(29,128,73,.9)}.hud-cue.bad{background:rgba(190,51,40,.92)}.hud-cue.warn{background:rgba(168,108,18,.92)}
+.hud-status{position:absolute;top:12px;left:12px;padding:5px 10px;border-radius:8px;background:rgba(10,12,14,.72);color:#fff;font-size:12px}
+.empty{color:#C9D0D5;text-align:center;padding:40px 24px;max-width:460px}
+.empty h3{font:600 22px/1.2 var(--f-display);letter-spacing:.03em;margin:0 0 8px;color:#fff}
+.empty p{margin:0;color:#AEB7BE;font-size:14px}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel h2{font:600 20px/1.2 var(--f-display);letter-spacing:.04em;text-transform:uppercase;margin:0}
+.eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.film{background:var(--sunk);border-radius:8px;padding:10px 12px;font-size:13.5px;color:var(--ink)}
+.film b{font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{border:1px solid var(--line);background:var(--surface);padding:9px 14px;border-radius:8px;font-weight:600}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:5px 10px;font-size:13px}
+.note{font-size:12.5px;color:var(--muted)}
+.status{font-size:13.5px;padding:8px 12px;border-radius:8px;background:var(--sunk)}
+.status.err{background:var(--bad-bg);color:var(--bad)}
+.status.ok{background:var(--good-bg);color:var(--good)}
+.progress{height:6px;background:var(--sunk);border-radius:3px;overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+
+.metrics{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.metric{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.metric .nm{min-width:0}
+.metric .nm small{display:block;color:var(--muted);font-size:11.5px}
+.metric .v{font:600 20px/1 var(--f-display);min-width:52px;text-align:right}
+.metric .ref{color:var(--muted);font-size:13px;min-width:70px;text-align:right}
+.chip{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.chip.good{background:var(--good-bg);color:var(--good)}.chip.bad{background:var(--bad-bg);color:var(--bad)}.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.spark{width:100%;height:96px;display:block;background:var(--sunk);border-radius:8px}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.compare figure{margin:0;display:flex;flex-direction:column;gap:4px;min-width:0}
+.compare img,.compare .ph{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;background:var(--sunk);display:block}
+.compare figcaption{font-size:12px;color:var(--muted)}
+.log{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow:auto}
+.rep{display:grid;grid-template-columns:34px minmax(0,1fr);gap:8px;align-items:start;padding:8px;border-radius:8px;background:var(--sunk)}
+.rep .n{font:700 22px/1 var(--f-display);text-align:center}
+.rep .t{font-size:13.5px;min-width:0}
+.rep .chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.settings label.chk{display:flex;gap:6px;align-items:center;font-size:13.5px}
+table.sum{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+table.sum th,table.sum td{text-align:left;padding:6px 4px;border-bottom:1px solid var(--line)}
+table.sum th{font-weight:500;color:var(--muted);font-size:12px}
+.lib{display:flex;flex-direction:column;gap:10px}
+.libitem{display:grid;grid-template-columns:88px minmax(0,1fr);gap:12px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:8px}
+.libitem img{width:88px;height:66px;object-fit:cover;border-radius:6px;background:var(--sunk)}
+.libitem .meta{min-width:0;display:flex;flex-direction:column;gap:4px}
+.libitem .meta b{font-weight:600}
+.foot{font-size:12px;color:var(--muted);text-align:center}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><h1>Form Mirror</h1><span>拿教练的标准动作，对比你自己的每一下</span></div>
+    <div class="controls">
+      <div class="field"><label for="exSel">动作</label><select id="exSel"></select></div>
+      <div class="field"><label>模式</label>
+        <div class="tabs" role="tablist">
+          <button role="tab" id="tabRef" aria-selected="true">① 录教练标准</button>
+          <button role="tab" id="tabLive" aria-selected="false">② 我来练</button>
+          <button role="tab" id="tabLib" aria-selected="false">标准库</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="stage" id="stage">
+      <div class="empty" id="stageEmpty">
+        <h3 id="emptyTitle">先录一段教练的标准动作</h3>
+        <p id="emptyText">上传教练示范的视频，或者直接用摄像头录。教练做 3–5 下就够了。</p>
+      </div>
+      <div class="vidbox" id="vidbox" hidden>
+        <video id="video" playsinline muted></video>
+        <canvas id="overlay"></canvas>
+        <div class="hud-status" id="hudStatus" hidden></div>
+        <div class="hud-count" id="hudCount" hidden><b id="hudN">0</b><small>reps</small></div>
+        <div class="hud-cue" id="hudCue" hidden></div>
+      </div>
+    </div>
+
+    <!-- Reference panel -->
+    <section class="panel" id="panelRef">
+      <div><div class="eyebrow">Step 1 · 教练标准</div><h2 id="refTitle">—</h2></div>
+      <div class="film" id="refFilm"></div>
+      <div class="row">
+        <label class="btn primary" for="refFile" id="refUploadLbl">上传教练视频</label>
+        <input type="file" id="refFile" accept="video/*" hidden>
+        <button class="btn" id="refCamStart">用摄像头录</button>
+        <button class="btn" id="refCamStop" hidden>录完了</button>
+      </div>
+      <div class="progress" id="refProg" hidden><i></i></div>
+      <div class="status" id="refStatus" hidden></div>
+      <div id="refResult" hidden>
+        <div class="compare" id="refImgs"></div>
+        <table class="sum" id="refTable"></table>
+        <div class="field" style="margin-top:10px"><label for="refName">保存名称</label>
+          <input id="refName" style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px"></div>
+        <div class="row" style="margin-top:10px"><button class="btn primary" id="refSave">保存为标准</button><button class="btn" id="refDiscard">不要，重录</button></div>
+      </div>
+      <p class="note">只会在这台设备的浏览器里保存。识别在本地运行，视频不会上传。</p>
+    </section>
+
+    <!-- Live panel -->
+    <section class="panel" id="panelLive" hidden>
+      <div><div class="eyebrow">Step 2 · 实时对比</div><h2 id="liveTitle">—</h2></div>
+      <div class="field"><label for="profSel">用哪份标准</label><select id="profSel"></select></div>
+      <div class="status" id="liveStatus" hidden></div>
+      <div class="row">
+        <button class="btn primary" id="liveStart">开始这一组</button>
+        <button class="btn" id="liveStop" hidden>结束这一组</button>
+        <label class="btn" for="liveFile" id="liveFileLbl">分析我录的视频</label>
+        <input type="file" id="liveFile" accept="video/*" hidden>
+      </div>
+      <div class="compare" id="liveImgs">
+        <figure><div class="ph" id="youPh"></div><figcaption id="youCap">你 · 上一下的最远点</figcaption></figure>
+        <figure><img id="coachImg" alt=""><figcaption>教练 · 标准最远点</figcaption></figure>
+      </div>
+      <canvas class="spark" id="spark" aria-label="动作曲线：你和教练的幅度"></canvas>
+      <div class="metrics" id="metrics"></div>
+      <div class="log" id="log"></div>
+      <div id="setSummary" hidden></div>
+      <details>
+        <summary class="note" style="cursor:pointer">设置</summary>
+        <div class="settings" style="margin-top:10px">
+          <div class="field"><label for="tolSel">判断松紧</label><select id="tolSel"><option value="0.7">严格</option><option value="1" selected>标准</option><option value="1.4">宽松</option></select></div>
+          <div class="field"><label for="camSel">摄像头</label><select id="camSel"><option value="user">前置</option><option value="environment">后置</option></select></div>
+          <div class="field"><label for="voiceSel">语音</label><select id="voiceSel"></select></div>
+          <div class="field"><label for="modelSel">识别精度</label><select id="modelSel"><option value="lite">快（手机）</option><option value="full">准（电脑）</option></select></div>
+          <label class="chk"><input type="checkbox" id="optCount" checked> 报数</label>
+          <label class="chk"><input type="checkbox" id="optPraise" checked> 做对了也提示</label>
+        </div>
+      </details>
+    </section>
+
+    <!-- Library panel -->
+    <section class="panel" id="panelLib" hidden>
+      <div><div class="eyebrow">标准库</div><h2>已保存的教练标准</h2></div>
+      <div class="lib" id="lib"></div>
+      <div class="row">
+        <button class="btn" id="libExport">导出全部</button>
+        <label class="btn" for="libImport">导入</label><input type="file" id="libImport" accept="application/json,.json" hidden>
+      </div>
+      <p class="note">换设备时（比如电脑录好、手机上用），先导出，再在另一台设备导入。</p>
+    </section>
+  </div>
+  <p class="foot">角度是根据画面估算的 2D 角度，机位、遮挡和透视都会影响结果。它帮你发现“和教练哪里不一样”，不能代替教练。</p>
+</div>
+
+<!-- ============ APP ============ -->
+<script type="module">
+import {PoseLandmarker,FilesetResolver} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+import {SIDES,METRICS,Tracker,RepCounter,analyzeReference,compareRep,fmtVal,median} from "./src/engine.js";
+import {PRESETS} from "./src/presets.js";
+const $=id=>document.getElementById(id);
+const store={get(k,d){try{const v=localStorage.getItem('fm.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('fm.'+k,JSON.stringify(v))}catch(e){}}};
+
+/* ---------- IndexedDB for reference profiles ---------- */
+const DB={db:null,mem:[],
+  async open(){if(this.db)return this.db;try{this.db=await new Promise((res,rej)=>{const r=indexedDB.open('form-mirror',1);r.onupgradeneeded=()=>r.result.createObjectStore('profiles',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}catch(e){this.db=null}return this.db},
+  async all(){const db=await this.open();if(!db)return this.mem;return new Promise(res=>{const q=db.transaction('profiles').objectStore('profiles').getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([])})},
+  async put(p){const db=await this.open();if(!db){this.mem=this.mem.filter(x=>x.id!==p.id).concat(p);return}return new Promise(res=>{const tx=db.transaction('profiles','readwrite');tx.objectStore('profiles').put(p);tx.oncomplete=res;tx.onerror=res})},
+  async del(id){const db=await this.open();if(!db){this.mem=this.mem.filter(x=>x.id!==id);return}return new Promise(res=>{const tx=db.transaction('profiles','readwrite');tx.objectStore('profiles').delete(id);tx.oncomplete=res;tx.onerror=res})}
+};
+
+/* ---------- state ---------- */
+const isMobile=/iPhone|iPad|Android/i.test(navigator.userAgent);
+const S={preset:PRESETS[0],mode:'ref',profiles:[],landmarker:null,modelKind:null,loop:null,stream:null,src:null,
+  ref:null,pendingProfile:null,live:null};
+const video=$('video'),canvas=$('overlay'),ctx=canvas.getContext('2d');
+
+/* ---------- setup controls ---------- */
+const exSel=$('exSel');
+PRESETS.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=`${p.name} · ${p.zh}`;exSel.append(o)});
+exSel.value=store.get('ex',PRESETS[0].id); if(!PRESETS.find(p=>p.id===exSel.value)) exSel.value=PRESETS[0].id;
+$('tolSel').value=store.get('tol','1'); $('camSel').value=store.get('cam','user');
+$('modelSel').value=store.get('model',isMobile?'lite':'full');
+$('optCount').checked=store.get('count',true); $('optPraise').checked=store.get('praise',true);
+['tolSel','camSel','modelSel'].forEach(id=>$(id).addEventListener('change',e=>store.set(id.replace('Sel',''),e.target.value)));
+$('optCount').addEventListener('change',e=>store.set('count',e.target.checked));
+$('optPraise').addEventListener('change',e=>store.set('praise',e.target.checked));
+
+/* ---------- voice ---------- */
+let voices=[];
+function loadVoices(){voices=(speechSynthesis.getVoices()||[]).filter(v=>/^zh/i.test(v.lang));const sel=$('voiceSel'),saved=store.get('voice','');sel.innerHTML='';
+  const off=document.createElement('option');off.value='off';off.textContent='关闭语音';sel.append(off);
+  voices.forEach(v=>{const o=document.createElement('option');o.value=v.name;o.textContent=`${v.name} (${v.lang})`;sel.append(o)});
+  if(!voices.length){const o=document.createElement('option');o.value='';o.textContent='系统默认';sel.append(o)}
+  sel.value=[...sel.options].some(o=>o.value===saved)?saved:(sel.options[1]?sel.options[1].value:'off')}
+if('speechSynthesis' in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
+$('voiceSel').addEventListener('change',e=>store.set('voice',e.target.value));
+function speak(text){try{const vn=$('voiceSel').value;if(vn==='off'||!('speechSynthesis' in window))return;speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);u.lang='zh-CN';u.rate=1.08;const v=voices.find(x=>x.name===vn);if(v)u.voice=v;speechSynthesis.speak(u)}catch(e){}}
+const NUM_ZH=['零','一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十'];
+
+/* ---------- model ---------- */
+async function ensureModel(statusEl){
+  const kind=$('modelSel').value;
+  if(S.landmarker&&S.modelKind===kind)return S.landmarker;
+  setStatus(statusEl,'正在加载识别模型（第一次需要 5–15 秒）…');
+  const fs=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+  const url=`https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_${kind}/float16/1/pose_landmarker_${kind}.task`;
+  const mk=d=>PoseLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:url,delegate:d},runningMode:'VIDEO',numPoses:1,minPoseDetectionConfidence:.5,minTrackingConfidence:.5});
+  try{S.landmarker=await mk('GPU')}catch(e){S.landmarker=await mk('CPU')}
+  S.modelKind=kind; setStatus(statusEl,''); return S.landmarker;
+}
+function setStatus(el,msg,cls){if(!el)return;el.hidden=!msg;el.textContent=msg||'';el.className='status'+(cls?' '+cls:'')}
+
+/* ---------- sources ---------- */
+function stopSource(){
+  if(S.loop){S.loop.stop=true;S.loop=null}
+  if(S.stream){S.stream.getTracks().forEach(t=>t.stop());S.stream=null}
+  video.pause();video.removeAttribute('src');video.srcObject=null;video.load();S.src=null;
+  $('hudCue').hidden=true;$('hudStatus').hidden=true;
+}
+function showStage(on){$('stageEmpty').hidden=on;$('vidbox').hidden=!on}
+function fitStage(){const w=video.videoWidth||16,h=video.videoHeight||9;canvas.width=w;canvas.height=h;
+  const vb=$('vidbox');vb.style.aspectRatio=`${w}/${h}`;vb.style.maxWidth=`calc(72vh * ${w/h})`}
+async function startCamera(){
+  stopSource();
+  const facing=$('camSel').value;
+  S.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1280},height:{ideal:720}},audio:false});
+  video.srcObject=S.stream;video.classList.toggle('mirror',facing==='user');S.src='camera';
+  await video.play();fitStage();showStage(true);
+  try{await navigator.wakeLock?.request('screen')}catch(e){}
+}
+async function startFile(file){
+  stopSource();video.classList.remove('mirror');
+  const ready=new Promise((res,rej)=>{video.onloadedmetadata=res;video.onerror=()=>rej(new Error('这个视频格式浏览器打不开'))});
+  video.muted=true;video.src=URL.createObjectURL(file);S.src='file';
+  await ready;
+  fitStage();showStage(true);
+}
+/* frame loop: calls fn(result, tSeconds) */
+function runLoop(fn,onEnd){
+  const loop={stop:false};S.loop=loop;let lastTs=-1;
+  video.onended=S.src==='file'?()=>{if(!loop.stop){loop.stop=true;onEnd&&onEnd()}}:null;
+  const step=(now,meta)=>{
+    if(loop.stop)return;
+    if(video.readyState>=2&&video.videoWidth){
+      const t=S.src==='file'?(meta&&meta.mediaTime!=null?meta.mediaTime:video.currentTime):performance.now()/1000;
+      let ts=Math.round(S.src==='file'?t*1000:performance.now()); if(ts<=lastTs)ts=lastTs+1; lastTs=ts;
+      let res=null;try{res=S.landmarker.detectForVideo(video,ts)}catch(e){}
+      fn(res&&res.landmarks&&res.landmarks[0]?res.landmarks[0]:null,t);
+    }
+    if(S.src==='file'&&video.ended){loop.stop=true;onEnd&&onEnd();return}
+    schedule();
+  };
+  const schedule=()=>{if('requestVideoFrameCallback' in video)video.requestVideoFrameCallback(step);else requestAnimationFrame(n=>step(n,null))};
+  schedule();
+  return loop;
+}
+
+/* ---------- drawing ---------- */
+const BONES=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28],[27,31],[28,32]];
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+function drawPose(c,lm,W,H,mirror,hi){
+  const X=p=>mirror?W-p.x*W:p.x*W, Y=p=>p.y*H; const lw=Math.max(2,W/320);
+  c.lineCap='round';
+  for(const [a,b] of BONES){const A=lm[a],B=lm[b];if((A.visibility??1)<.4||(B.visibility??1)<.4)continue;
+    c.strokeStyle='rgba(190,255,120,.9)';c.lineWidth=lw;c.beginPath();c.moveTo(X(A),Y(A));c.lineTo(X(B),Y(B));c.stroke()}
+  for(const i of [11,12,13,14,15,16,23,24,25,26,27,28]){const p=lm[i];if((p.visibility??1)<.4)continue;
+    const on=hi&&hi.joint===i;c.fillStyle=on?'#4FA3FF':'#F4FFE6';c.beginPath();c.arc(X(p),Y(p),on?lw*3:lw*1.6,0,7);c.fill()}
+  if(hi&&hi.label!=null){const p=lm[hi.joint];if(p){const fs=Math.max(16,W/28);c.font=`700 ${fs}px "Barlow Condensed",sans-serif`;
+    const x=X(p)+lw*5,y=Y(p)-lw*3;c.lineWidth=fs/6;c.strokeStyle='rgba(0,0,0,.75)';c.strokeText(hi.label,x,y);c.fillStyle='#fff';c.fillText(hi.label,x,y)}}
+}
+function primaryJoint(key,side){const s=SIDES[side||'L'];return {knee:s.K,kneeMin:s.K,hip:s.H,elbow:s.E,shoulder:s.S,kneeSpread:25,trunk:s.H}[key]??s.H}
+function snapshot(lm,hi){
+  const W=240,H=Math.round(240*video.videoHeight/video.videoWidth)||180;const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
+  g.drawImage(video,0,0,W,H);if(lm)drawPose(g,lm,W,H,false,hi);return c.toDataURL('image/jpeg',.72);
+}
+
+/* ---------- reference recording ---------- */
+function specFor(preset,prof){return {view:preset.view,unilateral:!!preset.unilateral,primary:prof?prof.primary:preset.primary,secondary:preset.secondary,rest:preset.rest}}
+function beginRefCollect(){
+  S.ref={series:[],thumbs:[],lastThumb:-1,tracker:new Tracker(specFor(S.preset))};
+  $('refResult').hidden=true;S.pendingProfile=null;
+}
+function refFrame(lm,t){
+  const W=canvas.width,H=canvas.height;ctx.clearRect(0,0,W,H);
+  const st=$('hudStatus');
+  if(!lm){st.hidden=false;st.textContent='没有识别到人';return}
+  const r=S.ref.tracker.update(lm,W,H,t);
+  const pk=S.preset.primary==='auto'?null:S.preset.primary;
+  drawPose(ctx,lm,W,H,video.classList.contains('mirror'),pk?{joint:primaryJoint(pk,r.side),label:fmtVal(pk,r.values[pk])}:null);
+  st.hidden=false;st.textContent=r.missing.length?`看不清：${r.missing.join('、')}`:`识别中 · ${S.ref.series.length} 帧`;
+  if(r.ok) S.ref.series.push({t,values:r.values});
+  if(t-S.ref.lastThumb>=.12){S.ref.thumbs.push({t,url:snapshot(lm,pk?{joint:primaryJoint(pk,r.side)}:null)});S.ref.lastThumb=t;if(S.ref.thumbs.length>600)S.ref.thumbs.splice(0,1)}
+  if(S.src==='file'&&video.duration){const i=$('refProg').firstElementChild;i.style.width=(100*video.currentTime/video.duration).toFixed(1)+'%'}
+}
+function nearestThumb(t){let b=null;for(const th of S.ref.thumbs){if(!b||Math.abs(th.t-t)<Math.abs(b.t-t))b=th}return b?b.url:''}
+function finishRef(){
+  if(S.loop){S.loop.stop=true;S.loop=null}
+  $('refProg').hidden=true;$('refCamStop').hidden=true;$('refCamStart').hidden=false;
+  const res=analyzeReference(S.ref.series,specFor(S.preset));
+  if(S.stream){S.stream.getTracks().forEach(t=>t.stop());S.stream=null}
+  if(res.error){setStatus($('refStatus'),res.error,'err');return}
+  const d=new Date();
+  S.pendingProfile={id:'p'+Date.now(),exerciseId:S.preset.id,createdAt:d.toISOString(),
+    name:`${S.preset.name} · ${d.getMonth()+1}/${d.getDate()}`,
+    primary:res.primary,rest:res.rest,far:res.far,reps:res.reps,secondary:res.secondary,tempo:res.tempo,
+    images:{far:nearestThumb(res.bestFarT),rest:nearestThumb(res.bestRestT)}};
+  setStatus($('refStatus'),`识别到 ${res.reps} 下完整动作。确认下面的数字合理就保存。`,'ok');
+  renderRefResult(S.pendingProfile);
+}
+function renderRefResult(p){
+  $('refResult').hidden=false;$('refName').value=p.name;
+  $('refImgs').innerHTML='';
+  [['起始位置',p.images.rest],['最远点（标准）',p.images.far]].forEach(([cap,url])=>{const f=document.createElement('figure');const im=document.createElement('img');im.src=url;im.alt=cap;const fc=document.createElement('figcaption');fc.textContent='教练 · '+cap;f.append(im,fc);$('refImgs').append(f)});
+  const rows=[[`${METRICS[p.primary].zh}（计数用）`,fmtVal(p.primary,p.rest),fmtVal(p.primary,p.far)]];
+  for(const k in p.secondary) rows.push([METRICS[k].zh,'—',fmtVal(k,p.secondary[k])]);
+  rows.push(['节奏（去 / 回）',p.tempo.out.toFixed(1)+'s',p.tempo.back.toFixed(1)+'s']);
+  $('refTable').innerHTML='<tr><th>指标</th><th>起始位</th><th>最远点</th></tr>'+rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('');
+}
+$('refFile').addEventListener('change',async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{await ensureModel($('refStatus'));await startFile(f);beginRefCollect();
+    $('refProg').hidden=false;setStatus($('refStatus'),'正在分析教练视频…');
+    video.playbackRate=1;await video.play();runLoop(refFrame,finishRef);
+  }catch(err){setStatus($('refStatus'),'出错了：'+(err.message||err),'err')}
+});
+$('refCamStart').addEventListener('click',async()=>{
+  try{await ensureModel($('refStatus'));await startCamera();
+    let n=3;setStatus($('refStatus'),'准备好姿势…');const cue=$('hudCue');cue.hidden=false;cue.className='hud-cue';
+    await new Promise(res=>{const iv=setInterval(()=>{cue.textContent=n?`${n}`:'开始！';speak(n?NUM_ZH[n]:'开始');if(n--<=0){clearInterval(iv);setTimeout(()=>{cue.hidden=true},700);res()}},900)});
+    beginRefCollect();setStatus($('refStatus'),'正在录。教练做完 3–5 下后点「录完了」。');
+    $('refCamStart').hidden=true;$('refCamStop').hidden=false;runLoop(refFrame);
+  }catch(err){setStatus($('refStatus'),camError(err),'err')}
+});
+$('refCamStop').addEventListener('click',finishRef);
+$('refDiscard').addEventListener('click',()=>{S.pendingProfile=null;$('refResult').hidden=true;setStatus($('refStatus'),'')});
+$('refSave').addEventListener('click',async()=>{
+  const p=S.pendingProfile;if(!p)return;p.name=$('refName').value.trim()||p.name;await DB.put(p);
+  store.set('active.'+p.exerciseId,p.id);S.profiles=await DB.all();S.pendingProfile=null;$('refResult').hidden=true;
+  setStatus($('refStatus'),`已保存「${p.name}」。切到「② 我来练」就能开始对比。`,'ok');renderLib();
+});
+function camError(err){const m=String(err&&err.name||err);
+  if(/NotAllowed/.test(m))return '摄像头权限被拒绝了。请在浏览器地址栏允许使用摄像头后再试。';
+  if(/NotFound|Overconstrained/.test(m))return '没找到可用的摄像头。可以在设置里换成前置/后置再试。';
+  if(!window.isSecureContext)return '浏览器只允许在 https 或本地文件里用摄像头。';
+  return '出错了：'+(err.message||m)}
+
+/* ---------- live session ---------- */
+function currentProfile(){return S.profiles.find(p=>p.id===$('profSel').value)}
+function beginLive(){
+  const prof=currentProfile();
+  S.live={prof,tracker:new Tracker(specFor(S.preset,prof)),counter:new RepCounter({rest:prof.rest,far:prof.far}),
+    reps:[],trace:[],farImg:null,lastFarSnap:-1,lastMissingSay:0,missSince:null,k:parseFloat($('tolSel').value)};
+  $('log').innerHTML='';$('setSummary').hidden=true;$('hudN').textContent='0';$('hudCount').hidden=false;
+  $('youPh').outerHTML='<div class="ph" id="youPh"></div>';$('youCap').textContent='你 · 上一下的最远点';
+  renderMetrics(null);
+}
+function liveFrame(lm,t){
+  const L=S.live,W=canvas.width,H=canvas.height;ctx.clearRect(0,0,W,H);const st=$('hudStatus');
+  if(!lm){st.hidden=false;st.textContent='没有识别到人';return}
+  const r=L.tracker.update(lm,W,H,t);const P=L.prof.primary;
+  drawPose(ctx,lm,W,H,video.classList.contains('mirror'),{joint:primaryJoint(P,r.side),label:fmtVal(P,r.values[P])});
+  if(r.missing.length){st.hidden=false;st.textContent=`看不清：${r.missing.join('、')}`;
+    L.missSince=L.missSince??t; if(t-L.missSince>1.5&&t-L.lastMissingSay>8&&S.src==='camera'){speak(`看不到你的${r.missing.slice(0,2).join('和')}，调整一下手机位置`);L.lastMissingSay=t}}
+  else{st.hidden=true;L.missSince=null}
+  if(!r.ok)return;
+  const v=r.values[P];L.trace.push({t,v});while(L.trace.length&&t-L.trace[0].t>12)L.trace.shift();
+  const rep=L.counter.push(t,v,r.values);L.tracker.locked=L.counter.state==='out';
+  if(L.counter.cur&&L.counter.cur.newFar&&t-L.lastFarSnap>.1){L.farImg=snapshot(lm,{joint:primaryJoint(P,r.side)});L.lastFarSnap=t}
+  if(rep){rep.img=L.farImg;onRep(rep)}
+  drawSpark();renderMetrics(r.values);
+}
+function onRep(rep){
+  const L=S.live,cmp=compareRep(rep,L.prof,S.preset,L.k);rep.cmp=cmp;L.reps.push(rep);
+  $('hudN').textContent=rep.n;
+  const cue=$('hudCue');cue.hidden=false;
+  const top=cmp.issues[0];
+  if(top){cue.className='hud-cue '+(top.sev>1.6?'bad':'warn');cue.textContent=top.voice}
+  else{cue.className='hud-cue good';cue.textContent='这一下很标准'}
+  const parts=[];if($('optCount').checked)parts.push(NUM_ZH[rep.n]||String(rep.n));
+  if(top)parts.push(top.voice);else if($('optPraise').checked)parts.push('很好');
+  if(parts.length)speak(parts.join('，'));
+  if(rep.img){const ph=$('youPh');const im=document.createElement('img');im.id='youPh';im.src=rep.img;im.alt='你的最远点';ph.replaceWith(im);$('youCap').textContent=`你 · 第 ${rep.n} 下的最远点`}
+  const row=document.createElement('div');row.className='rep';
+  const chips=[...cmp.issues.map(i=>`<span class="chip ${i.sev>1.6?'bad':'warn'}">${esc(i.text)}</span>`),...cmp.infos.map(i=>`<span class="chip ${i.cls}">${esc(i.text)}</span>`)].join('');
+  row.innerHTML=`<div class="n">${rep.n}</div><div class="t">${esc(top?top.voice:'这一下很标准')} <span class="note">· ${METRICS[L.prof.primary].zh} ${fmtVal(L.prof.primary,rep.farV)}（教练 ${fmtVal(L.prof.primary,L.prof.far)}）</span><div class="chips">${chips}</div></div>`;
+  $('log').prepend(row);
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function renderMetrics(vals){
+  const L=S.live;const box=$('metrics');if(!L){box.innerHTML='';return}
+  const p=L.prof,last=L.reps[L.reps.length-1];
+  const rows=[{k:p.primary,nm:METRICS[p.primary].zh,sub:'计数用 · 最远点',live:vals?vals[p.primary]:NaN,last:last?last.farV:NaN,ref:p.far}];
+  for(const k in p.secondary)rows.push({k,nm:METRICS[k].zh,sub:'在最远点时',live:vals?vals[k]:NaN,last:last?last.vals[k]:NaN,ref:p.secondary[k]});
+  box.innerHTML=rows.map(r=>{let chip='<span class="chip">—</span>';
+    if(!isNaN(r.last)){const tol=METRICS[r.k].tol*L.k;let d=r.last-r.ref;
+      if(r.k===p.primary){const dir=Math.sign(p.far-p.rest)||1;const short=(p.far-r.last)*dir;chip=short>tol?`<span class="chip ${short>1.6*tol?'bad':'warn'}">差 ${fmtVal(r.k,short)}</span>`:'<span class="chip good">到位</span>'}
+      else chip=Math.abs(d)<=tol?'<span class="chip good">一致</span>':`<span class="chip warn">${d>0?'+':'−'}${fmtVal(r.k,Math.abs(d))}</span>`}
+    return `<div class="metric"><div class="nm">${r.nm}<small>${r.sub}</small></div><div class="v">${fmtVal(r.k,r.live)}</div><div class="ref">教练 ${fmtVal(r.k,r.ref)}</div>${chip}</div>`}).join('');
+}
+function drawSpark(){
+  const L=S.live,c=$('spark'),dpr=window.devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;
+  if(c.width!==Math.round(w*dpr)){c.width=Math.round(w*dpr);c.height=Math.round(h*dpr)}
+  const g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);if(!L||L.trace.length<2)return;
+  const p=L.prof,vals=L.trace.map(x=>x.v).concat([p.rest,p.far]);let lo=Math.min(...vals),hi=Math.max(...vals);const pad=(hi-lo)*.12||1;lo-=pad;hi+=pad;
+  const Y=v=>h-6-(v-lo)/(hi-lo)*(h-12),t1=L.trace[L.trace.length-1].t,X=t=>w-(t1-t)/12*w;
+  const tol=METRICS[p.primary].tol*L.k,dir=Math.sign(p.far-p.rest)||1;
+  g.fillStyle=css('--good-bg');const a=Y(p.far),b=Y(p.far-dir*tol);g.fillRect(0,Math.min(a,b),w,Math.abs(a-b));
+  g.setLineDash([4,4]);g.strokeStyle=css('--good');g.lineWidth=1;g.beginPath();g.moveTo(0,Y(p.far));g.lineTo(w,Y(p.far));g.stroke();
+  g.strokeStyle=css('--muted');g.beginPath();g.moveTo(0,Y(p.rest));g.lineTo(w,Y(p.rest));g.stroke();g.setLineDash([]);
+  g.font='11px Barlow,sans-serif';g.fillStyle=css('--good');g.fillText('教练最远点',6,Y(p.far)+(dir>0?12:-4));g.fillStyle=css('--muted');g.fillText('起始位',6,Y(p.rest)+(dir>0?-4:12));
+  g.strokeStyle=css('--accent');g.lineWidth=2;g.beginPath();L.trace.forEach((pt,i)=>{const x=X(pt.t),y=Y(pt.v);i?g.lineTo(x,y):g.moveTo(x,y)});g.stroke();
+}
+function endLive(){
+  if(S.loop){S.loop.stop=true;S.loop=null}
+  if(S.stream){S.stream.getTracks().forEach(t=>t.stop());S.stream=null}
+  $('liveStart').hidden=false;$('liveStop').hidden=true;
+  const L=S.live;if(!L)return;const n=L.reps.length,box=$('setSummary');box.hidden=false;
+  if(!n){box.innerHTML='<div class="status">这一组没有识别到完整的动作。检查一下机位是不是和教练录的时候一样。</div>';return}
+  const cnt={};let clean=0;L.reps.forEach(r=>{if(!r.cmp.issues.length)clean++;r.cmp.issues.forEach(i=>{cnt[i.voice]=(cnt[i.voice]||0)+1})});
+  const P=L.prof.primary,avg=median(L.reps.map(r=>r.farV));
+  const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  box.innerHTML=`<div class="eyebrow" style="margin-bottom:6px">这一组总结</div><table class="sum">
+   <tr><th>完成</th><td>${n} 下，其中 ${clean} 下和教练一致</td></tr>
+   <tr><th>${METRICS[P].zh}</th><td>你的中位数 ${fmtVal(P,avg)} · 教练 ${fmtVal(P,L.prof.far)}</td></tr>
+   ${top.map(([k,v])=>`<tr><th>${v}/${n} 下</th><td>${esc(k)}</td></tr>`).join('')}</table>`;
+  speak(`这一组${NUM_ZH[n]||n}下，${clean}下标准`);
+}
+$('liveStart').addEventListener('click',async()=>{
+  if(!currentProfile()){setStatus($('liveStatus'),'这个动作还没有教练标准，先去「① 录教练标准」录一段。','err');return}
+  try{await ensureModel($('liveStatus'));await startCamera();beginLive();setStatus($('liveStatus'),'');
+    $('liveStart').hidden=true;$('liveStop').hidden=false;speak('开始');runLoop(liveFrame);
+  }catch(err){setStatus($('liveStatus'),camError(err),'err')}
+});
+$('liveStop').addEventListener('click',endLive);
+$('liveFile').addEventListener('change',async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  if(!currentProfile()){setStatus($('liveStatus'),'这个动作还没有教练标准，先去「① 录教练标准」录一段。','err');return}
+  try{await ensureModel($('liveStatus'));await startFile(f);beginLive();setStatus($('liveStatus'),'正在分析你的视频…');
+    await video.play();runLoop(liveFrame,()=>{setStatus($('liveStatus'),'分析完了。');endLive()});
+  }catch(err){setStatus($('liveStatus'),'出错了：'+(err.message||err),'err')}
+});
+
+/* ---------- library ---------- */
+function renderLib(){
+  const box=$('lib');box.innerHTML='';
+  if(!S.profiles.length){box.innerHTML='<div class="status">还没有保存任何标准。到「① 录教练标准」上传或录一段教练示范。</div>';return}
+  const byEx=[...S.profiles].sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+  for(const p of byEx){const pr=PRESETS.find(x=>x.id===p.exerciseId);
+    const el=document.createElement('div');el.className='libitem';
+    el.innerHTML=`<img alt="" src="${p.images&&p.images.far||''}"><div class="meta"><b>${esc(p.name)}</b><span class="note">${pr?pr.zh:''} · ${p.reps} 下 · ${METRICS[p.primary].zh} ${fmtVal(p.primary,p.rest)} → ${fmtVal(p.primary,p.far)}</span><div class="row"><button class="btn sm" data-use>用这份练</button><button class="btn sm danger" data-del>删除</button></div></div>`;
+    el.querySelector('[data-use]').onclick=()=>{store.set('active.'+p.exerciseId,p.id);exSel.value=p.exerciseId;selectPreset();setMode('live')};
+    const del=el.querySelector('[data-del]');del.onclick=async()=>{if(del.dataset.armed){await DB.del(p.id);S.profiles=await DB.all();renderLib();renderProfSel()}else{del.dataset.armed='1';del.textContent='再点一次确认删除';setTimeout(()=>{if(del.isConnected){delete del.dataset.armed;del.textContent='删除'}},3000)}};
+    box.append(el)}
+}
+$('libExport').addEventListener('click',()=>{
+  const blob=new Blob([JSON.stringify({app:'form-mirror',v:1,profiles:S.profiles})],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`form-mirror-标准-${new Date().toISOString().slice(0,10)}.json`;document.body.append(a);a.click();a.remove();
+});
+$('libImport').addEventListener('change',async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{const j=JSON.parse(await f.text());const list=(j.profiles||[]).filter(p=>p&&p.id&&p.primary&&METRICS[p.primary]);
+    for(const p of list)await DB.put(p);S.profiles=await DB.all();renderLib();renderProfSel();
+    $('lib').insertAdjacentHTML('afterbegin',`<div class="status ok">导入了 ${list.length} 份标准。</div>`)}
+  catch(err){$('lib').insertAdjacentHTML('afterbegin','<div class="status err">这个文件读不了，确认是从这里导出的 .json 文件。</div>')}
+});
+
+/* ---------- mode / preset ---------- */
+function renderProfSel(){
+  const sel=$('profSel'),list=S.profiles.filter(p=>p.exerciseId===S.preset.id).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+  sel.innerHTML='';
+  if(!list.length){const o=document.createElement('option');o.value='';o.textContent='还没有，先录教练标准';sel.append(o);$('coachImg').removeAttribute('src');return}
+  list.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;sel.append(o)});
+  const act=store.get('active.'+S.preset.id,'');sel.value=list.some(p=>p.id===act)?act:list[0].id;
+  const p=currentProfile();$('coachImg').src=p&&p.images?p.images.far:'';
+}
+$('profSel').addEventListener('change',()=>{const p=currentProfile();if(p){store.set('active.'+p.exerciseId,p.id);$('coachImg').src=p.images?p.images.far:''}});
+function selectPreset(){
+  S.preset=PRESETS.find(p=>p.id===exSel.value)||PRESETS[0];store.set('ex',S.preset.id);
+  $('refTitle').textContent=S.preset.name;$('liveTitle').textContent=S.preset.name;$('refFilm').innerHTML=S.preset.film;
+  renderProfSel();
+}
+exSel.addEventListener('change',()=>{stopSource();showStage(false);S.live=null;renderMetrics(null);$('log').innerHTML='';$('setSummary').hidden=true;
+  $('liveStart').hidden=false;$('liveStop').hidden=true;$('refCamStart').hidden=false;$('refCamStop').hidden=true;$('refResult').hidden=true;setStatus($('refStatus'),'');setStatus($('liveStatus'),'');selectPreset();setEmpty()});
+function setEmpty(){
+  if(S.mode==='live'){$('emptyTitle').textContent=currentProfile()?'准备好就点「开始这一组」':'先录一段教练的标准动作';
+    $('emptyText').innerHTML=currentProfile()?'手机的位置和角度尽量和教练录的时候一样。每做完一下，会用语音告诉你哪里不一样。':'这个动作还没有标准，先到「① 录教练标准」。'}
+  else{$('emptyTitle').textContent='先录一段教练的标准动作';$('emptyText').textContent='上传教练示范的视频，或者直接用摄像头录。教练做 3–5 下就够了。'}
+}
+function setMode(m){
+  if(S.mode!==m){stopSource();showStage(false);$('refCamStart').hidden=false;$('refCamStop').hidden=true;$('liveStart').hidden=false;$('liveStop').hidden=true}
+  S.mode=m;$('tabRef').setAttribute('aria-selected',m==='ref');$('tabLive').setAttribute('aria-selected',m==='live');$('tabLib').setAttribute('aria-selected',m==='lib');
+  $('panelRef').hidden=m!=='ref';$('panelLive').hidden=m!=='live';$('panelLib').hidden=m!=='lib';
+  if(m==='lib')renderLib();if(m==='live')renderProfSel();setEmpty();
+}
+$('tabRef').onclick=()=>setMode('ref');$('tabLive').onclick=()=>setMode('live');$('tabLib').onclick=()=>setMode('lib');
+window.addEventListener('resize',()=>{if(S.live)drawSpark()});
+
+(async()=>{S.profiles=await DB.all();selectPreset();setMode('ref');
+  if(!window.isSecureContext)setStatus($('refStatus'),'提示：需要用 https 地址或本地文件打开，摄像头才能用。','err')})();
+</script>
+</body>
+</html>

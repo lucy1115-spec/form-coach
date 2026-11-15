@@ -1,0 +1,15 @@
+# 这个仓库是公开的：只放代码。
+# 关节点数据来自真人视频，不进 git。
+test/fixtures/
+
+# 密钥和视频
+.env
+*.mp4
+*.mov
+*.MOV
+*.m4v
+
+node_modules/
+Thumbs.db
+desktop.ini
+.DS_Store

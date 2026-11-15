@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>关节点导出</title>
+<style>
+body{font:14px/1.5 system-ui,"Microsoft YaHei",sans-serif;margin:16px;background:#fff;color:#111}
+video{max-width:100%;max-height:60vh;background:#000;display:block}
+#log{white-space:pre-wrap;background:#f2f2f2;padding:8px;border-radius:6px}
+</style>
+</head>
+<body>
+<h1>关节点导出（开发用）</h1>
+<p>用法：<code>/tools/extract.html?src=/video/IMG_0692.MOV&amp;name=coach-reverse-lunge&amp;model=full&amp;fps=30</code>。
+逐帧跑 MediaPipe，把 33 个关节点存到 <code>test/fixtures/&lt;name&gt;.json</code>，给 <code>node --test</code> 用。</p>
+<video id="v" playsinline muted></video>
+<div id="log">准备中…</div>
+<script type="module">
+import {PoseLandmarker,FilesetResolver} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+const q=new URLSearchParams(location.search);
+const src=q.get('src'), name=q.get('name')||'fixture', model=q.get('model')||'full';
+const v=document.getElementById('v'), log=document.getElementById('log');
+const say=m=>{log.textContent=m;console.log(m)};
+window.__extract={done:false,error:null};
+try{
+  if(!src) throw new Error('缺少 ?src=');
+  say('加载模型…');
+  const fs=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+  const url=`https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_${model}/float16/1/pose_landmarker_${model}.task`;
+  const mk=d=>PoseLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:url,delegate:d},runningMode:'VIDEO',numPoses:1,minPoseDetectionConfidence:.5,minTrackingConfidence:.5});
+  let lmk,delegate='GPU'; try{lmk=await mk('GPU')}catch(e){delegate='CPU';lmk=await mk('CPU')}
+  say('加载视频…');
+  await new Promise((res,rej)=>{v.onloadedmetadata=res;v.onerror=()=>rej(new Error('浏览器打不开这个视频（可能是 HEVC 编码）'));v.src=src});
+  // 逐帧跳转（不播放），保证不漏帧、每次结果一样
+  const frames=[], fps=Number(q.get('fps')||30), n=Math.floor(v.duration*fps);
+  for(let i=0;i<=n;i++){
+    const t=Math.min(i/fps,v.duration-0.001);
+    v.currentTime=t; await new Promise(r=>v.onseeked=r);
+    let r=null; try{r=lmk.detectForVideo(v,Math.round(t*1000)+1)}catch(e){}
+    const lm=r&&r.landmarks&&r.landmarks[0];
+    frames.push({t:+t.toFixed(4),lm:lm?lm.map(p=>[+p.x.toFixed(4),+p.y.toFixed(4),+p.z.toFixed(4),+(p.visibility??1).toFixed(3)]):null});
+    if(i%10===0) say(`分析中 ${t.toFixed(1)} / ${v.duration.toFixed(1)} 秒 · ${frames.length} 帧`);
+  }
+  const out={source:src.split('/').pop(),model,delegate,mediapipe:'0.10.14',fps,W:v.videoWidth,H:v.videoHeight,duration:v.duration,
+    format:'lm = 33 x [x, y, z, visibility]，x/y 是 0–1 的画面比例',frames};
+  const resp=await fetch('/__fixture/'+encodeURIComponent(name)+'.json',{method:'POST',body:JSON.stringify(out)});
+  if(!resp.ok) throw new Error('保存失败 '+resp.status);
+  const hit=frames.filter(f=>f.lm).length;
+  say(`完成：${frames.length} 帧，其中 ${hit} 帧识别到人。已存为 test/fixtures/${name}.json（${out.W}×${out.H}，${out.duration.toFixed(1)} 秒，${delegate}）`);
+  window.__extract={done:true,frames:frames.length,hit,W:out.W,H:out.H,duration:out.duration};
+}catch(e){say('出错了：'+(e.message||e));window.__extract={done:true,error:String(e.message||e)}}
+</script>
+</body>
+</html>
