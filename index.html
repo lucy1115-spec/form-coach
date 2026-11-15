@@ -193,6 +193,7 @@ table.sum th{font-weight:500;color:var(--muted);font-size:12px}
           <div class="field"><label for="camSel">摄像头</label><select id="camSel"><option value="user">前置</option><option value="environment">后置</option></select></div>
           <div class="field"><label for="voiceSel">语音</label><select id="voiceSel"></select></div>
           <div class="field"><label for="modelSel">识别精度</label><select id="modelSel"><option value="lite">快（手机）</option><option value="full">准（电脑）</option></select></div>
+          <button class="btn sm" id="voiceTest" type="button">测试语音</button>
           <label class="chk"><input type="checkbox" id="optCount" checked> 报数</label>
           <label class="chk"><input type="checkbox" id="optCue"> 每一下都语音提示问题（默认只报数，一组做完再总结）</label>
         </div>
@@ -258,8 +259,24 @@ function loadVoices(){voices=(speechSynthesis.getVoices()||[]).filter(v=>/^zh/i.
   sel.value=[...sel.options].some(o=>o.value===saved)?saved:(sel.options[1]?sel.options[1].value:'off')}
 if('speechSynthesis' in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
 $('voiceSel').addEventListener('change',e=>store.set('voice',e.target.value));
-function speak(text){try{const vn=$('voiceSel').value;if(vn==='off'||!('speechSynthesis' in window))return;speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text);u.lang='zh-CN';u.rate=1.08;const v=voices.find(x=>x.name===vn);if(v)u.voice=v;speechSynthesis.speak(u)}catch(e){}}
+/* iPhone Safari 只在用户点按钮的那一刻允许网页出声，之后自动触发的语音（报数）可能被静音。
+   做法：① 点"开始"时 unlockAudio() 先解锁语音和 Web Audio；② 报数排队说，不先 cancel()
+   （iOS 上 cancel() 紧接 speak() 会把新的一句吞掉）；③ 报数 0.8 秒内没开始说，就"嘀"一声代替。 */
+let audioCtx=null;
+function unlockAudio(){
+  try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state!=='running')audioCtx.resume()}catch(e){}
+  try{if('speechSynthesis' in window){speechSynthesis.resume();const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u)}}catch(e){}
+}
+function beep(){try{if(!audioCtx)return;const t=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.frequency.value=880;g.gain.setValueAtTime(.3,t);g.gain.exponentialRampToValueAtTime(.001,t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+.2)}catch(e){}}
+function speak(text,{interrupt=false,beepIfSilent=false}={}){try{
+  const vn=$('voiceSel').value;if(vn==='off'||!('speechSynthesis' in window)){if(beepIfSilent&&vn!=='off')beep();return}
+  const s=speechSynthesis;if(s.paused)s.resume();
+  const go=()=>{const u=new SpeechSynthesisUtterance(text);u.lang='zh-CN';u.rate=1.08;const v=voices.find(x=>x.name===vn);if(v)u.voice=v;
+    let started=false;u.onstart=()=>{started=true};const busy=s.speaking||s.pending;s.speak(u);
+    if(beepIfSilent&&!busy)setTimeout(()=>{if(!started){beep();S.speechMuted=(S.speechMuted||0)+1}},800)};
+  if(interrupt&&(s.speaking||s.pending)){s.cancel();setTimeout(go,80)}else go();
+}catch(e){}}
 const NUM_ZH=['零','一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十'];
 
 /* ---------- model ---------- */
@@ -391,6 +408,7 @@ $('refFile').addEventListener('change',async e=>{
   }catch(err){setStatus($('refStatus'),'出错了：'+(err.message||err),'err')}
 });
 $('refCamStart').addEventListener('click',async()=>{
+  unlockAudio();
   try{await ensureModel($('refStatus'));await startCamera();
     let n=3;setStatus($('refStatus'),'准备好姿势…');const cue=$('hudCue');cue.hidden=false;cue.className='hud-cue';
     await new Promise(res=>{const iv=setInterval(()=>{cue.textContent=n?`${n}`:'开始！';speak(n?NUM_ZH[n]:'开始');if(n--<=0){clearInterval(iv);setTimeout(()=>{cue.hidden=true},700);res()}},900)});
@@ -417,6 +435,7 @@ function beginLive(){
   const prof=currentProfile();
   S.live={prof,tracker:new Tracker(specFor(S.preset,prof)),counter:new RepCounter({rest:prof.rest,far:prof.far}),
     reps:[],trace:[],farImg:null,lastFarSnap:-1,lastMissingSay:0,missSince:null,k:parseFloat($('tolSel').value)};
+  S.speechMuted=0;
   $('log').innerHTML='';$('setSummary').hidden=true;$('hudN').textContent='0';$('hudCount').hidden=false;
   $('youPh').outerHTML='<div class="ph" id="youPh"></div>';$('youCap').textContent='你 · 上一下的最远点';
   renderMetrics(null);
@@ -446,7 +465,7 @@ function onRep(rep){
   // 做组时默认只报数；问题留到一组结束再总结
   const parts=[];if($('optCount').checked)parts.push(NUM_ZH[rep.n]||String(rep.n));
   if(top&&$('optCue').checked)parts.push(top.voice);
-  if(parts.length)speak(parts.join('，'));
+  if(parts.length)speak(parts.join('，'),{beepIfSilent:true});
   if(rep.img){const ph=$('youPh');const im=document.createElement('img');im.id='youPh';im.src=rep.img;im.alt='你的最远点';ph.replaceWith(im);$('youCap').textContent=`你 · 第 ${rep.n} 下的最远点`}
   const row=document.createElement('div');row.className='rep';
   const chips=[...cmp.issues.map(i=>`<span class="chip ${i.sev>1.6?'bad':'warn'}">${esc(i.text)}</span>`),...cmp.infos.map(i=>`<span class="chip ${i.cls}">${esc(i.text)}</span>`)].join('');
@@ -506,7 +525,8 @@ function endLive(){
    <div class="row" style="margin-top:10px"><button class="btn primary" id="setSave">保存这一组</button><button class="btn" id="logExport">导出训练记录 CSV</button></div>
    <p class="note" id="logNote"></p>`;
   $('setSave').onclick=saveSet;$('logExport').onclick=exportLog;renderLogNote();
-  speak(sum.speech);
+  speak(sum.speech,{interrupt:true});
+  if(S.speechMuted)setStatus($('liveStatus'),`这一组有 ${S.speechMuted} 次报数手机没念出来，已用"嘀"声代替。可以在设置里点"测试语音"检查。`);
 }
 
 /* ---------- 训练记录：先存在这台设备，导出成 CSV（第 5 步再接 Google Drive） ---------- */
@@ -532,12 +552,15 @@ function renderLogNote(msg){
   el.textContent=msg||`这台设备上共 ${log.length} 组记录，${pending} 组还没导出。导出的文件每组一行，列和 coach/data/training_log.csv 一样。`;
 }
 $('liveStart').addEventListener('click',async()=>{
+  unlockAudio(); // 必须在点击的同一时刻、任何 await 之前
   if(!currentProfile()){setStatus($('liveStatus'),'这个动作还没有教练标准，先去「① 录教练标准」录一段。','err');return}
   try{await ensureModel($('liveStatus'));await startCamera();beginLive();setStatus($('liveStatus'),'');
     $('liveStart').hidden=true;$('liveStop').hidden=false;speak('开始');runLoop(liveFrame);
   }catch(err){setStatus($('liveStatus'),camError(err),'err')}
 });
-$('liveStop').addEventListener('click',endLive);
+$('liveStop').addEventListener('click',()=>{unlockAudio();endLive()});
+$('voiceTest').addEventListener('click',()=>{unlockAudio();speak('一，二，三',{interrupt:true,beepIfSilent:true})});
+$('liveFileLbl').addEventListener('click',unlockAudio);
 $('liveFile').addEventListener('change',async e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;
   if(!currentProfile()){setStatus($('liveStatus'),'这个动作还没有教练标准，先去「① 录教练标准」录一段。','err');return}
