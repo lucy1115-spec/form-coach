@@ -18,7 +18,10 @@ const METRICS={
 };
 // 评估优先级：背 > 膝盖前冲 > 幅度 > 节奏。问题按 严重程度 × 权重 排序
 const WEIGHT={trunk:1.3,neck:1.3,kneeFwd:1.15};
-const ALL_KEYS=['knee','kneeMin','hip','elbow','shoulder','trunk','kneeSpread','elbowAsym','neck','kneeFwd'];
+const ALL_KEYS=['knee','kneeMin','hip','elbow','shoulder','trunk','kneeSpread','elbowAsym','neck','kneeFwd','viewRatio'];
+// 机位：肩宽 ÷ 躯干长。正侧面时两肩重叠（约 0.1–0.2），正面或背面时约 0.5–0.6。
+// 身体在动作中会转，斜侧面和侧面分不准，所以只用它认出"正面或背面"
+const FRONT_BACK_RATIO=0.45;
 const CURVE_N=51;
 const AUTO_CANDIDATES=['knee','hip','elbow','shoulder','kneeSpread'];
 
@@ -104,6 +107,8 @@ class Tracker{
     const hw=Math.hypot((H1.x-H2.x)*W,(H1.y-H2.y)*H), kw=Math.hypot((lm[25].x-lm[26].x)*W,(lm[25].y-lm[26].y)*H);
     out.kneeSpread=hw>4?kw/hw:NaN;
     out.elbowAsym=(sideVis(lm,'elbow','L')>=.5&&sideVis(lm,'elbow','R')>=.5)?Math.abs(raw.elbowL-raw.elbowR):NaN;
+    const torso=Math.hypot(sx-hx,sy-hy), sw=Math.hypot((S1.x-S2.x)*W,(S1.y-S2.y)*H);
+    out.viewRatio=torso>4?sw/torso:NaN;
     // smoothing
     for(const k of ALL_KEYS){const v=out[k]; if(isNaN(v)){out[k]=NaN;continue}
       this.ema[k]=this.ema[k]==null?v:this.ema[k]+(v-this.ema[k])*this.alpha; out[k]=this.ema[k]}
@@ -215,10 +220,20 @@ function secondaryDiff(key,rep,prof,tol){
   return v==null||isNaN(v)||r==null?null:{d:v-r,whole:false};
 }
 
+/* 这一下的机位（肩宽 ÷ 躯干长的中位数），没有样本时退回最远点那一帧 */
+function repView(rep){
+  const v=rep.samples?median(rep.samples.map(s=>s.vals.viewRatio)):NaN;
+  return isNaN(v)&&rep.vals?rep.vals.viewRatio:v;
+}
+
 /* Compare one rep against the profile -> issues (most severe first) */
 function compareRep(rep,prof,preset,k){
   const dir=Math.sign(prof.far-prof.rest)||1, P=prof.primary, tolP=METRICS[P].tol*k, cues=preset.cues||{};
   const issues=[], infos=[];
+  // 侧面拍的动作，这一下却是正面或背面拍到的：角度没法比，不评估
+  const view=repView(rep);
+  if(preset.view==='side'&&view>FRONT_BACK_RATIO)
+    return {skipped:true,issues:[{key:'view',sev:0,text:'这一下是正面或背面拍的，没有评估',voice:'手机要放在身体正侧面'}],infos:[]};
   const farShort=(prof.far-rep.farV)*dir;
   if(farShort>tolP) issues.push({key:P,sev:farShort/tolP*1.2,text:`${METRICS[P].zh}差了 ${fmtVal(P,farShort)}`,voice:cues.farShort||'幅度再大一点'});
   else if(-farShort>2*tolP) infos.push({cls:'warn',text:'幅度比教练还大'});
@@ -245,17 +260,24 @@ function compareRep(rep,prof,preset,k){
 function repScore(r,prof){return r.cmp.issues.reduce((s,i)=>s+i.sev,0)+Math.abs(r.farV-prof.far)/(METRICS[prof.primary].tol*10)}
 function summarizeSet(reps,prof){
   const n=reps.length;
-  if(!n) return {n:0,clean:0,top:[],best:null,worst:null,farMedian:NaN,speech:'这一组没有识别到完整的动作'};
-  const clean=reps.filter(r=>!r.cmp.issues.length).length;
+  if(!n) return {n:0,clean:0,skipped:0,top:[],best:null,worst:null,farMedian:NaN,speech:'这一组没有识别到完整的动作'};
+  // 机位不对没评估的几下单独算，不参与"标准几下"、最好最差和主要问题
+  const done=reps.filter(r=>!r.cmp.skipped), skipped=n-done.length, m=done.length;
+  const clean=done.filter(r=>!r.cmp.issues.length).length;
   const cnt=new Map();
-  for(const r of reps) for(const v of new Set(r.cmp.issues.map(i=>i.voice))) cnt.set(v,(cnt.get(v)||0)+1);
+  for(const r of done) for(const v of new Set(r.cmp.issues.map(i=>i.voice))) cnt.set(v,(cnt.get(v)||0)+1);
   const top=[...cnt.entries()].sort((a,b)=>b[1]-a[1]).map(([voice,count])=>({voice,count}));
-  const scored=reps.map(r=>({r,s:repScore(r,prof)})).sort((a,b)=>a.s-b.s);
-  const best=scored[0].r, worst=n>1&&scored[n-1].r.cmp.issues.length?scored[n-1].r:null;
-  let speech=`这一组${n}下，${clean}下标准。`;
-  if(clean===n) speech+='全部和教练一致，很好。';
-  else speech+='主要问题：'+top.slice(0,2).map(x=>`${x.voice}，${x.count}下`).join('；')+'。';
-  return {n,clean,top,best,worst,farMedian:median(reps.map(r=>r.farV)),speech};
+  const scored=done.map(r=>({r,s:repScore(r,prof)})).sort((a,b)=>a.s-b.s);
+  const best=m?scored[0].r:null, worst=m>1&&scored[m-1].r.cmp.issues.length?scored[m-1].r:null;
+  let speech=`这一组${n}下`;
+  if(skipped) speech+=`，其中${skipped}下不是侧面拍的，没有评估`;
+  if(!m) speech+='。手机要放在身体正侧面。';
+  else {
+    speech+=skipped?`。评估的${m}下里，${clean}下标准。`:`，${clean}下标准。`;
+    if(clean===m) speech+=skipped?'都和教练一致。':'全部和教练一致，很好。';
+    else speech+='主要问题：'+top.slice(0,2).map(x=>`${x.voice}，${x.count}下`).join('；')+'。';
+  }
+  return {n,clean,skipped,top,best,worst,farMedian:median(done.map(r=>r.farV)),speech};
 }
 
 /* 训练记录一行，列和 coach/data/training_log.csv 一样：date,session,exercise,sets,reps,weight_lb,rir,note */
@@ -263,7 +285,8 @@ const TRAINING_LOG_HEADER='date,session,exercise,sets,reps,weight_lb,rir,note';
 function csvCell(v){if(v==null||(typeof v==='number'&&isNaN(v)))return '';const s=String(v);return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
 function formNote(sum){
   if(!sum||!sum.n) return '';
-  const parts=[`动作评估 ${sum.clean}/${sum.n} 下标准`];
+  const parts=[`动作评估 ${sum.clean}/${sum.n-(sum.skipped||0)} 下标准`];
+  if(sum.skipped) parts.push(`${sum.skipped} 下机位不对未评估`);
   for(const x of sum.top.slice(0,3)) parts.push(`${x.voice} ×${x.count}`);
   return parts.join('；');
 }
@@ -271,5 +294,5 @@ function trainingLogRow({date,session='',exercise,sets=1,reps,weight_lb,rir,note
   return [date,session,exercise,sets,reps,weight_lb,rir,note].map(csvCell).join(',');
 }
 
-export {SIDES,JOINT_ZH,CHAIN,METRICS,WEIGHT,ALL_KEYS,AUTO_CANDIDATES,CURVE_N,TRAINING_LOG_HEADER,ang,vis,sideAngle,sideVis,fmtVal,median,pct,baseKey,
-  kneeForward,resample,repCurve,Tracker,RepCounter,analyzeReference,compareRep,summarizeSet,formNote,trainingLogRow};
+export {SIDES,JOINT_ZH,CHAIN,METRICS,WEIGHT,ALL_KEYS,AUTO_CANDIDATES,CURVE_N,FRONT_BACK_RATIO,TRAINING_LOG_HEADER,ang,vis,sideAngle,sideVis,fmtVal,median,pct,baseKey,
+  kneeForward,resample,repCurve,repView,Tracker,RepCounter,analyzeReference,compareRep,summarizeSet,formNote,trainingLogRow};

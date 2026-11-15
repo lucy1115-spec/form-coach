@@ -170,6 +170,27 @@ test('训练记录行：列顺序和 training_log.csv 一样，逗号和引号�
   assert.equal(row, '2026-11-15,,Smith Machine Reverse Lunge,1,2,35,2,"动作评估 1/2 下标准；挺胸, ""别弯腰"" ×1"');
 });
 
+test('机位检查：侧面动作里，正面或背面拍到的那一下不评估，总结里单独说', () => {
+  const p = preset('smith-reverse-lunge');
+  const prof = analyzeReference(synthSeries(4), specFor(p));
+  const mkRep = (view, far) => {
+    const c = new RepCounter({rest: prof.rest, far: prof.far}); let rep = null;
+    for (const s of synthSeries(1, {far})) rep = c.push(s.t, s.values.kneeMin, {...s.values, viewRatio: view}) || rep;
+    rep.cmp = compareRep(rep, prof, p, 1); return rep;
+  };
+  const back = mkRep(0.6, 100), side = mkRep(0.15, 60), sideShallow = mkRep(0.15, 90);
+  assert.equal(back.cmp.skipped, true);
+  assert.equal(side.cmp.skipped, undefined);
+  assert.equal(side.cmp.issues.length, 0);
+  const s = summarizeSet([back, side, sideShallow], prof);
+  assert.equal(s.skipped, 1);
+  assert.equal(s.clean, 1);
+  assert.equal(s.best, side);
+  assert.equal(s.speech, `这一组3下，其中1下不是侧面拍的，没有评估。评估的2下里，1下标准。主要问题：${p.cues.farShort}，1下。`);
+  assert.match(formNote(s), /^动作评估 1\/2 下标准；1 下机位不对未评估/);
+  assert.equal(summarizeSet([back], prof).speech, '这一组1下，其中1下不是侧面拍的，没有评估。手机要放在身体正侧面。');
+});
+
 // ---------- 用真实视频导出的关节点（test/fixtures/，不进 git） ----------
 
 const coach = loadFixture('coach-reverse-lunge');
@@ -209,4 +230,21 @@ test('教练示范：新指标在合理范围', {skip: !coach && '缺少 fixture
   assert.ok(prof.secondary.neck > 150 && prof.secondary.neck <= 180, `耳-肩-髋 ${prof.secondary.neck}`);
   assert.ok(Math.abs(prof.secondary.kneeFwd) < 1, `膝盖前冲 ${prof.secondary.kneeFwd}`);
   for (const k of ['kneeMin', 'trunk', 'neck', 'kneeFwd']) assert.equal(prof.curves[k].length, CURVE_N);
+});
+
+// 用户自己的第一段视频（2026-11-15）：前 15 秒从背后拍，之后换到正侧面
+const me1 = loadFixture('me-reverse-lunge-1');
+
+test('我的视频 1：背后拍的 2 下不评估，侧面拍的 9 下都评估', {skip: !(coach && me1) && '缺少 fixture'}, () => {
+  const p = preset('smith-reverse-lunge'), spec = specFor(p);
+  const prof = analyzeReference(toSeries(coach, spec), spec);
+  const c = new RepCounter({rest: prof.rest, far: prof.far}), reps = [];
+  for (const x of toSeries(me1, specFor(p, prof))) {
+    const r = c.push(x.t, x.values[prof.primary], x.values);
+    if (r) { r.cmp = compareRep(r, prof, p, 1); reps.push(r); }
+  }
+  assert.equal(reps.length, 11);
+  assert.deepEqual(reps.filter(r => r.cmp.skipped).map(r => r.n), [1, 2]);
+  for (const r of reps.slice(2)) assert.ok(r.start > 15, `第 ${r.n} 下从 ${r.start}s 开始`);
+  assert.equal(summarizeSet(reps, prof).skipped, 2);
 });

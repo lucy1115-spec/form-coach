@@ -486,16 +486,17 @@ function endLive(){
   const sum=summarizeSet(L.reps,L.prof);L.summary=sum;
   const P=L.prof.primary;
   const fig=(url,cap)=>`<figure>${url?`<img src="${url}" alt="${esc(cap)}">`:'<div class="ph"></div>'}<figcaption>${esc(cap)}</figcaption></figure>`;
-  const imgs=[fig(sum.best.img,`最好 · 第 ${sum.best.n} 下`)];
+  const imgs=[];
+  if(sum.best) imgs.push(fig(sum.best.img,`最好 · 第 ${sum.best.n} 下`));
   if(sum.worst) imgs.push(fig(sum.worst.img,`最需要改 · 第 ${sum.worst.n} 下`));
   imgs.push(fig(L.prof.images&&L.prof.images.far,'教练 · 最低点'));
   const last=store.get('lastSet.'+S.preset.id,{});
   box.innerHTML=`<div class="eyebrow" style="margin-bottom:6px">这一组总结</div>
    <div class="status ${sum.clean===n?'ok':''}" style="margin-bottom:8px">${esc(sum.speech)}</div>
    <table class="sum">
-   <tr><th>完成</th><td>${n} 下，其中 ${sum.clean} 下和教练一致</td></tr>
+   <tr><th>完成</th><td>${n} 下，其中 ${sum.clean} 下和教练一致${sum.skipped?`，${sum.skipped} 下机位不对没有评估`:''}</td></tr>
    <tr><th>${METRICS[P].zh}</th><td>你的中位数 ${fmtVal(P,sum.farMedian)} · 教练 ${fmtVal(P,L.prof.far)}</td></tr>
-   ${sum.top.slice(0,3).map(x=>`<tr><th>${x.count}/${n} 下</th><td>${esc(x.voice)}</td></tr>`).join('')}</table>
+   ${sum.top.slice(0,3).map(x=>`<tr><th>${x.count}/${n-sum.skipped} 下</th><td>${esc(x.voice)}</td></tr>`).join('')}</table>
    <div class="compare" style="grid-template-columns:repeat(${imgs.length},1fr);margin-top:10px">${imgs.join('')}</div>
    <div class="settings" style="margin-top:12px">
      <div class="field"><label for="setWeight">重量（磅）</label><input id="setWeight" inputmode="decimal" value="${esc(last.weight??'')}" style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px"></div>
