@@ -12,7 +12,7 @@ video{max-width:100%;max-height:60vh;background:#000;display:block}
 </head>
 <body>
 <h1>关节点导出（开发用）</h1>
-<p>用法：<code>/tools/extract.html?src=/video/IMG_0692.MOV&amp;name=coach-reverse-lunge&amp;model=full&amp;fps=30</code>。
+<p>用法：<code>/tools/extract.html?src=/video/&lt;视频文件名&gt;&amp;name=&lt;样本名&gt;&amp;model=full&amp;fps=30</code>。
 逐帧跑 MediaPipe，把 33 个关节点存到 <code>test/fixtures/&lt;name&gt;.json</code>，给 <code>node --test</code> 用。</p>
 <video id="v" playsinline muted></video>
 <div id="log">准备中…</div>
