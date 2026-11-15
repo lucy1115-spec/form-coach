@@ -194,7 +194,7 @@ table.sum th{font-weight:500;color:var(--muted);font-size:12px}
           <div class="field"><label for="voiceSel">语音</label><select id="voiceSel"></select></div>
           <div class="field"><label for="modelSel">识别精度</label><select id="modelSel"><option value="lite">快（手机）</option><option value="full">准（电脑）</option></select></div>
           <label class="chk"><input type="checkbox" id="optCount" checked> 报数</label>
-          <label class="chk"><input type="checkbox" id="optPraise" checked> 做对了也提示</label>
+          <label class="chk"><input type="checkbox" id="optCue"> 每一下都语音提示问题（默认只报数，一组做完再总结）</label>
         </div>
       </details>
     </section>
@@ -216,7 +216,7 @@ table.sum th{font-weight:500;color:var(--muted);font-size:12px}
 <!-- ============ APP ============ -->
 <script type="module">
 import {PoseLandmarker,FilesetResolver} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
-import {SIDES,METRICS,Tracker,RepCounter,analyzeReference,compareRep,fmtVal,median} from "./src/engine.js";
+import {SIDES,METRICS,Tracker,RepCounter,analyzeReference,compareRep,fmtVal,median,summarizeSet,formNote,trainingLogRow,TRAINING_LOG_HEADER} from "./src/engine.js";
 import {PRESETS} from "./src/presets.js";
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem('fm.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('fm.'+k,JSON.stringify(v))}catch(e){}}};
@@ -237,14 +237,16 @@ const video=$('video'),canvas=$('overlay'),ctx=canvas.getContext('2d');
 
 /* ---------- setup controls ---------- */
 const exSel=$('exSel');
-PRESETS.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=`${p.name} · ${p.zh}`;exSel.append(o)});
+// 先只开放第一个动作；以后加动作就往这里加 id
+const ENABLED=['smith-reverse-lunge'];
+PRESETS.filter(p=>ENABLED.includes(p.id)).forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=`${p.name} · ${p.zh}`;exSel.append(o)});
 exSel.value=store.get('ex',PRESETS[0].id); if(!PRESETS.find(p=>p.id===exSel.value)) exSel.value=PRESETS[0].id;
 $('tolSel').value=store.get('tol','1'); $('camSel').value=store.get('cam','user');
 $('modelSel').value=store.get('model',isMobile?'lite':'full');
-$('optCount').checked=store.get('count',true); $('optPraise').checked=store.get('praise',true);
+$('optCount').checked=store.get('count',true); $('optCue').checked=store.get('cue',false);
 ['tolSel','camSel','modelSel'].forEach(id=>$(id).addEventListener('change',e=>store.set(id.replace('Sel',''),e.target.value)));
 $('optCount').addEventListener('change',e=>store.set('count',e.target.checked));
-$('optPraise').addEventListener('change',e=>store.set('praise',e.target.checked));
+$('optCue').addEventListener('change',e=>store.set('cue',e.target.checked));
 
 /* ---------- voice ---------- */
 let voices=[];
@@ -299,13 +301,15 @@ async function startFile(file){
 }
 /* frame loop: calls fn(result, tSeconds) */
 function runLoop(fn,onEnd){
-  const loop={stop:false};S.loop=loop;let lastTs=-1;
+  // MediaPipe 的 VIDEO 模式要求同一个模型的时间戳一直递增，跨视频、跨摄像头也一样，
+  // 所以每次开始都接在上一次最后的时间戳后面（否则第二段视频每一帧都识别失败）
+  const loop={stop:false};S.loop=loop;const base=(S.lastTs||0)+1000,t0=performance.now();let lastTs=S.lastTs||-1;
   video.onended=S.src==='file'?()=>{if(!loop.stop){loop.stop=true;onEnd&&onEnd()}}:null;
   const step=(now,meta)=>{
     if(loop.stop)return;
     if(video.readyState>=2&&video.videoWidth){
       const t=S.src==='file'?(meta&&meta.mediaTime!=null?meta.mediaTime:video.currentTime):performance.now()/1000;
-      let ts=Math.round(S.src==='file'?t*1000:performance.now()); if(ts<=lastTs)ts=lastTs+1; lastTs=ts;
+      let ts=base+Math.round(S.src==='file'?t*1000:performance.now()-t0); if(ts<=lastTs)ts=lastTs+1; lastTs=ts;S.lastTs=ts;
       let res=null;try{res=S.landmarker.detectForVideo(video,ts)}catch(e){}
       fn(res&&res.landmarks&&res.landmarks[0]?res.landmarks[0]:null,t);
     }
@@ -364,7 +368,7 @@ function finishRef(){
   const d=new Date();
   S.pendingProfile={id:'p'+Date.now(),exerciseId:S.preset.id,createdAt:d.toISOString(),
     name:`${S.preset.name} · ${d.getMonth()+1}/${d.getDate()}`,
-    primary:res.primary,rest:res.rest,far:res.far,reps:res.reps,secondary:res.secondary,tempo:res.tempo,
+    primary:res.primary,rest:res.rest,far:res.far,reps:res.reps,secondary:res.secondary,curves:res.curves,tempo:res.tempo,
     images:{far:nearestThumb(res.bestFarT),rest:nearestThumb(res.bestRestT)}};
   setStatus($('refStatus'),`识别到 ${res.reps} 下完整动作。确认下面的数字合理就保存。`,'ok');
   renderRefResult(S.pendingProfile);
@@ -438,8 +442,9 @@ function onRep(rep){
   const top=cmp.issues[0];
   if(top){cue.className='hud-cue '+(top.sev>1.6?'bad':'warn');cue.textContent=top.voice}
   else{cue.className='hud-cue good';cue.textContent='这一下很标准'}
+  // 做组时默认只报数；问题留到一组结束再总结
   const parts=[];if($('optCount').checked)parts.push(NUM_ZH[rep.n]||String(rep.n));
-  if(top)parts.push(top.voice);else if($('optPraise').checked)parts.push('很好');
+  if(top&&$('optCue').checked)parts.push(top.voice);
   if(parts.length)speak(parts.join('，'));
   if(rep.img){const ph=$('youPh');const im=document.createElement('img');im.id='youPh';im.src=rep.img;im.alt='你的最远点';ph.replaceWith(im);$('youCap').textContent=`你 · 第 ${rep.n} 下的最远点`}
   const row=document.createElement('div');row.className='rep';
@@ -478,14 +483,51 @@ function endLive(){
   $('liveStart').hidden=false;$('liveStop').hidden=true;
   const L=S.live;if(!L)return;const n=L.reps.length,box=$('setSummary');box.hidden=false;
   if(!n){box.innerHTML='<div class="status">这一组没有识别到完整的动作。检查一下机位是不是和教练录的时候一样。</div>';return}
-  const cnt={};let clean=0;L.reps.forEach(r=>{if(!r.cmp.issues.length)clean++;r.cmp.issues.forEach(i=>{cnt[i.voice]=(cnt[i.voice]||0)+1})});
-  const P=L.prof.primary,avg=median(L.reps.map(r=>r.farV));
-  const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,3);
-  box.innerHTML=`<div class="eyebrow" style="margin-bottom:6px">这一组总结</div><table class="sum">
-   <tr><th>完成</th><td>${n} 下，其中 ${clean} 下和教练一致</td></tr>
-   <tr><th>${METRICS[P].zh}</th><td>你的中位数 ${fmtVal(P,avg)} · 教练 ${fmtVal(P,L.prof.far)}</td></tr>
-   ${top.map(([k,v])=>`<tr><th>${v}/${n} 下</th><td>${esc(k)}</td></tr>`).join('')}</table>`;
-  speak(`这一组${NUM_ZH[n]||n}下，${clean}下标准`);
+  const sum=summarizeSet(L.reps,L.prof);L.summary=sum;
+  const P=L.prof.primary;
+  const fig=(url,cap)=>`<figure>${url?`<img src="${url}" alt="${esc(cap)}">`:'<div class="ph"></div>'}<figcaption>${esc(cap)}</figcaption></figure>`;
+  const imgs=[fig(sum.best.img,`最好 · 第 ${sum.best.n} 下`)];
+  if(sum.worst) imgs.push(fig(sum.worst.img,`最需要改 · 第 ${sum.worst.n} 下`));
+  imgs.push(fig(L.prof.images&&L.prof.images.far,'教练 · 最低点'));
+  const last=store.get('lastSet.'+S.preset.id,{});
+  box.innerHTML=`<div class="eyebrow" style="margin-bottom:6px">这一组总结</div>
+   <div class="status ${sum.clean===n?'ok':''}" style="margin-bottom:8px">${esc(sum.speech)}</div>
+   <table class="sum">
+   <tr><th>完成</th><td>${n} 下，其中 ${sum.clean} 下和教练一致</td></tr>
+   <tr><th>${METRICS[P].zh}</th><td>你的中位数 ${fmtVal(P,sum.farMedian)} · 教练 ${fmtVal(P,L.prof.far)}</td></tr>
+   ${sum.top.slice(0,3).map(x=>`<tr><th>${x.count}/${n} 下</th><td>${esc(x.voice)}</td></tr>`).join('')}</table>
+   <div class="compare" style="grid-template-columns:repeat(${imgs.length},1fr);margin-top:10px">${imgs.join('')}</div>
+   <div class="settings" style="margin-top:12px">
+     <div class="field"><label for="setWeight">重量（磅）</label><input id="setWeight" inputmode="decimal" value="${esc(last.weight??'')}" style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px"></div>
+     <div class="field"><label for="setRir">余力（RIR）</label><input id="setRir" inputmode="numeric" value="${esc(last.rir??'')}" style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px"></div>
+   </div>
+   <div class="row" style="margin-top:10px"><button class="btn primary" id="setSave">保存这一组</button><button class="btn" id="logExport">导出训练记录 CSV</button></div>
+   <p class="note" id="logNote"></p>`;
+  $('setSave').onclick=saveSet;$('logExport').onclick=exportLog;renderLogNote();
+  speak(sum.speech);
+}
+
+/* ---------- 训练记录：先存在这台设备，导出成 CSV（第 5 步再接 Google Drive） ---------- */
+function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function saveSet(){
+  const L=S.live;if(!L||!L.summary)return;
+  const weight=$('setWeight').value.trim(),rir=$('setRir').value.trim();
+  store.set('lastSet.'+S.preset.id,{weight,rir});
+  const log=store.get('log',[]);
+  log.push({date:today(),exercise:S.preset.name,reps:L.summary.n,weight_lb:weight,rir,note:formNote(L.summary),at:new Date().toISOString(),exported:false});
+  store.set('log',log);
+  $('setSave').disabled=true;$('setSave').textContent='已保存';renderLogNote();
+}
+function exportLog(){
+  const log=store.get('log',[]);if(!log.length){renderLogNote('还没有保存的记录。');return}
+  const csv=[TRAINING_LOG_HEADER,...log.map(r=>trainingLogRow(r))].join('\n')+'\n';
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`training_log-${today()}.csv`;document.body.append(a);a.click();a.remove();
+  log.forEach(r=>r.exported=true);store.set('log',log);renderLogNote();
+}
+function renderLogNote(msg){
+  const el=$('logNote');if(!el)return;const log=store.get('log',[]);const pending=log.filter(r=>!r.exported).length;
+  el.textContent=msg||`这台设备上共 ${log.length} 组记录，${pending} 组还没导出。导出的文件每组一行，列和 coach/data/training_log.csv 一样。`;
 }
 $('liveStart').addEventListener('click',async()=>{
   if(!currentProfile()){setStatus($('liveStatus'),'这个动作还没有教练标准，先去「① 录教练标准」录一段。','err');return}

@@ -1,16 +1,25 @@
 // 识别引擎：关节点 -> 角度 -> 计次 -> 和教练标准对比。不碰 DOM，浏览器和 Node 都能用。
 // 来源：reference/form-mirror.html 的 <script id="engine">（2026-10-26）。
 // 改动：RepCounter 要先见到起始位才计次；analyzeReference 支持预设指定起始位方向（spec.rest）。
+// 第 2 步：新指标 neck（耳-肩-髋夹角）和 kneeFwd（前腿膝盖超过脚尖多少）；每一下保存整条曲线，
+//          按 0–100% 动作进度和教练曲线对比；summarizeSet 做一组总结；trainingLogRow 生成训练记录。
 
-const SIDES={L:{S:11,E:13,W:15,H:23,K:25,A:27},R:{S:12,E:14,W:16,H:24,K:26,A:28}};
-const JOINT_ZH={S:'肩',E:'手肘',W:'手腕',H:'髋',K:'膝盖',A:'脚踝'};
-const CHAIN={knee:['H','K','A'],hip:['S','H','K'],elbow:['S','E','W'],shoulder:['H','S','E']};
+// Ea=耳朵 F=脚尖 Hl=脚跟（MediaPipe 33 点编号）
+const SIDES={L:{Ea:7,S:11,E:13,W:15,H:23,K:25,A:27,Hl:29,F:31},R:{Ea:8,S:12,E:14,W:16,H:24,K:26,A:28,Hl:30,F:32}};
+const JOINT_ZH={Ea:'头',S:'肩',E:'手肘',W:'手腕',H:'髋',K:'膝盖',A:'脚踝',Hl:'脚跟',F:'脚尖'};
+const CHAIN={knee:['H','K','A'],hip:['S','H','K'],elbow:['S','E','W'],shoulder:['H','S','E'],neck:['Ea','S','H']};
 const METRICS={
   knee:{zh:'膝角',tol:10},kneeMin:{zh:'膝角（较弯的腿）',tol:10},hip:{zh:'髋角',tol:10},
   elbow:{zh:'肘角',tol:12},shoulder:{zh:'肩角',tol:12},trunk:{zh:'躯干倾斜',tol:10},
-  kneeSpread:{zh:'膝间距（×髋宽）',tol:0.15,ratio:true},elbowAsym:{zh:'左右肘角差',tol:15}
+  kneeSpread:{zh:'膝间距（×髋宽）',tol:0.15,ratio:true},elbowAsym:{zh:'左右肘角差',tol:15},
+  neck:{zh:'耳-肩-髋夹角（头和背）',tol:12},
+  // bottomOnly：只在动作下半段（进度 ≥ 50%）比较。弓步迈步时两只脚都在动，分不清前后腿，那段数字没意义
+  kneeFwd:{zh:'前腿膝盖超过脚尖（×小腿长）',tol:0.12,ratio:true,bottomOnly:true}
 };
-const ALL_KEYS=['knee','kneeMin','hip','elbow','shoulder','trunk','kneeSpread','elbowAsym'];
+// 评估优先级：背 > 膝盖前冲 > 幅度 > 节奏。问题按 严重程度 × 权重 排序
+const WEIGHT={trunk:1.3,neck:1.3,kneeFwd:1.15};
+const ALL_KEYS=['knee','kneeMin','hip','elbow','shoulder','trunk','kneeSpread','elbowAsym','neck','kneeFwd'];
+const CURVE_N=51;
 const AUTO_CANDIDATES=['knee','hip','elbow','shoulder','kneeSpread'];
 
 function ang(a,b,c,W,H){
@@ -26,6 +35,27 @@ function median(a){const b=a.filter(x=>!isNaN(x)).sort((x,y)=>x-y);if(!b.length)
 function pct(a,p){const b=a.filter(x=>!isNaN(x)).sort((x,y)=>x-y);if(!b.length)return NaN;return b[Math.min(b.length-1,Math.max(0,Math.round(p*(b.length-1))))]}
 function baseKey(k){return CHAIN[k]?k:(k==='kneeMin'?'knee':null)}
 
+/* 前腿膝盖超过脚尖多少，以小腿长为单位（正数 = 膝盖在脚尖前面）。
+   前腿 = 脚跟抬得少的那条腿（弓步时后脚踮着）；看不清脚时退回"膝盖更弯的那条腿"。
+   方向用脚踝 -> 脚尖判断，所以面朝左右都可以。 */
+function legVis(lm,s){const J=SIDES[s];return Math.min(vis(lm,J.K),vis(lm,J.A),vis(lm,J.F))}
+function kneeForward(lm,W,H){
+  const ok=s=>legVis(lm,s)>=.35, heelUp=s=>{const J=SIDES[s];if(vis(lm,J.Hl)<.35)return NaN;
+    const shin=Math.hypot((lm[J.K].x-lm[J.A].x)*W,(lm[J.K].y-lm[J.A].y)*H);return shin>4?(lm[J.F].y-lm[J.Hl].y)*H/shin:NaN};
+  let front;
+  if(ok('L')&&ok('R')){
+    const uL=heelUp('L'),uR=heelUp('R');
+    if(!isNaN(uL)&&!isNaN(uR)&&Math.abs(uL-uR)>.1) front=uL<uR?'L':'R';
+    else front=sideAngle(lm,'knee','L',W,H)<=sideAngle(lm,'knee','R',W,H)?'L':'R';
+  } else if(ok('L')) front='L'; else if(ok('R')) front='R'; else return NaN;
+  const J=SIDES[front],K=lm[J.K],A=lm[J.A],F=lm[J.F];
+  const shin=Math.hypot((K.x-A.x)*W,(K.y-A.y)*H); if(shin<4)return NaN;
+  // 朝向：优先用鼻子在耳朵哪一边（脚尖点偶尔会被识别反），看不清头再用脚踝 -> 脚尖
+  const ear=vis(lm,7)>=vis(lm,8)?lm[7]:lm[8], nose=lm[0];
+  const dir=(vis(lm,0)>=.5&&Math.abs(nose.x-ear.x)*W>3)?Math.sign(nose.x-ear.x):(Math.sign(F.x-A.x)||1);
+  return (K.x-F.x)*W*dir/shin;
+}
+
 /* Tracker: landmarks -> smoothed metric values for one exercise spec */
 class Tracker{
   constructor(spec){this.spec=spec;this.ema={};this.vis={L:.5,R:.5};this.side=spec.fixedSide||'L';this.hist=[];this.locked=false;this.alpha=.5}
@@ -34,7 +64,7 @@ class Tracker{
     this.vis.L=this.vis.L*.85+sideVis(lm,chainKey,'L')*.15;
     this.vis.R=this.vis.R*.85+sideVis(lm,chainKey,'R')*.15;
     const raw={};
-    for(const k of ['knee','hip','elbow','shoulder']){raw[k+'L']=sideAngle(lm,k,'L',W,H);raw[k+'R']=sideAngle(lm,k,'R',W,H)}
+    for(const k of ['knee','hip','elbow','shoulder','neck']){raw[k+'L']=sideAngle(lm,k,'L',W,H);raw[k+'R']=sideAngle(lm,k,'R',W,H)}
     // which side drives side-specific metrics
     let mode=sp.view==='side'?'visible':'avg';
     if(sp.unilateral) mode='active';
@@ -63,10 +93,11 @@ class Tracker{
       if(track) CHAIN[k].forEach(j=>{if(vis(lm,SIDES[side][j])<.5)missing.add(j)});
       return raw[k+side];
     };
-    for(const k of ['knee','hip','elbow','shoulder']) out[k]=pick(k);
+    for(const k of ['knee','hip','elbow','shoulder','neck']) out[k]=pick(k);
     // knee of the more-bent leg (lunges)
     const kl=sideVis(lm,'knee','L')>=.35?raw.kneeL:NaN, kr=sideVis(lm,'knee','R')>=.35?raw.kneeR:NaN;
     out.kneeMin=isNaN(kl)?kr:isNaN(kr)?kl:Math.min(kl,kr);
+    out.kneeFwd=kneeForward(lm,W,H);
     const S1=lm[11],S2=lm[12],H1=lm[23],H2=lm[24];
     const sx=((S1.x+S2.x)/2)*W, sy=((S1.y+S2.y)/2)*H, hx=((H1.x+H2.x)/2)*W, hy=((H1.y+H2.y)/2)*H;
     out.trunk=Math.atan2(Math.abs(sx-hx),hy-sy)*180/Math.PI;
@@ -86,22 +117,27 @@ class Tracker{
 
 /* RepCounter: online rep segmentation on the primary signal */
 class RepCounter{
-  constructor({rest,far,startThr=.5,endThr=.2}){this.rest=rest;this.far=far;this.startThr=startThr;this.endThr=endThr;this.state='rest';this.count=0;this.restV=null;this.lastRestT=null;this.seenRest=false;this.cur=null}
+  constructor({rest,far,startThr=.5,endThr=.2}){this.rest=rest;this.far=far;this.startThr=startThr;this.endThr=endThr;this.state='rest';this.count=0;this.restV=null;this.lastRestT=null;this.seenRest=false;this.cur=null;this.buf=[]}
   prog(v){return (v-this.rest)/(this.far-this.rest)}
   push(t,v,vals){
     if(isNaN(v))return null; const p=this.prog(v);
+    const sample={t,vals:{...vals}};
     if(this.state==='rest'){
       if(this.restV==null||p<this.prog(this.restV)) this.restV=v;
       // 必须先看到一次起始位，才开始算一下（视频从动作中间开始时，那半下不算）
-      if(p<=.15){this.lastRestT=t;this.seenRest=true}
+      // buf 从最后一次在起始位的那一帧开始存，存到这一下结束，就是这一下的整条曲线
+      if(p<=.15){this.lastRestT=t;this.seenRest=true;this.buf=[sample]}
+      else if(this.seenRest) this.buf.push(sample);
       if(p>=this.startThr&&this.seenRest){this.state='out';this.cur={start:this.lastRestT,restBefore:this.restV,farV:v,farT:t,vals:{...vals},newFar:true}}
       return null;
     }
     const c=this.cur; c.newFar=false;
+    if(this.buf.length<2000) this.buf.push(sample);
     if(p>this.prog(c.farV)){c.farV=v;c.farT=t;c.vals={...vals};c.newFar=true}
     if(p<=this.endThr){
       this.count++; this.state='rest'; this.restV=v; this.lastRestT=t;
-      const rep={n:this.count,start:c.start,farT:c.farT,end:t,farV:c.farV,restBefore:c.restBefore,vals:c.vals,out:c.farT-c.start,back:t-c.farT};
+      const rep={n:this.count,start:c.start,farT:c.farT,end:t,farV:c.farV,restBefore:c.restBefore,vals:c.vals,out:c.farT-c.start,back:t-c.farT,samples:this.buf};
+      this.buf=p<=.15?[sample]:[];
       this.cur=null; return rep;
     }
     return null;
@@ -132,9 +168,51 @@ function analyzeReference(series,spec){
   const secondary={};
   for(const k of spec.secondary||[]){ if(k===primary)continue; const m=median(reps.map(r=>r.vals[k])); if(!isNaN(m)) secondary[k]=m }
   const best=reps.reduce((a,b)=>Math.abs(b.farV-farM)<Math.abs(a.farV-farM)?b:a);
-  return {primary,rest:restM,far:farM,reps:reps.length,secondary,
+  // 每个指标的标准曲线：每一下按 0–100% 进度重采样，再逐点取中位数
+  const keys=[primary,...Object.keys(secondary)], curves={};
+  const per=reps.map(r=>repCurve(r,keys));
+  for(const k of keys) curves[k]=Array.from({length:CURVE_N},(_,i)=>median(per.map(c=>c[k][i])));
+  return {primary,rest:restM,far:farM,reps:reps.length,secondary,curves,
     tempo:{out:median(reps.map(r=>r.out)),back:median(reps.map(r=>r.back))},
     bestFarT:best.farT,bestRestT:best.start,repList:reps};
+}
+
+/* 把一下的样本按时间均匀重采样成 n 个点（0% = 离开起始位，100% = 回到起始位） */
+function resample(samples,keys,n=CURVE_N){
+  const out={}; for(const k of keys) out[k]=new Array(n).fill(NaN);
+  if(!samples||samples.length<2) return out;
+  const t0=samples[0].t, t1=samples[samples.length-1].t; let j=0;
+  for(let i=0;i<n;i++){
+    const tt=t0+(t1-t0)*i/(n-1);
+    while(j<samples.length-2&&samples[j+1].t<tt) j++;
+    const a=samples[j], b=samples[j+1], u=b.t>a.t?Math.min(1,Math.max(0,(tt-a.t)/(b.t-a.t))):0;
+    for(const k of keys){const va=a.vals[k], vb=b.vals[k];
+      out[k][i]=isNaN(va)?vb:isNaN(vb)?va:va+(vb-va)*u}
+  }
+  return out;
+}
+function repCurve(rep,keys){return rep.curve&&keys.every(k=>rep.curve[k])?rep.curve:resample(rep.samples,keys)}
+
+/* 一个次要指标和教练的差：有曲线就看整下动作里偏得最多的地方（取 10%/90% 分位，去掉抖动），
+   没有曲线（旧的标准）就只看最远点那一帧。返回带正负号的差值。 */
+function secondaryDiff(key,rep,prof,tol){
+  const ref=prof.curves&&prof.curves[key];
+  if(ref&&rep.samples){
+    const mine=repCurve(rep,[key])[key], P=prof.primary, pc=prof.curves[P];
+    const keep=i=>!METRICS[key].bottomOnly||(pc&&(pc[i]-prof.rest)/(prof.far-prof.rest)>=.5);
+    const all=mine.map((v,i)=>keep(i)?v-ref[i]:NaN), d=all.filter(x=>!isNaN(x));
+    const need=all.filter((_,i)=>keep(i)).length*.6;
+    if(d.length&&d.length>=need){
+      // 只看最低点附近的指标：比较那一段的中位数（单帧识别抖动大）
+      if(METRICS[key].bottomOnly) return {d:median(d),whole:true};
+      const hi=pct(d,.9), lo=pct(d,.1);
+      if(hi>tol&&hi>=-lo) return {d:hi,whole:true};
+      if(lo<-tol) return {d:lo,whole:true};
+      return {d:Math.abs(hi)>=Math.abs(lo)?hi:lo,whole:true};
+    }
+  }
+  const v=rep.vals[key], r=prof.secondary[key];
+  return v==null||isNaN(v)||r==null?null:{d:v-r,whole:false};
 }
 
 /* Compare one rep against the profile -> issues (most severe first) */
@@ -148,12 +226,12 @@ function compareRep(rep,prof,preset,k){
   const restShort=(rep.restBefore-prof.rest)*dir;
   if(restShort>tolP && cues.restShort!==null) issues.push({key:P,sev:restShort/tolP,text:`起始位置没回到位，差 ${fmtVal(P,restShort)}`,voice:cues.restShort||'回到起始位置'});
   for(const key in prof.secondary){
-    const ref=prof.secondary[key], v=rep.vals[key]; if(v==null||isNaN(v))continue;
-    const d=v-ref, tol=METRICS[key].tol*k; if(Math.abs(d)<=tol){infos.push({cls:'good',text:METRICS[key].zh+' ✓'});continue}
+    const tol=METRICS[key].tol*k, r=secondaryDiff(key,rep,prof,tol); if(!r)continue;
+    const d=r.d; if(Math.abs(d)<=tol){infos.push({cls:'good',text:METRICS[key].zh+' ✓'});continue}
     const c=cues[key]?cues[key][d>0?'high':'low']:undefined;
-    const text=`${METRICS[key].zh}${d>0?'比教练大':'比教练小'} ${fmtVal(key,Math.abs(d))}`;
+    const text=`${METRICS[key].zh}${d>0?'比教练大':'比教练小'} ${fmtVal(key,Math.abs(d))}${r.whole?'':'（最远点）'}`;
     if(c===null){infos.push({cls:'warn',text});continue}
-    issues.push({key,sev:Math.abs(d)/tol,text,voice:c||text});
+    issues.push({key,sev:Math.abs(d)/tol*(WEIGHT[key]||1),text,voice:c||text});
   }
   const ecc=preset.ecc==='back'?rep.back:rep.out, refEcc=preset.ecc==='back'?prof.tempo.back:prof.tempo.out;
   if(refEcc>.5 && ecc<refEcc*.6) issues.push({key:'tempo',sev:1.05,text:`离心 ${ecc.toFixed(1)}s，教练 ${refEcc.toFixed(1)}s`,voice:cues.fast||'慢一点，控制住'});
@@ -162,4 +240,36 @@ function compareRep(rep,prof,preset,k){
   return {issues,infos};
 }
 
-export {SIDES,JOINT_ZH,CHAIN,METRICS,ALL_KEYS,AUTO_CANDIDATES,ang,vis,sideAngle,sideVis,fmtVal,median,pct,baseKey,Tracker,RepCounter,analyzeReference,compareRep};
+/* 一组总结。reps 里每一下要有 cmp（compareRep 的结果）。
+   score 越小越好：问题严重程度之和 + 幅度离教练多远（很小的权重，只用来分出高下） */
+function repScore(r,prof){return r.cmp.issues.reduce((s,i)=>s+i.sev,0)+Math.abs(r.farV-prof.far)/(METRICS[prof.primary].tol*10)}
+function summarizeSet(reps,prof){
+  const n=reps.length;
+  if(!n) return {n:0,clean:0,top:[],best:null,worst:null,farMedian:NaN,speech:'这一组没有识别到完整的动作'};
+  const clean=reps.filter(r=>!r.cmp.issues.length).length;
+  const cnt=new Map();
+  for(const r of reps) for(const v of new Set(r.cmp.issues.map(i=>i.voice))) cnt.set(v,(cnt.get(v)||0)+1);
+  const top=[...cnt.entries()].sort((a,b)=>b[1]-a[1]).map(([voice,count])=>({voice,count}));
+  const scored=reps.map(r=>({r,s:repScore(r,prof)})).sort((a,b)=>a.s-b.s);
+  const best=scored[0].r, worst=n>1&&scored[n-1].r.cmp.issues.length?scored[n-1].r:null;
+  let speech=`这一组${n}下，${clean}下标准。`;
+  if(clean===n) speech+='全部和教练一致，很好。';
+  else speech+='主要问题：'+top.slice(0,2).map(x=>`${x.voice}，${x.count}下`).join('；')+'。';
+  return {n,clean,top,best,worst,farMedian:median(reps.map(r=>r.farV)),speech};
+}
+
+/* 训练记录一行，列和 coach/data/training_log.csv 一样：date,session,exercise,sets,reps,weight_lb,rir,note */
+const TRAINING_LOG_HEADER='date,session,exercise,sets,reps,weight_lb,rir,note';
+function csvCell(v){if(v==null||(typeof v==='number'&&isNaN(v)))return '';const s=String(v);return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
+function formNote(sum){
+  if(!sum||!sum.n) return '';
+  const parts=[`动作评估 ${sum.clean}/${sum.n} 下标准`];
+  for(const x of sum.top.slice(0,3)) parts.push(`${x.voice} ×${x.count}`);
+  return parts.join('；');
+}
+function trainingLogRow({date,session='',exercise,sets=1,reps,weight_lb,rir,note=''}){
+  return [date,session,exercise,sets,reps,weight_lb,rir,note].map(csvCell).join(',');
+}
+
+export {SIDES,JOINT_ZH,CHAIN,METRICS,WEIGHT,ALL_KEYS,AUTO_CANDIDATES,CURVE_N,TRAINING_LOG_HEADER,ang,vis,sideAngle,sideVis,fmtVal,median,pct,baseKey,
+  kneeForward,resample,repCurve,Tracker,RepCounter,analyzeReference,compareRep,summarizeSet,formNote,trainingLogRow};
