@@ -526,7 +526,10 @@ function endLive(){
    <div class="status ${sum.clean===n?'ok':''}" style="margin-bottom:8px">${esc(sum.speech)}</div>
    <table class="sum">
    <tr><th>完成</th><td>${n} 下，其中 ${sum.clean} 下和教练一致${sum.skipped?`，${sum.skipped} 下机位不对没有评估`:''}</td></tr>
-   <tr><th>${METRICS[P].zh}</th><td>你的中位数 ${fmtVal(P,sum.farMedian)} · 教练 ${fmtVal(P,L.prof.far)}</td></tr>
+   ${sum.depthMedian!=null
+     ?`<tr><th>深度</th><td>${METRICS[sum.depthKey].zh}：每下最低时的中位数 ${Math.round(sum.depthMedian)}°（${S.preset.depth.ok}° 以内算到位）</td></tr>`
+     :`<tr><th>${METRICS[P].zh}</th><td>你的中位数 ${fmtVal(P,sum.farMedian)} · 教练 ${fmtVal(P,L.prof.far)}</td></tr>`}
+   ${sum.legHidden?`<tr><th>后腿</th><td>${sum.legHidden} 下看不到后腿（可能被器械挡住），后腿相关的数字不评估</td></tr>`:''}
    ${sum.top.slice(0,3).map(x=>`<tr><th>${x.count}/${n-sum.skipped} 下</th><td>${esc(x.voice)}</td></tr>`).join('')}</table>
    <div class="compare" style="grid-template-columns:repeat(${imgs.length},1fr);margin-top:10px">${imgs.join('')}</div>
    <div id="aiBox" style="margin-top:12px"></div>

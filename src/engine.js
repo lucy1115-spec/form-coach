@@ -14,11 +14,16 @@ const METRICS={
   kneeSpread:{zh:'膝间距（×髋宽）',tol:0.15,ratio:true},elbowAsym:{zh:'左右肘角差',tol:15},
   neck:{zh:'耳-肩-髋夹角（头和背）',tol:12},
   // bottomOnly：只在动作下半段（进度 ≥ 50%）比较。弓步迈步时两只脚都在动，分不清前后腿，那段数字没意义
-  kneeFwd:{zh:'前腿膝盖超过脚尖（×小腿长）',tol:0.12,ratio:true,bottomOnly:true}
+  kneeFwd:{zh:'前腿膝盖超过脚尖（×小腿长）',tol:0.12,ratio:true,bottomOnly:true},
+  // 前腿大腿和水平线的夹角：0 = 水平，站直约 70–90。前腿 = 膝盖更高的那条。
+  // 只看前腿，所以后腿被史密斯机挡住时也能判断深度（11/15 用户实测：后腿被挡，左右腿点都落在前腿上）
+  frontThigh:{zh:'前腿大腿离水平',tol:15}
 };
 // 评估优先级：背 > 膝盖前冲 > 幅度 > 节奏。问题按 严重程度 × 权重 排序
 const WEIGHT={trunk:1.3,neck:1.3,kneeFwd:1.15};
-const ALL_KEYS=['knee','kneeMin','hip','elbow','shoulder','trunk','kneeSpread','elbowAsym','neck','kneeFwd','viewRatio'];
+const ALL_KEYS=['knee','kneeMin','hip','elbow','shoulder','trunk','kneeSpread','elbowAsym','neck','kneeFwd','viewRatio','frontThigh','legGap'];
+// 两只脚踝的水平距离 ÷ 前腿小腿长。弓步最低点正常应 > 1；接近 0 说明两条腿的点叠在一起（后腿被挡住）
+const LEG_HIDDEN_GAP=0.3;
 // 机位：肩宽 ÷ 躯干长。正侧面时两肩重叠（约 0.1–0.2），正面或背面时约 0.5–0.6。
 // 身体在动作中会转，斜侧面和侧面分不准，所以只用它认出"正面或背面"
 const FRONT_BACK_RATIO=0.45;
@@ -109,6 +114,10 @@ class Tracker{
     out.elbowAsym=(sideVis(lm,'elbow','L')>=.5&&sideVis(lm,'elbow','R')>=.5)?Math.abs(raw.elbowL-raw.elbowR):NaN;
     const torso=Math.hypot(sx-hx,sy-hy), sw=Math.hypot((S1.x-S2.x)*W,(S1.y-S2.y)*H);
     out.viewRatio=torso>4?sw/torso:NaN;
+    const fk=lm[25].y<lm[26].y?25:26, fh=fk-2, fa=fk+2;
+    out.frontThigh=(vis(lm,fk)>=.35&&vis(lm,fh)>=.35)?Math.atan2((lm[fk].y-lm[fh].y)*H,Math.abs(lm[fk].x-lm[fh].x)*W)*180/Math.PI:NaN;
+    const shinF=Math.hypot((lm[fk].x-lm[fa].x)*W,(lm[fk].y-lm[fa].y)*H);
+    out.legGap=shinF>4?Math.abs(lm[27].x-lm[28].x)*W/shinF:NaN;
     // smoothing
     for(const k of ALL_KEYS){const v=out[k]; if(isNaN(v)){out[k]=NaN;continue}
       this.ema[k]=this.ema[k]==null?v:this.ema[k]+(v-this.ema[k])*this.alpha; out[k]=this.ema[k]}
@@ -230,6 +239,23 @@ function repView(rep){
   return isNaN(v)&&rep.vals?rep.vals.viewRatio:v;
 }
 
+/* 这一下的深度（绝对标准）：取整下动作里该指标的 10% 分位，即接近最低点、去掉单帧抖动。没有数据返回 null */
+function repDepth(rep,preset){
+  if(!preset.depth||!rep.samples) return null;
+  const v=rep.samples.map(s=>s.vals[preset.depth.key]).filter(x=>x!=null&&!isNaN(x));
+  if(v.length<3) return null;
+  return {key:preset.depth.key,value:pct(v,.1)};
+}
+/* 最低点附近两条腿的点是否叠在一起（后腿没识别到）。
+   只看前腿大腿最低的 20% 帧：站直时两脚本来就并拢，不能算 */
+function legHidden(rep){
+  if(!rep.samples) return false;
+  const s=rep.samples.filter(x=>!isNaN(x.vals.frontThigh)&&!isNaN(x.vals.legGap));
+  if(s.length<5) return false;
+  const cut=pct(s.map(x=>x.vals.frontThigh),.2);
+  return median(s.filter(x=>x.vals.frontThigh<=cut).map(x=>x.vals.legGap))<LEG_HIDDEN_GAP;
+}
+
 /* Compare one rep against the profile -> issues (most severe first) */
 function compareRep(rep,prof,preset,k){
   const dir=Math.sign(prof.far-prof.rest)||1, P=prof.primary, tolP=METRICS[P].tol*k, cues=preset.cues||{};
@@ -238,10 +264,20 @@ function compareRep(rep,prof,preset,k){
   const view=repView(rep);
   if(preset.view==='side'&&view>FRONT_BACK_RATIO)
     return {skipped:true,issues:[{key:'view',sev:0,text:'这一下是正面或背面拍的，没有评估',voice:'手机要放在身体正侧面'}],infos:[]};
-  const farShort=(prof.far-rep.farV)*dir;
-  if(farShort>tolP) issues.push({key:P,sev:farShort/tolP*1.2,text:`${METRICS[P].zh}差了 ${fmtVal(P,farShort)}`,voice:cues.farShort||'幅度再大一点'});
-  else if(-farShort>2*tolP) infos.push({cls:'warn',text:'幅度比教练还大'});
-  else infos.push({cls:'good',text:'幅度到位'});
+  // 深度：预设给了绝对标准（如后撤弓步看前腿大腿是否水平）就用它，不和标准视频的膝角比
+  const depth=repDepth(rep,preset);
+  if(depth){
+    const okAt=preset.depth.ok*k;
+    if(depth.value>okAt) issues.push({key:'depth',sev:(depth.value-okAt)/METRICS[depth.key].tol*1.2+1,
+      text:`${METRICS[depth.key].zh}还差 ${Math.round(depth.value)}°（${Math.round(okAt)}° 以内算到位）`,voice:cues.farShort||'幅度再大一点'});
+    else infos.push({cls:'good',text:`深度到位（${METRICS[depth.key].zh} ${Math.round(depth.value)}°）`});
+  } else {
+    const farShort=(prof.far-rep.farV)*dir;
+    if(farShort>tolP) issues.push({key:P,sev:farShort/tolP*1.2,text:`${METRICS[P].zh}差了 ${fmtVal(P,farShort)}`,voice:cues.farShort||'幅度再大一点'});
+    else if(-farShort>2*tolP) infos.push({cls:'warn',text:'幅度比教练还大'});
+    else infos.push({cls:'good',text:'幅度到位'});
+  }
+  if(legHidden(rep)) infos.push({cls:'warn',text:'看不到后腿（可能被器械挡住），后腿不评估'});
   const restShort=(rep.restBefore-prof.rest)*dir;
   if(restShort>tolP && cues.restShort!==null) issues.push({key:P,sev:restShort/tolP,text:`起始位置没回到位，差 ${fmtVal(P,restShort)}`,voice:cues.restShort||'回到起始位置'});
   for(const key in prof.secondary){
@@ -256,7 +292,7 @@ function compareRep(rep,prof,preset,k){
   if(refEcc>.5 && ecc<refEcc*.6) issues.push({key:'tempo',sev:1.05,text:`离心 ${ecc.toFixed(1)}s，教练 ${refEcc.toFixed(1)}s`,voice:cues.fast||'慢一点，控制住'});
   else infos.push({cls:'good',text:`节奏 ${(rep.out+rep.back).toFixed(1)}s`});
   issues.sort((a,b)=>b.sev-a.sev);
-  return {issues,infos};
+  return {issues,infos,depth:depth?depth.value:null,depthKey:depth?depth.key:null,legHidden:legHidden(rep)};
 }
 
 /* 一组总结。reps 里每一下要有 cmp（compareRep 的结果）。
@@ -281,7 +317,10 @@ function summarizeSet(reps,prof){
     if(clean===m) speech+=skipped?'都和教练一致。':'全部和教练一致，很好。';
     else speech+='主要问题：'+top.slice(0,2).map(x=>`${x.voice}，${x.count}下`).join('；')+'。';
   }
-  return {n,clean,skipped,top,best,worst,farMedian:median(done.map(r=>r.farV)),speech};
+  const dv=done.map(r=>r.cmp.depth).filter(x=>x!=null);
+  return {n,clean,skipped,top,best,worst,farMedian:median(done.map(r=>r.farV)),
+    depthMedian:dv.length?median(dv):null,depthKey:(done.find(r=>r.cmp.depthKey)||{cmp:{}}).cmp.depthKey||null,
+    legHidden:done.filter(r=>r.cmp.legHidden).length,speech};
 }
 
 /* 训练记录一行，列和 coach/data/training_log.csv 一样：date,session,exercise,sets,reps,weight_lb,rir,note */

@@ -15,6 +15,8 @@ export const PRESETS=[
   film:'<b>侧面拍</b>：手机放在机器正侧面，高度和凳面差不多，肩、髋、膝、脚踝都要入镜。',
   cues:{farShort:'顶端再把髋推高，臀部夹紧',restShort:'下放再充分一点',knee:{high:'脚离身体太远，往回收一点',low:'脚太靠近身体，往前放一点'},fast:'下放慢一点，控制住'}},
  {id:'smith-reverse-lunge',rest:'high',name:'Smith Machine Reverse Lunge',zh:'史密斯后撤弓步',view:'side',primary:'kneeMin',secondary:['trunk','neck','kneeFwd'],ecc:'out',
+  // 深度用绝对标准：前腿大腿离水平 15° 以内算到位（后腿常被史密斯机挡住，膝角不可靠）
+  depth:{key:'frontThigh',ok:15},
   film:'<b>侧面拍</b>：手机放在身体正侧面 3 米左右，要拍到往后撤的那条腿和脚。<b>和教练示范用同一个机位</b>，角度不同时数字会差很多。',
   cues:{farShort:'再往下蹲，后腿膝盖靠近地面',restShort:'站起来时站直',trunk:{high:'上身保持直立，不要前倾太多',low:null},
     neck:{low:'头和背保持一条直线，别低头',high:null},kneeFwd:{high:'前腿膝盖别往前冲，重心放在前脚跟',low:null},fast:'下蹲慢一点'}},

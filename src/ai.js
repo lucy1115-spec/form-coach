@@ -43,7 +43,11 @@ export function buildReviewRequest({exercise, standardName, summary, reps, profi
     Object.entries(profile.secondary || {}).map(([k, v]) => `${METRICS[k].zh} ${fmtVal(k, v)}`).join('，'));
   lines.push(`这一组：共 ${summary.n} 下，评估 ${summary.n - (summary.skipped || 0)} 下，其中 ${summary.clean} 下和标准一致` +
     (summary.skipped ? `；${summary.skipped} 下机位不对没有评估` : '') + '。');
-  lines.push(`你的${METRICS[P].zh}中位数 ${fmtVal(P, summary.farMedian)}。`);
+  if (summary.depthMedian != null)
+    lines.push(`深度按${METRICS[summary.depthKey].zh}判断（15° 以内算蹲到位，不和标准视频的膝角比）：每下最低时中位数 ${Math.round(summary.depthMedian)}°。`);
+  else lines.push(`你的${METRICS[P].zh}中位数 ${fmtVal(P, summary.farMedian)}。`);
+  if (summary.legHidden)
+    lines.push(`有 ${summary.legHidden} 下看不到后腿（被史密斯机的立柱或底座挡住，识别把两条腿都标在了前腿上）。所以"膝角（较弯的腿）"其实是前腿的膝角，和标准比的差值不代表蹲得不够深；后膝离地多高无法判断，不要据此要求学员再蹲低。`);
   if (summary.top.length) lines.push('出现最多的问题：' + summary.top.slice(0, 4).map(x => `${x.voice}（${x.count} 下）`).join('；') + '。');
   lines.push('每一下：');
   for (const r of reps) {

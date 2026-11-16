@@ -279,6 +279,48 @@ test('Pexels 侧面标准：只认出中间完整的 1 下，是正侧面', {ski
   assert.ok(prof.repList[0].samples.every(s => s.vals.viewRatio < 0.25), '应是正侧面');
 });
 
+// 11/15 用户反馈：后膝已经贴地，点评还一直说"再低一点"。原因：后腿被史密斯机挡住，
+// 识别把两条腿都标在前腿上，"较弯那条腿的膝角"其实是前腿的 ~90°，和徒手标准的 71° 比就差了 20°
+test('后撤弓步的深度看前腿大腿是否水平：后腿被挡住时不再误报"再往下蹲"', {skip: !(pexels && me1) && '缺少 fixture'}, () => {
+  const p = preset('smith-reverse-lunge'), spec = specFor(p);
+  const prof = analyzeReference(toSeries(pexels, spec), spec);
+  const done = runSet(prof, p, me1).filter(r => !r.cmp.skipped);
+  assert.equal(done.length, 9);
+  for (const r of done) {
+    assert.ok(r.cmp.depth <= p.depth.ok, `第 ${r.n} 下前腿大腿 ${r.cmp.depth}°`);
+    assert.equal(r.cmp.issues.filter(i => i.voice === p.cues.farShort).length, 0, `第 ${r.n} 下：${r.cmp.issues.map(i => i.text)}`);
+  }
+  assert.ok(done.filter(r => r.cmp.legHidden).length >= 6, '大部分几下应识别出后腿被挡住');
+  const s = summarizeSet(done, prof);
+  assert.ok(s.depthMedian < 15);
+  assert.ok(!/往下蹲/.test(s.speech), s.speech);
+});
+
+test('两条腿都看得到的视频不会被标成"看不到后腿"', {skip: !(pexels && coach) && '缺少 fixture'}, () => {
+  const p = preset('smith-reverse-lunge'), spec = specFor(p);
+  const prof = analyzeReference(toSeries(pexels, spec), spec);
+  for (const fx of [pexels, coach]) for (const r of runSet(prof, p, fx)) assert.equal(r.cmp.legHidden, false);
+});
+
+test('深度不够时按前腿大腿报问题', () => {
+  const p = preset('smith-reverse-lunge');
+  const prof = analyzeReference(synthSeries(4), specFor(p));
+  const mk = thigh => {
+    const c = new RepCounter({rest: prof.rest, far: prof.far}); let rep = null;
+    for (const s of synthSeries(1)) {
+      const u = Math.min(1, Math.max(0, (s.t - 1) / 3)), down = Math.sin(Math.PI * u); // 0 站立 → 1 最低
+      rep = c.push(s.t, s.values.kneeMin, {...s.values, frontThigh: 80 - (80 - thigh) * down, legGap: 0.2 + 1.2 * down}) || rep;
+    }
+    return compareRep(rep, prof, p, 1);
+  };
+  const shallow = mk(35);
+  assert.equal(shallow.issues[0].key, 'depth');
+  assert.match(shallow.issues[0].text, /前腿大腿离水平还差 3\d°/);
+  const deep = mk(5);
+  assert.equal(deep.issues.filter(i => i.key === 'depth').length, 0);
+  assert.equal(deep.legHidden, false);
+});
+
 test('我的视频 1 对 Pexels 侧面标准：9 下都评估，撤步调整不算一下，不再提示低头', {skip: !(pexels && me1) && '缺少 fixture'}, () => {
   const p = preset('smith-reverse-lunge'), spec = specFor(p);
   const prof = analyzeReference(toSeries(pexels, spec), spec);
