@@ -2,6 +2,8 @@
 // 计划本身是用户的私人内容，不在这个公开仓库里：由 coach/plan/app-plan.json 生成，放到 Google Drive，
 // 手机上"导入训练计划"后存在本机。格式见 validatePlan()。
 
+import {t, isEn, loc} from './i18n.js';
+
 export const PLAN_APP = 'form-coach-plan';
 const DEFAULT_PLATES = [45, 35, 25, 10, 5, 2.5];
 
@@ -17,7 +19,7 @@ export function platesPerSide(perSide, plates = DEFAULT_PLATES) {
 }
 
 const fmtNum = n => (Number.isInteger(n) ? String(n) : String(n).replace(/\.0+$/, ''));
-const fmtPlates = ps => ps.length ? ps.map(fmtNum).join(' + ') + ' 磅' : '不加片';
+const fmtPlates = ps => ps.length ? t('load.plates', {list: ps.map(fmtNum).join(' + ')}) : t('load.none');
 
 /* 杠铃片说明，每个目标重量一行。load = {kind:'barbell', bar, weights} | {kind:'smith', weights} */
 export function loadLines(load, plates = DEFAULT_PLATES) {
@@ -25,18 +27,25 @@ export function loadLines(load, plates = DEFAULT_PLATES) {
   return load.weights.map(w => {
     if (load.kind === 'barbell') {
       const bar = load.bar ?? 35, ps = platesPerSide((w - bar) / 2, plates);
-      return ps ? `${fmtNum(w)} 磅 = 杠铃 ${fmtNum(bar)} 磅 + 每边 ${fmtPlates(ps)}` : `${fmtNum(w)} 磅（杠铃 ${fmtNum(bar)} 磅，片凑不出来，按手边的片调整）`;
+      return ps ? t('load.barbell', {w: fmtNum(w), bar: fmtNum(bar), plates: fmtPlates(ps)}) : t('load.barbellOdd', {w: fmtNum(w), bar: fmtNum(bar)});
     }
     if (load.kind === 'smith') {
       const ps = platesPerSide(w / 2, plates);
-      return ps ? `加片共 ${fmtNum(w)} 磅 = 每边 ${fmtPlates(ps)}（不含杆）` : `加片共 ${fmtNum(w)} 磅（不含杆）`;
+      return ps ? t('load.smith', {w: fmtNum(w), plates: fmtPlates(ps)}) : t('load.smithOdd', {w: fmtNum(w)});
     }
-    return `${fmtNum(w)} 磅`;
+    return t('load.plain', {w: fmtNum(w)});
   });
 }
 
 /* 给耳机念的文字：把"3 × 12 @ 40 磅"这类写法换成好听的说法 */
 export function speakable(s) {
+  if (isEn()) return String(s || '')
+    .replace(/(\d+)\s*×\s*(\d+(?:\s*[–-]\s*\d+)?)/g, (_, a, b) => `${a} sets of ${b}`)
+    .replace(/\s*@\s*/g, ', ')
+    .replace(/(\d)\s*[–-]\s*(\d)/g, '$1 to $2')
+    .replace(/\blb\b/g, 'pounds')
+    .replace(/\s*[（(]\s*/g, ', ').replace(/\s*[）)]\s*/g, ', ')
+    .replace(/,\s*,/g, ',').replace(/,\s*([.;])/g, '$1').replace(/,\s*$/, '');
   return String(s || '')
     .replace(/(\d+)\s*×\s*(\d+(?:\s*[–-]\s*\d+)?)/g, (_, a, b) => `${a} 组，每组 ${b} 次`)
     .replace(/\s*@\s*/g, '，')
@@ -47,14 +56,17 @@ export function speakable(s) {
 
 /* 一个动作的朗读稿：名字、单边、目标、杠铃片、设置、动作、要点 */
 export function exerciseSpeech(ex, plates) {
-  const parts = [ex.name.replace(/[（(].*?[）)]/g, '')];
-  if (ex.side) parts.push(ex.side);
-  if (ex.target) parts.push('目标：' + ex.target);
+  const f = k => loc(ex, k); // 英文界面优先 ex.en[k]
+  const strip = s => String(s || '').replace(/[。.]\s*$/, '');
+  const parts = [strip(f('name').replace(/[（(].*?[）)]/g, ''))];
+  if (f('side')) parts.push(strip(f('side')));
+  if (f('target')) parts.push(t('say.target') + strip(f('target')));
   for (const l of loadLines(ex.load, plates)) parts.push(l);
-  if (ex.setup) parts.push('设置：' + ex.setup);
-  if (ex.action) parts.push('动作：' + ex.action);
-  if (ex.cues) parts.push('要点：' + ex.cues);
-  return speakable(parts.join('。').replace(/。。/g, '。'));
+  if (f('setup')) parts.push(t('say.setup') + strip(f('setup')));
+  if (f('action')) parts.push(t('say.action') + strip(f('action')));
+  if (f('cues')) parts.push(t('say.cues') + strip(f('cues')));
+  const sep = t('say.sep');
+  return speakable(parts.join(sep) + sep.trim());
 }
 
 /* 按星期几选默认的训练日；当天没有安排就取下一个有安排的日子 */
@@ -83,11 +95,11 @@ export function matchVideoId(fileName, ids) {
 
 /* 检查导入的计划文件。返回错误说明，没问题返回 null */
 export function validatePlan(j) {
-  if (!j || j.app !== PLAN_APP) return '这不是训练计划文件（应该是 coach/plan/app-plan.json 生成的那个）。';
-  if (!Array.isArray(j.days) || !j.days.length) return '计划里没有训练日。';
+  if (!j || j.app !== PLAN_APP) return t('plan.bad');
+  if (!Array.isArray(j.days) || !j.days.length) return t('plan.noDays');
   for (const d of j.days) {
-    if (!d.id || !d.name || !Array.isArray(d.exercises)) return `训练日格式不对：${d.name || d.id || '?'}`;
-    for (const ex of d.exercises) if (!ex.id || !ex.name) return `${d.name} 里有动作缺名字。`;
+    if (!d.id || !d.name || !Array.isArray(d.exercises)) return t('plan.badDay', {name: d.name || d.id || '?'});
+    for (const ex of d.exercises) if (!ex.id || !ex.name) return t('plan.noName', {name: d.name});
   }
   return null;
 }

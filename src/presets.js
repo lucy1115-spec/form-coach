@@ -19,7 +19,11 @@ export const PRESETS=[
   depth:{key:'frontThigh',ok:15},
   film:'<b>侧面拍</b>：手机放在身体正侧面 3 米左右，要拍到往后撤的那条腿和脚。<b>和教练示范用同一个机位</b>，角度不同时数字会差很多。',
   cues:{farShort:'再往下蹲，后腿膝盖靠近地面',restShort:'站起来时站直',trunk:{high:'上身保持直立，不要前倾太多',low:null},
-    neck:{low:'头和背保持一条直线，别低头',high:null},kneeFwd:{high:'前腿膝盖别往前冲，重心放在前脚跟',low:null},fast:'下蹲慢一点'}},
+    neck:{low:'头和背保持一条直线，别低头',high:null},kneeFwd:{high:'前腿膝盖别往前冲，重心放在前脚跟',low:null},fast:'下蹲慢一点'},
+  // 英文界面用（结构和 cues 一样，null 的位置也一样）
+  filmEn:'<b>Film from the side</b>: phone about 3 m directly to your side, so the leg that steps back and its foot are in the shot. <b>Use the same spot as the coach\'s video</b> — a different angle changes the numbers a lot.',
+  cuesEn:{farShort:'Go lower, bring the back knee toward the floor',restShort:'Stand all the way up',trunk:{high:'Keep your torso upright, don\'t lean forward',low:null},
+    neck:{low:'Keep head and back in one line, don\'t look down',high:null},kneeFwd:{high:'Don\'t let the front knee drift forward, weight on the front heel',low:null},fast:'Lower more slowly'}},
  {id:'single-leg-press',name:'Single Leg Press',zh:'单腿腿举',view:'side',unilateral:true,primary:'knee',secondary:['hip'],ecc:'out',
   film:'<b>侧面拍</b>：手机放在腿举机侧面，拍正在练的那条腿那一侧，髋、膝、脚踝都要入镜。',
   cues:{farShort:'再往下放一点，膝盖靠近胸口',restShort:'推起来时腿伸直，但膝盖不要锁死',hip:{low:'下得太深，注意屁股不要离开靠背',high:null},fast:'下放慢一点，控制住'}},

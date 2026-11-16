@@ -4,6 +4,13 @@
 // 第 2 步：新指标 neck（耳-肩-髋夹角）和 kneeFwd（前腿膝盖超过脚尖多少）；每一下保存整条曲线，
 //          按 0–100% 动作进度和教练曲线对比；summarizeSet 做一组总结；trainingLogRow 生成训练记录。
 
+// 双语：所有给人看/听的文字都从 i18n.js 的 t() 取（指标名 m.*、关节名 j.*、对比结果 cmp.*、总结 sum.*）。
+// METRICS 里的 zh 字段只是给读代码的人看的，界面用 mname()。
+import {t, isEn} from './i18n.js';
+const mname=k=>t('m.'+k);
+// 动作预设的语音提示：英文界面用 cuesEn（没有就退回中文）
+const presetCues=p=>(isEn()&&p.cuesEn)||p.cues||{};
+
 // Ea=耳朵 F=脚尖 Hl=脚跟（MediaPipe 33 点编号）
 const SIDES={L:{Ea:7,S:11,E:13,W:15,H:23,K:25,A:27,Hl:29,F:31},R:{Ea:8,S:12,E:14,W:16,H:24,K:26,A:28,Hl:30,F:32}};
 const JOINT_ZH={Ea:'头',S:'肩',E:'手肘',W:'手腕',H:'髋',K:'膝盖',A:'脚踝',Hl:'脚跟',F:'脚尖'};
@@ -125,7 +132,7 @@ class Tracker{
     let need=[]; if(pk==='kneeSpread') need=['H','K'];
     need.forEach(j=>{if(vis(lm,SIDES.L[j])<.5||vis(lm,SIDES.R[j])<.5)missing.add(j)});
     const ok=pk?!isNaN(out[pk]):true;
-    return {values:out,side,missing:[...missing].map(j=>JOINT_ZH[j]),ok};
+    return {values:out,side,missing:[...missing].map(j=>t('j.'+j)),ok};
   }
 }
 
@@ -164,7 +171,7 @@ class RepCounter{
 
 /* Build a reference profile from a recorded series [{t, values}] */
 function analyzeReference(series,spec){
-  if(series.length<20) return {error:'画面里识别到的有效帧太少。请确认全身（至少相关关节）都在画面里。'};
+  if(series.length<20) return {error:t('err.fewFrames')};
   let primary=spec.primary;
   const col=k=>series.map(s=>s.values[k]);
   if(primary==='auto'){
@@ -174,14 +181,14 @@ function analyzeReference(series,spec){
   }
   const pv=col(primary), lo=pct(pv,.05), hi=pct(pv,.95);
   const minRange=METRICS[primary].ratio?.15:15;
-  if(!(hi-lo>=minRange)) return {error:`动作幅度太小（${METRICS[primary].zh}只变了 ${fmtVal(primary,hi-lo)}），可能机位不对，或关节被挡住了。`};
+  if(!(hi-lo>=minRange)) return {error:t('err.smallRange',{name:mname(primary),val:fmtVal(primary,hi-lo)})};
   const t0=series[0].t, early=median(series.filter(s=>s.t-t0<1.0).map(s=>s.values[primary]));
   // 起始位在哪一端：动作预设写明了就用预设（spec.rest = 'high' | 'low'），否则看视频开头 1 秒
   const restIsLo=spec.rest?spec.rest==='low':Math.abs(early-lo)<=Math.abs(early-hi);
   const rest=restIsLo?lo:hi, far=restIsLo?hi:lo;
   const ctr=new RepCounter({rest,far});
   const reps=[]; for(const s of series){const r=ctr.push(s.t,s.values[primary],s.values); if(r)reps.push(r)}
-  if(!reps.length) return {error:'没有识别到完整的一下。请让教练从起始姿势开始，完整做 3–5 下。'};
+  if(!reps.length) return {error:t('err.noRep')};
   const farM=median(reps.map(r=>r.farV)), restM=median(reps.map(r=>r.restBefore));
   const secondary={};
   for(const k of spec.secondary||[]){ if(k===primary)continue; const m=median(reps.map(r=>r.vals[k])); if(!isNaN(m)) secondary[k]=m }
@@ -258,39 +265,39 @@ function legHidden(rep){
 
 /* Compare one rep against the profile -> issues (most severe first) */
 function compareRep(rep,prof,preset,k){
-  const dir=Math.sign(prof.far-prof.rest)||1, P=prof.primary, tolP=METRICS[P].tol*k, cues=preset.cues||{};
+  const dir=Math.sign(prof.far-prof.rest)||1, P=prof.primary, tolP=METRICS[P].tol*k, cues=presetCues(preset);
   const issues=[], infos=[];
   // 侧面拍的动作，这一下却是正面或背面拍到的：角度没法比，不评估
   const view=repView(rep);
   if(preset.view==='side'&&view>FRONT_BACK_RATIO)
-    return {skipped:true,issues:[{key:'view',sev:0,text:'这一下是正面或背面拍的，没有评估',voice:'手机要放在身体正侧面'}],infos:[]};
+    return {skipped:true,issues:[{key:'view',sev:0,text:t('cmp.viewSkip'),voice:t('cmp.viewSkipVoice')}],infos:[]};
   // 深度：预设给了绝对标准（如后撤弓步看前腿大腿是否水平）就用它，不和标准视频的膝角比
   const depth=repDepth(rep,preset);
   if(depth){
     const okAt=preset.depth.ok*k;
     if(depth.value>okAt) issues.push({key:'depth',sev:(depth.value-okAt)/METRICS[depth.key].tol*1.2+1,
-      text:`${METRICS[depth.key].zh}还差 ${Math.round(depth.value)}°（${Math.round(okAt)}° 以内算到位）`,voice:cues.farShort||'幅度再大一点'});
-    else infos.push({cls:'good',text:`深度到位（${METRICS[depth.key].zh} ${Math.round(depth.value)}°）`});
+      text:t('cmp.depthShort',{name:mname(depth.key),val:Math.round(depth.value),ok:Math.round(okAt)}),voice:cues.farShort||t('cmp.farShortVoice')});
+    else infos.push({cls:'good',text:t('cmp.depthOk',{name:mname(depth.key),val:Math.round(depth.value)})});
   } else {
     const farShort=(prof.far-rep.farV)*dir;
-    if(farShort>tolP) issues.push({key:P,sev:farShort/tolP*1.2,text:`${METRICS[P].zh}差了 ${fmtVal(P,farShort)}`,voice:cues.farShort||'幅度再大一点'});
-    else if(-farShort>2*tolP) infos.push({cls:'warn',text:'幅度比教练还大'});
-    else infos.push({cls:'good',text:'幅度到位'});
+    if(farShort>tolP) issues.push({key:P,sev:farShort/tolP*1.2,text:t('cmp.farShort',{name:mname(P),val:fmtVal(P,farShort)}),voice:cues.farShort||t('cmp.farShortVoice')});
+    else if(-farShort>2*tolP) infos.push({cls:'warn',text:t('cmp.farOver')});
+    else infos.push({cls:'good',text:t('cmp.farOk')});
   }
-  if(legHidden(rep)) infos.push({cls:'warn',text:'看不到后腿（可能被器械挡住），后腿不评估'});
+  if(legHidden(rep)) infos.push({cls:'warn',text:t('cmp.legHidden')});
   const restShort=(rep.restBefore-prof.rest)*dir;
-  if(restShort>tolP && cues.restShort!==null) issues.push({key:P,sev:restShort/tolP,text:`起始位置没回到位，差 ${fmtVal(P,restShort)}`,voice:cues.restShort||'回到起始位置'});
+  if(restShort>tolP && cues.restShort!==null) issues.push({key:P,sev:restShort/tolP,text:t('cmp.restShort',{val:fmtVal(P,restShort)}),voice:cues.restShort||t('cmp.restShortVoice')});
   for(const key in prof.secondary){
     const tol=METRICS[key].tol*k, r=secondaryDiff(key,rep,prof,tol); if(!r)continue;
-    const d=r.d; if(Math.abs(d)<=tol){infos.push({cls:'good',text:METRICS[key].zh+' ✓'});continue}
+    const d=r.d; if(Math.abs(d)<=tol){infos.push({cls:'good',text:t('cmp.secOk',{name:mname(key)})});continue}
     const c=cues[key]?cues[key][d>0?'high':'low']:undefined;
-    const text=`${METRICS[key].zh}${d>0?'比教练大':'比教练小'} ${fmtVal(key,Math.abs(d))}${r.whole?'':'（最远点）'}`;
+    const text=t('cmp.secDiff',{name:mname(key),more:d>0,val:fmtVal(key,Math.abs(d)),whole:r.whole});
     if(c===null){infos.push({cls:'warn',text});continue}
     issues.push({key,sev:Math.abs(d)/tol*(WEIGHT[key]||1),text,voice:c||text});
   }
   const ecc=preset.ecc==='back'?rep.back:rep.out, refEcc=preset.ecc==='back'?prof.tempo.back:prof.tempo.out;
-  if(refEcc>.5 && ecc<refEcc*.6) issues.push({key:'tempo',sev:1.05,text:`离心 ${ecc.toFixed(1)}s，教练 ${refEcc.toFixed(1)}s`,voice:cues.fast||'慢一点，控制住'});
-  else infos.push({cls:'good',text:`节奏 ${(rep.out+rep.back).toFixed(1)}s`});
+  if(refEcc>.5 && ecc<refEcc*.6) issues.push({key:'tempo',sev:1.05,text:t('cmp.tempo',{mine:ecc.toFixed(1),ref:refEcc.toFixed(1)}),voice:cues.fast||t('cmp.tempoVoice')});
+  else infos.push({cls:'good',text:t('cmp.tempoOk',{val:(rep.out+rep.back).toFixed(1)})});
   issues.sort((a,b)=>b.sev-a.sev);
   return {issues,infos,depth:depth?depth.value:null,depthKey:depth?depth.key:null,legHidden:legHidden(rep)};
 }
@@ -300,7 +307,7 @@ function compareRep(rep,prof,preset,k){
 function repScore(r,prof){return r.cmp.issues.reduce((s,i)=>s+i.sev,0)+Math.abs(r.farV-prof.far)/(METRICS[prof.primary].tol*10)}
 function summarizeSet(reps,prof){
   const n=reps.length;
-  if(!n) return {n:0,clean:0,skipped:0,top:[],best:null,worst:null,farMedian:NaN,speech:'这一组没有识别到完整的动作'};
+  if(!n) return {n:0,clean:0,skipped:0,top:[],best:null,worst:null,farMedian:NaN,speech:t('sum.none')};
   // 机位不对没评估的几下单独算，不参与"标准几下"、最好最差和主要问题
   const done=reps.filter(r=>!r.cmp.skipped), skipped=n-done.length, m=done.length;
   const clean=done.filter(r=>!r.cmp.issues.length).length;
@@ -309,14 +316,7 @@ function summarizeSet(reps,prof){
   const top=[...cnt.entries()].sort((a,b)=>b[1]-a[1]).map(([voice,count])=>({voice,count}));
   const scored=done.map(r=>({r,s:repScore(r,prof)})).sort((a,b)=>a.s-b.s);
   const best=m?scored[0].r:null, worst=m>1&&scored[m-1].r.cmp.issues.length?scored[m-1].r:null;
-  let speech=`这一组${n}下`;
-  if(skipped) speech+=`，其中${skipped}下不是侧面拍的，没有评估`;
-  if(!m) speech+='。手机要放在身体正侧面。';
-  else {
-    speech+=skipped?`。评估的${m}下里，${clean}下标准。`:`，${clean}下标准。`;
-    if(clean===m) speech+=skipped?'都和教练一致。':'全部和教练一致，很好。';
-    else speech+='主要问题：'+top.slice(0,2).map(x=>`${x.voice}，${x.count}下`).join('；')+'。';
-  }
+  const speech=t('sum.speech',{n,skipped,m,clean,top:top.slice(0,2)});
   const dv=done.map(r=>r.cmp.depth).filter(x=>x!=null);
   return {n,clean,skipped,top,best,worst,farMedian:median(done.map(r=>r.farV)),
     depthMedian:dv.length?median(dv):null,depthKey:(done.find(r=>r.cmp.depthKey)||{cmp:{}}).cmp.depthKey||null,
@@ -328,14 +328,14 @@ const TRAINING_LOG_HEADER='date,session,exercise,sets,reps,weight_lb,rir,note';
 function csvCell(v){if(v==null||(typeof v==='number'&&isNaN(v)))return '';const s=String(v);return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
 function formNote(sum){
   if(!sum||!sum.n) return '';
-  const parts=[`动作评估 ${sum.clean}/${sum.n-(sum.skipped||0)} 下标准`];
-  if(sum.skipped) parts.push(`${sum.skipped} 下机位不对未评估`);
+  const parts=[t('note.eval',{clean:sum.clean,m:sum.n-(sum.skipped||0)})];
+  if(sum.skipped) parts.push(t('note.skipped',{n:sum.skipped}));
   for(const x of sum.top.slice(0,3)) parts.push(`${x.voice} ×${x.count}`);
-  return parts.join('；');
+  return parts.join(t('note.sep'));
 }
 function trainingLogRow({date,session='',exercise,sets=1,reps,weight_lb,rir,note=''}){
   return [date,session,exercise,sets,reps,weight_lb,rir,note].map(csvCell).join(',');
 }
 
 export {SIDES,JOINT_ZH,CHAIN,METRICS,WEIGHT,ALL_KEYS,AUTO_CANDIDATES,CURVE_N,FRONT_BACK_RATIO,TRAINING_LOG_HEADER,ang,vis,sideAngle,sideVis,fmtVal,median,pct,baseKey,
-  kneeForward,resample,repCurve,repView,Tracker,RepCounter,analyzeReference,compareRep,summarizeSet,formNote,trainingLogRow};
+  kneeForward,resample,repCurve,repView,mname,Tracker,RepCounter,analyzeReference,compareRep,summarizeSet,formNote,trainingLogRow};

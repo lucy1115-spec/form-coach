@@ -131,16 +131,20 @@ table.sum th{font-weight:500;color:var(--muted);font-size:12px}
 <body>
 <div class="wrap">
   <header>
-    <div class="brand"><h1>Form Coach</h1><span>今天练什么 · 动作要点 · 和教练示范对比</span></div>
+    <div class="brand"><h1>Form Coach</h1><span data-i18n="brand.sub">今天练什么 · 动作要点 · 和教练示范对比</span></div>
     <div class="controls">
-      <div class="field" id="exField"><label for="exSel">动作</label><select id="exSel"></select></div>
-      <div class="field"><label>模式</label>
+      <div class="field" id="exField"><label for="exSel" data-i18n="lbl.exercise">动作</label><select id="exSel"></select></div>
+      <div class="field"><label data-i18n="lbl.mode">模式</label>
         <div class="tabs" role="tablist">
-          <button role="tab" id="tabPlan" aria-selected="false">今天练什么</button>
-          <button role="tab" id="tabRef" aria-selected="true">① 录教练标准</button>
-          <button role="tab" id="tabLive" aria-selected="false">② 我来练</button>
-          <button role="tab" id="tabLib" aria-selected="false">标准库</button>
+          <button role="tab" id="tabPlan" aria-selected="false" data-i18n="tab.plan">今天练什么</button>
+          <button role="tab" id="tabRef" aria-selected="true" data-i18n="tab.ref">① 录教练标准</button>
+          <button role="tab" id="tabLive" aria-selected="false" data-i18n="tab.live">② 我来练</button>
+          <button role="tab" id="tabLib" aria-selected="false" data-i18n="tab.lib">标准库</button>
         </div>
+      </div>
+      <!-- 语言开关：文字、语音、AI 点评、计划内容一起切换；记在 localStorage fm.lang -->
+      <div class="field"><label data-i18n="lbl.lang">语言</label>
+        <div class="tabs" role="tablist"><button role="tab" id="langZh" lang="zh">中文</button><button role="tab" id="langEn" lang="en">EN</button></div>
       </div>
     </div>
   </header>
@@ -150,15 +154,15 @@ table.sum th{font-weight:500;color:var(--muted);font-size:12px}
     <div class="tabs" role="tablist" id="dayTabs"></div>
     <div id="planBody" style="margin-top:12px"></div>
     <details class="panel" style="margin-top:16px" id="planAdmin">
-      <summary style="cursor:pointer;font-weight:600">计划和视频</summary>
+      <summary style="cursor:pointer;font-weight:600" data-i18n="plan.admin">计划和视频</summary>
       <div class="row" style="margin-top:10px">
-        <label class="btn primary" for="planFile">导入训练计划</label><input type="file" id="planFile" accept="application/json,.json" hidden>
-        <label class="btn" for="videoBulk">一次关联多个视频</label><input type="file" id="videoBulk" accept="video/*" multiple hidden>
+        <label class="btn primary" for="planFile" data-i18n="plan.import">导入训练计划</label><input type="file" id="planFile" accept="application/json,.json" hidden>
+        <label class="btn" for="videoBulk" data-i18n="plan.bulk">一次关联多个视频</label><input type="file" id="videoBulk" accept="video/*" multiple hidden>
       </div>
       <p class="note" id="planMeta"></p>
       <div class="status" id="planStatus" hidden></div>
       <div id="videoList" class="lib"></div>
-      <p class="note">计划文件在 Google Drive 的 coach 文件夹里（训练计划.json）。视频从相册选，按文件名里的编号自动对上（如 IMG_0688）；对不上的到对应动作下面单独关联。计划和视频都只存在这台手机上。</p>
+      <p class="note" data-i18n="plan.adminNote">计划文件在 Google Drive 的 coach 文件夹里（训练计划.json）。视频从相册选，按文件名里的编号自动对上（如 IMG_0688）；对不上的到对应动作下面单独关联。计划和视频都只存在这台手机上。</p>
     </details>
   </section>
 
@@ -179,86 +183,88 @@ table.sum th{font-weight:500;color:var(--muted);font-size:12px}
 
     <!-- Reference panel -->
     <section class="panel" id="panelRef">
-      <div><div class="eyebrow">Step 1 · 教练标准</div><h2 id="refTitle">—</h2></div>
+      <div><div class="eyebrow" data-i18n="ref.eyebrow">Step 1 · 教练标准</div><h2 id="refTitle">—</h2></div>
       <div class="film" id="refFilm"></div>
       <div class="row">
-        <label class="btn primary" for="refFile" id="refUploadLbl">上传教练视频</label>
+        <label class="btn primary" for="refFile" id="refUploadLbl" data-i18n="ref.upload">上传教练视频</label>
         <input type="file" id="refFile" accept="video/*" hidden>
-        <button class="btn" id="refCamStart">用摄像头录</button>
-        <button class="btn" id="refCamStop" hidden>录完了</button>
+        <button class="btn" id="refCamStart" data-i18n="ref.cam">用摄像头录</button>
+        <button class="btn" id="refCamStop" hidden data-i18n="ref.camStop">录完了</button>
       </div>
       <div class="progress" id="refProg" hidden><i></i></div>
       <div class="status" id="refStatus" hidden></div>
       <div id="refResult" hidden>
         <div class="compare" id="refImgs"></div>
         <table class="sum" id="refTable"></table>
-        <div class="field" style="margin-top:10px"><label for="refName">保存名称</label>
+        <div class="field" style="margin-top:10px"><label for="refName" data-i18n="ref.nameLbl">保存名称</label>
           <input id="refName" style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px"></div>
-        <div class="row" style="margin-top:10px"><button class="btn primary" id="refSave">保存为标准</button><button class="btn" id="refDiscard">不要，重录</button></div>
+        <div class="row" style="margin-top:10px"><button class="btn primary" id="refSave" data-i18n="ref.save">保存为标准</button><button class="btn" id="refDiscard" data-i18n="ref.discard">不要，重录</button></div>
       </div>
-      <p class="note">只会在这台设备的浏览器里保存。识别在本地运行，视频不会上传。</p>
+      <p class="note" data-i18n="ref.note">只会在这台设备的浏览器里保存。识别在本地运行，视频不会上传。</p>
     </section>
 
     <!-- Live panel -->
     <section class="panel" id="panelLive" hidden>
-      <div><div class="eyebrow">Step 2 · 实时对比</div><h2 id="liveTitle">—</h2></div>
-      <div class="field"><label for="profSel">用哪份标准</label><select id="profSel"></select></div>
+      <div><div class="eyebrow" data-i18n="live.eyebrow">Step 2 · 实时对比</div><h2 id="liveTitle">—</h2></div>
+      <div class="field"><label for="profSel" data-i18n="live.profLbl">用哪份标准</label><select id="profSel"></select></div>
       <div class="status" id="liveStatus" hidden></div>
       <div class="row">
-        <button class="btn primary" id="liveStart">开始这一组</button>
-        <button class="btn" id="liveStop" hidden>结束这一组</button>
-        <label class="btn" for="liveFile" id="liveFileLbl">分析我录的视频</label>
+        <button class="btn primary" id="liveStart" data-i18n="live.start">开始这一组</button>
+        <button class="btn" id="liveStop" hidden data-i18n="live.stop">结束这一组</button>
+        <label class="btn" for="liveFile" id="liveFileLbl" data-i18n="live.file">分析我录的视频</label>
         <input type="file" id="liveFile" accept="video/*" hidden>
       </div>
       <div class="compare" id="liveImgs">
         <figure><div class="ph" id="youPh"></div><figcaption id="youCap">你 · 上一下的最远点</figcaption></figure>
-        <figure><img id="coachImg" alt=""><figcaption>教练 · 标准最远点</figcaption></figure>
+        <figure><img id="coachImg" alt=""><figcaption data-i18n="live.coachCap">教练 · 标准最远点</figcaption></figure>
       </div>
-      <canvas class="spark" id="spark" aria-label="动作曲线：你和教练的幅度"></canvas>
+      <canvas class="spark" id="spark" aria-label="动作曲线：你和教练的幅度" data-i18n-aria="live.spark"></canvas>
       <div class="metrics" id="metrics"></div>
       <div class="log" id="log"></div>
       <div id="setSummary" hidden></div>
       <details>
-        <summary class="note" style="cursor:pointer">设置</summary>
+        <summary class="note" style="cursor:pointer" data-i18n="set.title">设置</summary>
         <div class="settings" style="margin-top:10px">
-          <div class="field"><label for="tolSel">判断松紧</label><select id="tolSel"><option value="0.7">严格</option><option value="1" selected>标准</option><option value="1.4">宽松</option></select></div>
-          <div class="field"><label for="camSel">摄像头</label><select id="camSel"><option value="user">前置</option><option value="environment">后置</option></select></div>
-          <div class="field"><label for="voiceSel">语音</label><select id="voiceSel"></select></div>
-          <div class="field"><label for="modelSel">识别精度</label><select id="modelSel"><option value="lite">快（手机）</option><option value="full">准（电脑）</option></select></div>
-          <button class="btn sm" id="voiceTest" type="button">测试语音</button>
-          <label class="chk"><input type="checkbox" id="optCount" checked> 报数</label>
-          <label class="chk"><input type="checkbox" id="optCue"> 每一下都语音提示问题（默认只报数，一组做完再总结）</label>
+          <div class="field"><label for="tolSel" data-i18n="set.tol">判断松紧</label><select id="tolSel"><option value="0.7" data-i18n="set.tol.strict">严格</option><option value="1" selected data-i18n="set.tol.std">标准</option><option value="1.4" data-i18n="set.tol.loose">宽松</option></select></div>
+          <div class="field"><label for="camSel" data-i18n="set.cam">摄像头</label><select id="camSel"><option value="user" data-i18n="set.cam.front">前置</option><option value="environment" data-i18n="set.cam.back">后置</option></select></div>
+          <div class="field"><label for="voiceSel" data-i18n="set.voice">语音</label><select id="voiceSel"></select></div>
+          <div class="field"><label for="modelSel" data-i18n="set.model">识别精度</label><select id="modelSel"><option value="lite" data-i18n="set.model.lite">快（手机）</option><option value="full" data-i18n="set.model.full">准（电脑）</option></select></div>
+          <button class="btn sm" id="voiceTest" type="button" data-i18n="set.voiceTest">测试语音</button>
+          <label class="chk"><input type="checkbox" id="optCount" checked> <span data-i18n="set.count">报数</span></label>
+          <label class="chk"><input type="checkbox" id="optCue"> <span data-i18n="set.cue">每一下都语音提示问题（默认只报数，一组做完再总结）</span></label>
         </div>
         <div class="settings" style="margin-top:12px;grid-template-columns:1fr">
-          <div class="field"><label for="apiKey">AI 点评 · Anthropic API key</label>
+          <div class="field"><label for="apiKey" data-i18n="set.apiKey">AI 点评 · Anthropic API key</label>
             <input id="apiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-…" style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px"></div>
-          <label class="chk"><input type="checkbox" id="optAi" checked> 每组结束后自动 AI 点评（有 key 时）</label>
-          <p class="note" id="apiKeyNote" style="margin:0">key 只存在这台手机的浏览器里，不会上传到别处。每组点评会把三张截图和这组的数字发给 Anthropic，大约几美分。</p>
+          <label class="chk"><input type="checkbox" id="optAi" checked> <span data-i18n="set.ai">每组结束后自动 AI 点评（有 key 时）</span></label>
+          <p class="note" id="apiKeyNote" style="margin:0" data-i18n="set.apiNote">key 只存在这台手机的浏览器里，不会上传到别处。每组点评会把三张截图和这组的数字发给 Anthropic，大约几美分。</p>
         </div>
       </details>
     </section>
 
     <!-- Library panel -->
     <section class="panel" id="panelLib" hidden>
-      <div><div class="eyebrow">标准库</div><h2>已保存的教练标准</h2></div>
+      <div><div class="eyebrow" data-i18n="lib.eyebrow">标准库</div><h2 data-i18n="lib.title">已保存的教练标准</h2></div>
       <div class="lib" id="lib"></div>
       <div class="row">
-        <button class="btn" id="libExport">导出全部</button>
-        <label class="btn" for="libImport">导入</label><input type="file" id="libImport" accept="application/json,.json" hidden>
+        <button class="btn" id="libExport" data-i18n="lib.export">导出全部</button>
+        <label class="btn" for="libImport" data-i18n="lib.import">导入</label><input type="file" id="libImport" accept="application/json,.json" hidden>
       </div>
-      <p class="note">换设备时（比如电脑录好、手机上用），先导出，再在另一台设备导入。</p>
+      <p class="note" data-i18n="lib.note">换设备时（比如电脑录好、手机上用），先导出，再在另一台设备导入。</p>
     </section>
   </div>
-  <p class="foot">角度是根据画面估算的 2D 角度，机位、遮挡和透视都会影响结果。它帮你发现“和教练哪里不一样”，不能代替教练。</p>
+  <p class="foot" data-i18n="foot">角度是根据画面估算的 2D 角度，机位、遮挡和透视都会影响结果。它帮你发现“和教练哪里不一样”，不能代替教练。</p>
 </div>
 
 <!-- ============ APP ============ -->
 <script type="module">
 import {PoseLandmarker,FilesetResolver} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
-import {SIDES,METRICS,Tracker,RepCounter,analyzeReference,compareRep,fmtVal,median,summarizeSet,formNote,trainingLogRow,TRAINING_LOG_HEADER} from "./src/engine.js";
+import {SIDES,METRICS,mname,Tracker,RepCounter,analyzeReference,compareRep,fmtVal,median,summarizeSet,formNote,trainingLogRow,TRAINING_LOG_HEADER} from "./src/engine.js";
 import {PRESETS} from "./src/presets.js";
 import {reviewSet} from "./src/ai.js";
 import {loadLines,exerciseSpeech,defaultDayId,allVideoIds,matchVideoId,validatePlan} from "./src/plan.js";
+import {t,setLang,getLang,isEn,loc} from "./src/i18n.js";
+const tr=t; // refFrame/liveFrame 的参数 t 是时间，会遮住 t()，那里用 tr()
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem('fm.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('fm.'+k,JSON.stringify(v))}catch(e){}}};
 
@@ -270,7 +276,7 @@ const DB={db:null,mem:[],
     if(!d.objectStoreNames.contains('videos'))d.createObjectStore('videos',{keyPath:'id'})};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}catch(e){this.db=null}return this.db},
   async video(id){const db=await this.open();if(!db)return null;return new Promise(res=>{const q=db.transaction('videos').objectStore('videos').get(id);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null)})},
   async videoIds(){const db=await this.open();if(!db)return [];return new Promise(res=>{const q=db.transaction('videos').objectStore('videos').getAllKeys();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([])})},
-  async putVideo(v){const db=await this.open();if(!db)throw new Error('这台设备不能存视频');return new Promise((res,rej)=>{const tx=db.transaction('videos','readwrite');tx.objectStore('videos').put(v);tx.oncomplete=res;tx.onerror=()=>rej(tx.error||new Error('存视频失败（可能手机空间不够）'))})},
+  async putVideo(v){const db=await this.open();if(!db)throw new Error(t('plan.noDevice'));return new Promise((res,rej)=>{const tx=db.transaction('videos','readwrite');tx.objectStore('videos').put(v);tx.oncomplete=res;tx.onerror=()=>rej(tx.error||new Error(t('plan.noSpace')))})},
   async delVideo(id){const db=await this.open();if(!db)return;return new Promise(res=>{const tx=db.transaction('videos','readwrite');tx.objectStore('videos').delete(id);tx.oncomplete=res;tx.onerror=res})},
   async all(){const db=await this.open();if(!db)return this.mem;return new Promise(res=>{const q=db.transaction('profiles').objectStore('profiles').getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([])})},
   async put(p){const db=await this.open();if(!db){this.mem=this.mem.filter(x=>x.id!==p.id).concat(p);return}return new Promise(res=>{const tx=db.transaction('profiles','readwrite');tx.objectStore('profiles').put(p);tx.oncomplete=res;tx.onerror=res})},
@@ -288,7 +294,10 @@ if(location.hostname==='localhost') window.__S=S; // 只在本地开发时给测
 const exSel=$('exSel');
 // 先只开放第一个动作；以后加动作就往这里加 id
 const ENABLED=['smith-reverse-lunge'];
-PRESETS.filter(p=>ENABLED.includes(p.id)).forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=`${p.name} · ${p.zh}`;exSel.append(o)});
+function fillExSel(){const keep=exSel.value;exSel.innerHTML='';
+  PRESETS.filter(p=>ENABLED.includes(p.id)).forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=isEn()?p.name:`${p.name} · ${p.zh}`;exSel.append(o)});
+  if(keep)exSel.value=keep}
+fillExSel();
 exSel.value=store.get('ex',PRESETS[0].id); if(!PRESETS.find(p=>p.id===exSel.value)) exSel.value=PRESETS[0].id;
 $('tolSel').value=store.get('tol','1'); $('camSel').value=store.get('cam','user');
 $('modelSel').value=store.get('model',isMobile?'lite':'full');
@@ -298,18 +307,20 @@ $('optCount').addEventListener('change',e=>store.set('count',e.target.checked));
 $('optCue').addEventListener('change',e=>store.set('cue',e.target.checked));
 // API key：只存在本机 localStorage
 $('apiKey').value=store.get('apiKey','');$('optAi').checked=store.get('ai',true);
-$('apiKey').addEventListener('change',e=>{const v=e.target.value.trim();store.set('apiKey',v);$('apiKeyNote').textContent=v?'已保存在这台手机上。清空这一栏就会删除。':'已删除 key。'});
+$('apiKey').addEventListener('change',e=>{const v=e.target.value.trim();store.set('apiKey',v);$('apiKeyNote').textContent=v?t('set.apiSaved'):t('set.apiDeleted')});
 $('optAi').addEventListener('change',e=>store.set('ai',e.target.checked));
 
 /* ---------- voice ---------- */
 let voices=[];
-function loadVoices(){voices=(speechSynthesis.getVoices()||[]).filter(v=>/^zh/i.test(v.lang));const sel=$('voiceSel'),saved=store.get('voice','');sel.innerHTML='';
-  const off=document.createElement('option');off.value='off';off.textContent='关闭语音';sel.append(off);
+// 每种语言各记一个声音（fm.voice.zh / fm.voice.en）；中文沿用以前存的 fm.voice
+const voiceKey=()=>'voice.'+getLang();
+function loadVoices(){voices=(speechSynthesis.getVoices()||[]).filter(v=>(isEn()?/^en/i:/^zh/i).test(v.lang));const sel=$('voiceSel'),saved=store.get(voiceKey(),isEn()?'':store.get('voice',''));sel.innerHTML='';
+  const off=document.createElement('option');off.value='off';off.textContent=t('voice.off');sel.append(off);
   voices.forEach(v=>{const o=document.createElement('option');o.value=v.name;o.textContent=`${v.name} (${v.lang})`;sel.append(o)});
-  if(!voices.length){const o=document.createElement('option');o.value='';o.textContent='系统默认';sel.append(o)}
+  if(!voices.length){const o=document.createElement('option');o.value='';o.textContent=t('voice.default');sel.append(o)}
   sel.value=[...sel.options].some(o=>o.value===saved)?saved:(sel.options[1]?sel.options[1].value:'off')}
 if('speechSynthesis' in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
-$('voiceSel').addEventListener('change',e=>store.set('voice',e.target.value));
+$('voiceSel').addEventListener('change',e=>store.set(voiceKey(),e.target.value));
 /* iPhone Safari 只在用户点按钮的那一刻允许网页出声，之后自动触发的语音（报数）可能被静音。
    做法：① 点"开始"时 unlockAudio() 先解锁语音和 Web Audio；② 报数排队说，不先 cancel()
    （iOS 上 cancel() 紧接 speak() 会把新的一句吞掉）；③ 报数 0.8 秒内没开始说，就"嘀"一声代替。 */
@@ -333,22 +344,22 @@ function speak(text,{interrupt=false,beepIfSilent=false,onSilent=null}={}){try{
   const s=speechSynthesis;if(s.paused)s.resume();
   if(interrupt&&(s.speaking||s.pending))s.cancel();
   const busy=s.speaking||s.pending;
-  const chunks=String(text).replace(/([。；！？])/g,'$1\n').split('\n').map(x=>x.trim()).filter(Boolean);
+  const chunks=String(text).replace(/([。；！？])/g,'$1\n').replace(/([.;!?])\s+/g,'$1\n').split('\n').map(x=>x.trim()).filter(Boolean);
   let started=false;
-  chunks.forEach((c,i)=>{const u=new SpeechSynthesisUtterance(c);u.lang='zh-CN';u.rate=1.08;const v=voices.find(x=>x.name===vn);if(v)u.voice=v;
+  chunks.forEach((c,i)=>{const u=new SpeechSynthesisUtterance(c);u.lang=isEn()?'en-US':'zh-CN';u.rate=1.08;const v=voices.find(x=>x.name===vn);if(v)u.voice=v;
     if(i===0)u.onstart=()=>{started=true};s.speak(u)});
   if(!busy||interrupt){
     if(beepIfSilent)setTimeout(()=>{if(!started){beep();S.speechMuted=(S.speechMuted||0)+1}},800);
     if(onSilent)setTimeout(()=>{if(!started)onSilent('silent')},1500);
   }
 }catch(e){if(onSilent)onSilent('error')}}
-const NUM_ZH=['零','一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十'];
+
 
 /* ---------- model ---------- */
 async function ensureModel(statusEl){
   const kind=$('modelSel').value;
   if(S.landmarker&&S.modelKind===kind)return S.landmarker;
-  setStatus(statusEl,'正在加载识别模型（第一次需要 5–15 秒）…');
+  setStatus(statusEl,t('st.loadingModel'));
   const fs=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
   const url=`https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_${kind}/float16/1/pose_landmarker_${kind}.task`;
   const mk=d=>PoseLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:url,delegate:d},runningMode:'VIDEO',numPoses:1,minPoseDetectionConfidence:.5,minTrackingConfidence:.5});
@@ -377,7 +388,7 @@ async function startCamera(){
 }
 async function startFile(file){
   stopSource();video.classList.remove('mirror');
-  const ready=new Promise((res,rej)=>{video.onloadedmetadata=res;video.onerror=()=>rej(new Error('这个视频格式浏览器打不开'))});
+  const ready=new Promise((res,rej)=>{video.onloadedmetadata=res;video.onerror=()=>rej(new Error(t('st.badVideo')))});
   video.muted=true;video.src=URL.createObjectURL(file);S.src='file';
   await ready;
   fitStage();showStage(true);
@@ -432,11 +443,11 @@ function beginRefCollect(){
 function refFrame(lm,t){
   const W=canvas.width,H=canvas.height;ctx.clearRect(0,0,W,H);
   const st=$('hudStatus');
-  if(!lm){st.hidden=false;st.textContent='没有识别到人';return}
+  if(!lm){st.hidden=false;st.textContent=tr('hud.noPerson');return}
   const r=S.ref.tracker.update(lm,W,H,t);
   const pk=S.preset.primary==='auto'?null:S.preset.primary;
   drawPose(ctx,lm,W,H,video.classList.contains('mirror'),pk?{joint:primaryJoint(pk,r.side),label:fmtVal(pk,r.values[pk])}:null);
-  st.hidden=false;st.textContent=r.missing.length?`看不清：${r.missing.join('、')}`:`识别中 · ${S.ref.series.length} 帧`;
+  st.hidden=false;st.textContent=r.missing.length?tr('hud.missing',{parts:r.missing}):tr('hud.tracking',{n:S.ref.series.length});
   if(r.ok) S.ref.series.push({t,values:r.values});
   if(t-S.ref.lastThumb>=.12){S.ref.thumbs.push({t,url:snapshot(lm,pk?{joint:primaryJoint(pk,r.side)}:null)});S.ref.lastThumb=t;if(S.ref.thumbs.length>600)S.ref.thumbs.splice(0,1)}
   if(S.src==='file'&&video.duration){const i=$('refProg').firstElementChild;i.style.width=(100*video.currentTime/video.duration).toFixed(1)+'%'}
@@ -453,31 +464,31 @@ function finishRef(){
     name:`${S.preset.name} · ${d.getMonth()+1}/${d.getDate()}`,
     primary:res.primary,rest:res.rest,far:res.far,reps:res.reps,secondary:res.secondary,curves:res.curves,tempo:res.tempo,
     images:{far:nearestThumb(res.bestFarT),rest:nearestThumb(res.bestRestT)}};
-  setStatus($('refStatus'),`识别到 ${res.reps} 下完整动作。确认下面的数字合理就保存。`,'ok');
+  setStatus($('refStatus'),t('ref.found',{n:res.reps}),'ok');
   renderRefResult(S.pendingProfile);
 }
 function renderRefResult(p){
   $('refResult').hidden=false;$('refName').value=p.name;
   $('refImgs').innerHTML='';
-  [['起始位置',p.images.rest],['最远点（标准）',p.images.far]].forEach(([cap,url])=>{const f=document.createElement('figure');const im=document.createElement('img');im.src=url;im.alt=cap;const fc=document.createElement('figcaption');fc.textContent='教练 · '+cap;f.append(im,fc);$('refImgs').append(f)});
-  const rows=[[`${METRICS[p.primary].zh}（计数用）`,fmtVal(p.primary,p.rest),fmtVal(p.primary,p.far)]];
-  for(const k in p.secondary) rows.push([METRICS[k].zh,'—',fmtVal(k,p.secondary[k])]);
-  rows.push(['节奏（去 / 回）',p.tempo.out.toFixed(1)+'s',p.tempo.back.toFixed(1)+'s']);
-  $('refTable').innerHTML='<tr><th>指标</th><th>起始位</th><th>最远点</th></tr>'+rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('');
+  [[t('ref.rest'),p.images.rest],[t('ref.far'),p.images.far]].forEach(([cap,url])=>{const f=document.createElement('figure');const im=document.createElement('img');im.src=url;im.alt=cap;const fc=document.createElement('figcaption');fc.textContent=t('ref.coach')+cap;f.append(im,fc);$('refImgs').append(f)});
+  const rows=[[t('ref.primaryRow',{name:mname(p.primary)}),fmtVal(p.primary,p.rest),fmtVal(p.primary,p.far)]];
+  for(const k in p.secondary) rows.push([mname(k),'—',fmtVal(k,p.secondary[k])]);
+  rows.push([t('ref.tempoRow'),p.tempo.out.toFixed(1)+'s',p.tempo.back.toFixed(1)+'s']);
+  $('refTable').innerHTML=`<tr><th>${t('ref.thMetric')}</th><th>${t('ref.thRest')}</th><th>${t('ref.thFar')}</th></tr>`+rows.map(r=>`<tr><td>${esc(r[0])}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('');
 }
 $('refFile').addEventListener('change',async e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;
   try{await ensureModel($('refStatus'));await startFile(f);beginRefCollect();
-    $('refProg').hidden=false;setStatus($('refStatus'),'正在分析教练视频…');
+    $('refProg').hidden=false;setStatus($('refStatus'),t('ref.analyzing'));
     video.playbackRate=1;await video.play();runLoop(refFrame,finishRef);
-  }catch(err){setStatus($('refStatus'),'出错了：'+(err.message||err),'err')}
+  }catch(err){setStatus($('refStatus'),t('err.generic',{msg:err.message||err}),'err')}
 });
 $('refCamStart').addEventListener('click',async()=>{
   unlockAudio();
   try{await ensureModel($('refStatus'));await startCamera();
-    let n=3;setStatus($('refStatus'),'准备好姿势…');const cue=$('hudCue');cue.hidden=false;cue.className='hud-cue';
-    await new Promise(res=>{const iv=setInterval(()=>{cue.textContent=n?`${n}`:'开始！';speak(n?NUM_ZH[n]:'开始');if(n--<=0){clearInterval(iv);setTimeout(()=>{cue.hidden=true},700);res()}},900)});
-    beginRefCollect();setStatus($('refStatus'),'正在录。教练做完 3–5 下后点「录完了」。');
+    let n=3;setStatus($('refStatus'),t('say.ready'));const cue=$('hudCue');cue.hidden=false;cue.className='hud-cue';
+    await new Promise(res=>{const iv=setInterval(()=>{cue.textContent=n?`${n}`:t('say.go');speak(n?t('num',{n}):t('say.start'));if(n--<=0){clearInterval(iv);setTimeout(()=>{cue.hidden=true},700);res()}},900)});
+    beginRefCollect();setStatus($('refStatus'),t('ref.recording'));
     $('refCamStart').hidden=true;$('refCamStop').hidden=false;runLoop(refFrame);
   }catch(err){setStatus($('refStatus'),camError(err),'err')}
 });
@@ -486,13 +497,13 @@ $('refDiscard').addEventListener('click',()=>{S.pendingProfile=null;$('refResult
 $('refSave').addEventListener('click',async()=>{
   const p=S.pendingProfile;if(!p)return;p.name=$('refName').value.trim()||p.name;await DB.put(p);
   store.set('active.'+p.exerciseId,p.id);S.profiles=await DB.all();S.pendingProfile=null;$('refResult').hidden=true;
-  setStatus($('refStatus'),`已保存「${p.name}」。切到「② 我来练」就能开始对比。`,'ok');renderLib();
+  setStatus($('refStatus'),t('ref.saved',{name:p.name}),'ok');renderLib();
 });
 function camError(err){const m=String(err&&err.name||err);
-  if(/NotAllowed/.test(m))return '摄像头权限被拒绝了。请在浏览器地址栏允许使用摄像头后再试。';
-  if(/NotFound|Overconstrained/.test(m))return '没找到可用的摄像头。可以在设置里换成前置/后置再试。';
-  if(!window.isSecureContext)return '浏览器只允许在 https 或本地文件里用摄像头。';
-  return '出错了：'+(err.message||m)}
+  if(/NotAllowed/.test(m))return t('cam.denied');
+  if(/NotFound|Overconstrained/.test(m))return t('cam.none');
+  if(!window.isSecureContext)return t('cam.insecure');
+  return t('err.generic',{msg:err.message||m})}
 
 /* ---------- live session ---------- */
 function currentProfile(){return S.profiles.find(p=>p.id===$('profSel').value)}
@@ -502,16 +513,16 @@ function beginLive(){
     reps:[],trace:[],farImg:null,lastFarSnap:-1,lastMissingSay:0,missSince:null,k:parseFloat($('tolSel').value)};
   S.speechMuted=0;
   $('log').innerHTML='';$('setSummary').hidden=true;$('hudN').textContent='0';$('hudCount').hidden=false;
-  $('youPh').outerHTML='<div class="ph" id="youPh"></div>';$('youCap').textContent='你 · 上一下的最远点';
+  $('youPh').outerHTML='<div class="ph" id="youPh"></div>';$('youCap').textContent=t('live.youCap');
   renderMetrics(null);
 }
 function liveFrame(lm,t){
   const L=S.live,W=canvas.width,H=canvas.height;ctx.clearRect(0,0,W,H);const st=$('hudStatus');
-  if(!lm){st.hidden=false;st.textContent='没有识别到人';return}
+  if(!lm){st.hidden=false;st.textContent=tr('hud.noPerson');return}
   const r=L.tracker.update(lm,W,H,t);const P=L.prof.primary;
   drawPose(ctx,lm,W,H,video.classList.contains('mirror'),{joint:primaryJoint(P,r.side),label:fmtVal(P,r.values[P])});
-  if(r.missing.length){st.hidden=false;st.textContent=`看不清：${r.missing.join('、')}`;
-    L.missSince=L.missSince??t; if(t-L.missSince>1.5&&t-L.lastMissingSay>8&&S.src==='camera'){speak(`看不到你的${r.missing.slice(0,2).join('和')}，调整一下手机位置`);L.lastMissingSay=t}}
+  if(r.missing.length){st.hidden=false;st.textContent=tr('hud.missing',{parts:r.missing});
+    L.missSince=L.missSince??t; if(t-L.missSince>1.5&&t-L.lastMissingSay>8&&S.src==='camera'){speak(tr('say.missing',{parts:r.missing.slice(0,2)}));L.lastMissingSay=t}}
   else{st.hidden=true;L.missSince=null}
   if(!r.ok)return;
   const v=r.values[P];L.trace.push({t,v});while(L.trace.length&&t-L.trace[0].t>12)L.trace.shift();
@@ -526,28 +537,28 @@ function onRep(rep){
   const cue=$('hudCue');cue.hidden=false;
   const top=cmp.issues[0];
   if(top){cue.className='hud-cue '+(top.sev>1.6?'bad':'warn');cue.textContent=top.voice}
-  else{cue.className='hud-cue good';cue.textContent='这一下很标准'}
+  else{cue.className='hud-cue good';cue.textContent=t('live.goodRep')}
   // 做组时默认只报数；问题留到一组结束再总结
-  const parts=[];if($('optCount').checked)parts.push(NUM_ZH[rep.n]||String(rep.n));
+  const parts=[];if($('optCount').checked)parts.push(t('num',{n:rep.n}));
   if(top&&$('optCue').checked)parts.push(top.voice);
-  if(parts.length)speak(parts.join('，'),{beepIfSilent:true});
-  if(rep.img){const ph=$('youPh');const im=document.createElement('img');im.id='youPh';im.src=rep.img;im.alt='你的最远点';ph.replaceWith(im);$('youCap').textContent=`你 · 第 ${rep.n} 下的最远点`}
+  if(parts.length)speak(parts.join(t('say.join')),{beepIfSilent:true});
+  if(rep.img){const ph=$('youPh');const im=document.createElement('img');im.id='youPh';im.src=rep.img;im.alt=t('live.youFar');ph.replaceWith(im);$('youCap').textContent=t('live.youCapN',{n:rep.n})}
   const row=document.createElement('div');row.className='rep';
   const chips=[...cmp.issues.map(i=>`<span class="chip ${i.sev>1.6?'bad':'warn'}">${esc(i.text)}</span>`),...cmp.infos.map(i=>`<span class="chip ${i.cls}">${esc(i.text)}</span>`)].join('');
-  row.innerHTML=`<div class="n">${rep.n}</div><div class="t">${esc(top?top.voice:'这一下很标准')} <span class="note">· ${METRICS[L.prof.primary].zh} ${fmtVal(L.prof.primary,rep.farV)}（教练 ${fmtVal(L.prof.primary,L.prof.far)}）</span><div class="chips">${chips}</div></div>`;
+  row.innerHTML=`<div class="n">${rep.n}</div><div class="t">${esc(top?top.voice:t('live.goodRep'))} <span class="note">· ${esc(t('live.repNote',{name:mname(L.prof.primary),val:fmtVal(L.prof.primary,rep.farV),ref:fmtVal(L.prof.primary,L.prof.far)}))}</span><div class="chips">${chips}</div></div>`;
   $('log').prepend(row);
 }
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function renderMetrics(vals){
   const L=S.live;const box=$('metrics');if(!L){box.innerHTML='';return}
   const p=L.prof,last=L.reps[L.reps.length-1];
-  const rows=[{k:p.primary,nm:METRICS[p.primary].zh,sub:'计数用 · 最远点',live:vals?vals[p.primary]:NaN,last:last?last.farV:NaN,ref:p.far}];
-  for(const k in p.secondary)rows.push({k,nm:METRICS[k].zh,sub:'在最远点时',live:vals?vals[k]:NaN,last:last?last.vals[k]:NaN,ref:p.secondary[k]});
+  const rows=[{k:p.primary,nm:mname(p.primary),sub:t('met.primarySub'),live:vals?vals[p.primary]:NaN,last:last?last.farV:NaN,ref:p.far}];
+  for(const k in p.secondary)rows.push({k,nm:mname(k),sub:t('met.secSub'),live:vals?vals[k]:NaN,last:last?last.vals[k]:NaN,ref:p.secondary[k]});
   box.innerHTML=rows.map(r=>{let chip='<span class="chip">—</span>';
     if(!isNaN(r.last)){const tol=METRICS[r.k].tol*L.k;let d=r.last-r.ref;
-      if(r.k===p.primary){const dir=Math.sign(p.far-p.rest)||1;const short=(p.far-r.last)*dir;chip=short>tol?`<span class="chip ${short>1.6*tol?'bad':'warn'}">差 ${fmtVal(r.k,short)}</span>`:'<span class="chip good">到位</span>'}
-      else chip=Math.abs(d)<=tol?'<span class="chip good">一致</span>':`<span class="chip warn">${d>0?'+':'−'}${fmtVal(r.k,Math.abs(d))}</span>`}
-    return `<div class="metric"><div class="nm">${r.nm}<small>${r.sub}</small></div><div class="v">${fmtVal(r.k,r.live)}</div><div class="ref">教练 ${fmtVal(r.k,r.ref)}</div>${chip}</div>`}).join('');
+      if(r.k===p.primary){const dir=Math.sign(p.far-p.rest)||1;const short=(p.far-r.last)*dir;chip=short>tol?`<span class="chip ${short>1.6*tol?'bad':'warn'}">${t('met.short',{val:fmtVal(r.k,short)})}</span>`:`<span class="chip good">${t('met.ok')}</span>`}
+      else chip=Math.abs(d)<=tol?`<span class="chip good">${t('met.same')}</span>`:`<span class="chip warn">${d>0?'+':'−'}${fmtVal(r.k,Math.abs(d))}</span>`}
+    return `<div class="metric"><div class="nm">${r.nm}<small>${r.sub}</small></div><div class="v">${fmtVal(r.k,r.live)}</div><div class="ref">${t('met.coach',{val:fmtVal(r.k,r.ref)})}</div>${chip}</div>`}).join('');
 }
 function drawSpark(){
   const L=S.live,c=$('spark'),dpr=window.devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;
@@ -559,7 +570,7 @@ function drawSpark(){
   g.fillStyle=css('--good-bg');const a=Y(p.far),b=Y(p.far-dir*tol);g.fillRect(0,Math.min(a,b),w,Math.abs(a-b));
   g.setLineDash([4,4]);g.strokeStyle=css('--good');g.lineWidth=1;g.beginPath();g.moveTo(0,Y(p.far));g.lineTo(w,Y(p.far));g.stroke();
   g.strokeStyle=css('--muted');g.beginPath();g.moveTo(0,Y(p.rest));g.lineTo(w,Y(p.rest));g.stroke();g.setLineDash([]);
-  g.font='11px Barlow,sans-serif';g.fillStyle=css('--good');g.fillText('教练最远点',6,Y(p.far)+(dir>0?12:-4));g.fillStyle=css('--muted');g.fillText('起始位',6,Y(p.rest)+(dir>0?-4:12));
+  g.font='11px Barlow,sans-serif';g.fillStyle=css('--good');g.fillText(t('spark.far'),6,Y(p.far)+(dir>0?12:-4));g.fillStyle=css('--muted');g.fillText(t('spark.rest'),6,Y(p.rest)+(dir>0?-4:12));
   g.strokeStyle=css('--accent');g.lineWidth=2;g.beginPath();L.trace.forEach((pt,i)=>{const x=X(pt.t),y=Y(pt.v);i?g.lineTo(x,y):g.moveTo(x,y)});g.stroke();
 }
 function endLive(){
@@ -567,36 +578,36 @@ function endLive(){
   if(S.stream){S.stream.getTracks().forEach(t=>t.stop());S.stream=null}
   $('liveStart').hidden=false;$('liveStop').hidden=true;
   const L=S.live;if(!L)return;const n=L.reps.length,box=$('setSummary');box.hidden=false;
-  if(!n){box.innerHTML='<div class="status">这一组没有识别到完整的动作。检查一下机位是不是和教练录的时候一样。</div>';return}
+  if(!n){box.innerHTML=`<div class="status">${t('sum.noReps')}</div>`;return}
   const sum=summarizeSet(L.reps,L.prof);L.summary=sum;
   const P=L.prof.primary;
   const fig=(url,cap)=>`<figure>${url?`<img src="${url}" alt="${esc(cap)}">`:'<div class="ph"></div>'}<figcaption>${esc(cap)}</figcaption></figure>`;
   const imgs=[];
-  if(sum.best) imgs.push(fig(sum.best.img,`最好 · 第 ${sum.best.n} 下`));
-  if(sum.worst) imgs.push(fig(sum.worst.img,`最需要改 · 第 ${sum.worst.n} 下`));
-  imgs.push(fig(L.prof.images&&L.prof.images.far,'教练 · 最低点'));
+  if(sum.best) imgs.push(fig(sum.best.img,t('sum.best',{n:sum.best.n})));
+  if(sum.worst) imgs.push(fig(sum.worst.img,t('sum.worst',{n:sum.worst.n})));
+  imgs.push(fig(L.prof.images&&L.prof.images.far,t('sum.coach')));
   const last=store.get('lastSet.'+S.preset.id,{});
-  box.innerHTML=`<div class="eyebrow" style="margin-bottom:6px">这一组总结</div>
+  box.innerHTML=`<div class="eyebrow" style="margin-bottom:6px">${t('sum.title')}</div>
    <div class="status ${sum.clean===n?'ok':''}" style="margin-bottom:8px">${esc(sum.speech)}</div>
    <table class="sum">
-   <tr><th>完成</th><td>${n} 下，其中 ${sum.clean} 下和教练一致${sum.skipped?`，${sum.skipped} 下机位不对没有评估`:''}</td></tr>
+   <tr><th>${t('sum.done')}</th><td>${esc(t('sum.doneVal',{n,clean:sum.clean,skipped:sum.skipped}))}</td></tr>
    ${sum.depthMedian!=null
-     ?`<tr><th>深度</th><td>${METRICS[sum.depthKey].zh}：每下最低时的中位数 ${Math.round(sum.depthMedian)}°（${S.preset.depth.ok}° 以内算到位）</td></tr>`
-     :`<tr><th>${METRICS[P].zh}</th><td>你的中位数 ${fmtVal(P,sum.farMedian)} · 教练 ${fmtVal(P,L.prof.far)}</td></tr>`}
-   ${sum.legHidden?`<tr><th>后腿</th><td>${sum.legHidden} 下看不到后腿（可能被器械挡住），后腿相关的数字不评估</td></tr>`:''}
-   ${sum.top.slice(0,3).map(x=>`<tr><th>${x.count}/${n-sum.skipped} 下</th><td>${esc(x.voice)}</td></tr>`).join('')}</table>
+     ?`<tr><th>${t('sum.depth')}</th><td>${esc(t('sum.depthVal',{name:mname(sum.depthKey),val:Math.round(sum.depthMedian),ok:S.preset.depth.ok}))}</td></tr>`
+     :`<tr><th>${esc(mname(P))}</th><td>${esc(t('sum.primaryVal',{mine:fmtVal(P,sum.farMedian),ref:fmtVal(P,L.prof.far)}))}</td></tr>`}
+   ${sum.legHidden?`<tr><th>${t('sum.backLeg')}</th><td>${esc(t('sum.backLegVal',{n:sum.legHidden}))}</td></tr>`:''}
+   ${sum.top.slice(0,3).map(x=>`<tr><th>${t('sum.issueCount',{c:x.count,n:n-sum.skipped})}</th><td>${esc(x.voice)}</td></tr>`).join('')}</table>
    <div class="compare" style="grid-template-columns:repeat(${imgs.length},1fr);margin-top:10px">${imgs.join('')}</div>
    <div id="aiBox" style="margin-top:12px"></div>
    <div class="settings" style="margin-top:12px">
-     <div class="field"><label for="setWeight">重量（磅）</label><input id="setWeight" inputmode="decimal" value="${esc(last.weight??'')}" style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px"></div>
-     <div class="field"><label for="setRir">余力（RIR）</label><input id="setRir" inputmode="numeric" value="${esc(last.rir??'')}" style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px"></div>
+     <div class="field"><label for="setWeight">${t('sum.weight')}</label><input id="setWeight" inputmode="decimal" value="${esc(last.weight??'')}" style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px"></div>
+     <div class="field"><label for="setRir">${t('sum.rir')}</label><input id="setRir" inputmode="numeric" value="${esc(last.rir??'')}" style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px"></div>
    </div>
-   <div class="row" style="margin-top:10px"><button class="btn primary" id="setSave">保存这一组到 Google Drive</button><button class="btn" id="logExport" hidden>补存没存上的</button></div>
-   <p class="note">点了之后会弹出分享菜单：选"存储到文件"→ Google Drive →"coach"文件夹 →"存储"。之后同一个文件夹会被记住。</p>
+   <div class="row" style="margin-top:10px"><button class="btn primary" id="setSave">${t('sum.save')}</button><button class="btn" id="logExport" hidden>${t('sum.exportPending')}</button></div>
+   <p class="note">${t('sum.saveHint')}</p>
    <p class="note" id="logNote"></p>`;
   $('setSave').onclick=saveSet;$('logExport').onclick=exportLog;renderLogNote();
   speak(sum.speech,{interrupt:true});
-  if(S.speechMuted)setStatus($('liveStatus'),`这一组有 ${S.speechMuted} 次报数手机没念出来，已用"嘀"声代替。可以在设置里点"测试语音"检查。`);
+  if(S.speechMuted)setStatus($('liveStatus'),t('sum.muted',{n:S.speechMuted}));
   renderAi(store.get('apiKey','')&&$('optAi').checked&&sum.n-(sum.skipped||0)>0);
 }
 
@@ -604,21 +615,21 @@ function endLive(){
 function renderAi(autoRun){
   const box=$('aiBox'),L=S.live;if(!box||!L)return;
   const key=store.get('apiKey','');
-  if(L.ai&&L.ai.speech){box.innerHTML=`<div class="eyebrow" style="margin-bottom:6px">AI 点评</div><div class="status ok" style="margin-bottom:6px">${esc(L.ai.speech)}</div><p style="margin:0;font-size:14px">${esc(L.ai.details)}</p>`;return}
-  if(L.ai&&L.ai.pending){box.innerHTML='<div class="status">AI 正在看这一组…（大约 10–30 秒）</div>';return}
+  if(L.ai&&L.ai.speech){box.innerHTML=`<div class="eyebrow" style="margin-bottom:6px">${t('ai.title')}</div><div class="status ok" style="margin-bottom:6px">${esc(L.ai.speech)}</div><p style="margin:0;font-size:14px">${esc(L.ai.details)}</p>`;return}
+  if(L.ai&&L.ai.pending){box.innerHTML=`<div class="status">${t('ai.pending')}</div>`;return}
   const err=L.ai&&L.ai.error?`<div class="status err" style="margin-bottom:6px">${esc(L.ai.error)}</div>`:'';
-  if(!key){box.innerHTML=err+'<p class="note" style="margin:0">想要 AI 文字点评：在下面"设置"里粘贴 Anthropic API key。</p>';return}
-  box.innerHTML=err+`<button class="btn" id="aiRun">${L.ai?'再试一次 AI 点评':'AI 点评这一组'}</button>`;
+  if(!key){box.innerHTML=err+`<p class="note" style="margin:0">${t('ai.needKey')}</p>`;return}
+  box.innerHTML=err+`<button class="btn" id="aiRun">${L.ai?t('ai.retry'):t('ai.run')}</button>`;
   $('aiRun').onclick=()=>{unlockAudio();runAi()};
   if(autoRun&&!L.ai)runAi();
 }
 async function runAi(){
   const L=S.live,key=store.get('apiKey','');if(!L||!L.summary||!key)return;
   L.ai={pending:true};renderAi();
-  const res=await reviewSet(key,{exercise:S.preset.zh,standardName:L.prof.name,summary:L.summary,reps:L.reps,profile:L.prof});
+  const res=await reviewSet(key,{exercise:isEn()?S.preset.name:S.preset.zh,standardName:L.prof.name,summary:L.summary,reps:L.reps,profile:L.prof});
   if(S.live!==L)return; // 已经开始下一组
   L.ai=res;renderAi();
-  if(res.speech)speak('AI 点评：'+res.speech);
+  if(res.speech)speak(t('say.aiPrefix')+res.speech);
 }
 
 /* ---------- 训练记录：每组存一个小 CSV 到 Google Drive 的 coach 文件夹 ----------
@@ -648,76 +659,76 @@ async function saveSet(){
     const weight=$('setWeight').value.trim(),rir=$('setRir').value.trim();
     store.set('lastSet.'+S.preset.id,{weight,rir});
     L.savedId='s'+Date.now();
-    const note=formNote(L.summary)+(L.ai&&L.ai.speech?'；AI：'+L.ai.speech:'');
+    const note=formNote(L.summary)+(L.ai&&L.ai.speech?t('note.ai',{text:L.ai.speech}):'');
     log.push({id:L.savedId,date:today(),exercise:S.preset.name,reps:L.summary.n,weight_lb:weight,rir,note,at:new Date().toISOString(),exported:false});
     store.set('log',log);
   }
   const rec=log.find(r=>r.id===L.savedId);
   const res=await shareCsv([rec]);
   if(res.ok){log=store.get('log',[]);const r=log.find(x=>x.id===L.savedId);if(r){r.exported=true;r.file=res.name}store.set('log',log);
-    btn.disabled=true;btn.textContent=res.how==='share'?'已保存':'已下载';}
-  else btn.textContent='没存上，再点一次';
-  renderLogNote(res.ok?null:'取消了分享。这组记录还在手机上，可以再点一次，或之后用"补存没存上的"。');
+    btn.disabled=true;btn.textContent=res.how==='share'?t('log.saved'):t('log.downloaded');}
+  else btn.textContent=t('log.retry');
+  renderLogNote(res.ok?null:t('log.cancelled'));
 }
 async function exportLog(){
   let log=store.get('log',[]);const pending=log.filter(r=>!r.exported);
-  if(!pending.length){renderLogNote('所有记录都已经存过了。');return}
+  if(!pending.length){renderLogNote(t('log.allDone'));return}
   const res=await shareCsv(pending);
   if(res.ok){log=store.get('log',[]);for(const r of log)if(pending.some(p=>p.id===r.id||p.at===r.at)){r.exported=true;r.file=res.name}store.set('log',log)}
-  renderLogNote(res.ok?null:'取消了分享，记录还在手机上。');
+  renderLogNote(res.ok?null:t('log.cancelled2'));
 }
 function renderLogNote(msg){
   const el=$('logNote');if(!el)return;const log=store.get('log',[]);const pending=log.filter(r=>!r.exported).length;
   const ex=$('logExport');if(ex)ex.hidden=!pending||(pending===1&&S.live&&S.live.savedId&&log.some(r=>r.id===S.live.savedId&&!r.exported));
-  el.textContent=msg||(pending?`手机上还有 ${pending} 组没存到 Drive。`:`这台设备上的 ${log.length} 组记录都存过了。`);
+  el.textContent=msg||(pending?t('log.pending',{n:pending}):t('log.allSaved',{n:log.length}));
 }
 $('liveStart').addEventListener('click',async()=>{
   unlockAudio(); // 必须在点击的同一时刻、任何 await 之前
-  if(!currentProfile()){setStatus($('liveStatus'),'这个动作还没有教练标准，先去「① 录教练标准」录一段。','err');return}
+  if(!currentProfile()){setStatus($('liveStatus'),t('live.noProfile'),'err');return}
   try{await ensureModel($('liveStatus'));await startCamera();beginLive();setStatus($('liveStatus'),'');
-    $('liveStart').hidden=true;$('liveStop').hidden=false;speak('开始');runLoop(liveFrame);
+    $('liveStart').hidden=true;$('liveStop').hidden=false;speak(t('say.start'));runLoop(liveFrame);
   }catch(err){setStatus($('liveStatus'),camError(err),'err')}
 });
 $('liveStop').addEventListener('click',()=>{unlockAudio();endLive()});
-$('voiceTest').addEventListener('click',()=>{unlockWebAudio();speak('一，二，三',{interrupt:true,beepIfSilent:true})});
+$('voiceTest').addEventListener('click',()=>{unlockWebAudio();speak(t('say.test'),{interrupt:true,beepIfSilent:true})});
 $('liveFileLbl').addEventListener('click',unlockAudio);
 $('liveFile').addEventListener('change',async e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;
-  if(!currentProfile()){setStatus($('liveStatus'),'这个动作还没有教练标准，先去「① 录教练标准」录一段。','err');return}
-  try{await ensureModel($('liveStatus'));await startFile(f);beginLive();setStatus($('liveStatus'),'正在分析你的视频…');
-    await video.play();runLoop(liveFrame,()=>{setStatus($('liveStatus'),'分析完了。');endLive()});
-  }catch(err){setStatus($('liveStatus'),'出错了：'+(err.message||err),'err')}
+  if(!currentProfile()){setStatus($('liveStatus'),t('live.noProfile'),'err');return}
+  try{await ensureModel($('liveStatus'));await startFile(f);beginLive();setStatus($('liveStatus'),t('live.analyzing'));
+    await video.play();runLoop(liveFrame,()=>{setStatus($('liveStatus'),t('live.analyzed'));endLive()});
+  }catch(err){setStatus($('liveStatus'),t('err.generic',{msg:err.message||err}),'err')}
 });
 
 /* ---------- library ---------- */
 function renderLib(){
   const box=$('lib');box.innerHTML='';
-  if(!S.profiles.length){box.innerHTML='<div class="status">还没有保存任何标准。到「① 录教练标准」上传或录一段教练示范。</div>';return}
+  if(!S.profiles.length){box.innerHTML=`<div class="status">${t('lib.empty')}</div>`;return}
   const byEx=[...S.profiles].sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
   for(const p of byEx){const pr=PRESETS.find(x=>x.id===p.exerciseId);
     const el=document.createElement('div');el.className='libitem';
-    el.innerHTML=`<img alt="" src="${p.images&&p.images.far||''}"><div class="meta"><b>${esc(p.name)}</b><span class="note">${pr?pr.zh:''} · ${p.reps} 下 · ${METRICS[p.primary].zh} ${fmtVal(p.primary,p.rest)} → ${fmtVal(p.primary,p.far)}</span><div class="row"><button class="btn sm" data-use>用这份练</button><button class="btn sm danger" data-del>删除</button></div></div>`;
+    el.innerHTML=`<img alt="" src="${p.images&&p.images.far||''}"><div class="meta"><b>${esc(p.name)}</b><span class="note">${esc(t('lib.meta',{ex:pr?(isEn()?pr.name:pr.zh):'',reps:p.reps,name:mname(p.primary),rest:fmtVal(p.primary,p.rest),far:fmtVal(p.primary,p.far)}))}</span><div class="row"><button class="btn sm" data-use>${t('lib.use')}</button><button class="btn sm danger" data-del>${t('lib.del')}</button></div></div>`;
     el.querySelector('[data-use]').onclick=()=>{store.set('active.'+p.exerciseId,p.id);exSel.value=p.exerciseId;selectPreset();setMode('live')};
-    const del=el.querySelector('[data-del]');del.onclick=async()=>{if(del.dataset.armed){await DB.del(p.id);S.profiles=await DB.all();renderLib();renderProfSel()}else{del.dataset.armed='1';del.textContent='再点一次确认删除';setTimeout(()=>{if(del.isConnected){delete del.dataset.armed;del.textContent='删除'}},3000)}};
+    const del=el.querySelector('[data-del]');del.onclick=async()=>{if(del.dataset.armed){await DB.del(p.id);S.profiles=await DB.all();renderLib();renderProfSel()}else{del.dataset.armed='1';del.textContent=t('lib.delConfirm');setTimeout(()=>{if(del.isConnected){delete del.dataset.armed;del.textContent=t('lib.del')}},3000)}};
     box.append(el)}
 }
 $('libExport').addEventListener('click',()=>{
   const blob=new Blob([JSON.stringify({app:'form-mirror',v:1,profiles:S.profiles})],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`form-mirror-标准-${new Date().toISOString().slice(0,10)}.json`;document.body.append(a);a.click();a.remove();
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`form-mirror-${t('lib.fileName')}-${new Date().toISOString().slice(0,10)}.json`;document.body.append(a);a.click();a.remove();
 });
 $('libImport').addEventListener('change',async e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;
   try{const j=JSON.parse(await f.text());const list=(j.profiles||[]).filter(p=>p&&p.id&&p.primary&&METRICS[p.primary]);
     for(const p of list)await DB.put(p);S.profiles=await DB.all();renderLib();renderProfSel();
-    $('lib').insertAdjacentHTML('afterbegin',`<div class="status ok">导入了 ${list.length} 份标准。</div>`)}
-  catch(err){$('lib').insertAdjacentHTML('afterbegin','<div class="status err">这个文件读不了，确认是从这里导出的 .json 文件。</div>')}
+    $('lib').insertAdjacentHTML('afterbegin',`<div class="status ok">${t('lib.imported',{n:list.length})}</div>`)}
+  catch(err){$('lib').insertAdjacentHTML('afterbegin',`<div class="status err">${t('lib.badFile')}</div>`)}
 });
 
 /* ---------- mode / preset ---------- */
 function renderProfSel(){
   const sel=$('profSel'),list=S.profiles.filter(p=>p.exerciseId===S.preset.id).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
   sel.innerHTML='';
-  if(!list.length){const o=document.createElement('option');o.value='';o.textContent='还没有，先录教练标准';sel.append(o);$('coachImg').removeAttribute('src');return}
+  if(!list.length){const o=document.createElement('option');o.value='';o.textContent=t('prof.none');sel.append(o);$('coachImg').removeAttribute('src');return}
   list.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;sel.append(o)});
   const act=store.get('active.'+S.preset.id,'');sel.value=list.some(p=>p.id===act)?act:list[0].id;
   const p=currentProfile();$('coachImg').src=p&&p.images?p.images.far:'';
@@ -725,15 +736,15 @@ function renderProfSel(){
 $('profSel').addEventListener('change',()=>{const p=currentProfile();if(p){store.set('active.'+p.exerciseId,p.id);$('coachImg').src=p.images?p.images.far:''}});
 function selectPreset(){
   S.preset=PRESETS.find(p=>p.id===exSel.value)||PRESETS[0];store.set('ex',S.preset.id);
-  $('refTitle').textContent=S.preset.name;$('liveTitle').textContent=S.preset.name;$('refFilm').innerHTML=S.preset.film;
+  $('refTitle').textContent=S.preset.name;$('liveTitle').textContent=S.preset.name;$('refFilm').innerHTML=(isEn()&&S.preset.filmEn)||S.preset.film;
   renderProfSel();
 }
 exSel.addEventListener('change',()=>{stopSource();showStage(false);S.live=null;renderMetrics(null);$('log').innerHTML='';$('setSummary').hidden=true;
   $('liveStart').hidden=false;$('liveStop').hidden=true;$('refCamStart').hidden=false;$('refCamStop').hidden=true;$('refResult').hidden=true;setStatus($('refStatus'),'');setStatus($('liveStatus'),'');selectPreset();setEmpty()});
 function setEmpty(){
-  if(S.mode==='live'){$('emptyTitle').textContent=currentProfile()?'准备好就点「开始这一组」':'先录一段教练的标准动作';
-    $('emptyText').innerHTML=currentProfile()?'手机的位置和角度尽量和教练录的时候一样。每做完一下，会用语音告诉你哪里不一样。':'这个动作还没有标准，先到「① 录教练标准」。'}
-  else{$('emptyTitle').textContent='先录一段教练的标准动作';$('emptyText').textContent='上传教练示范的视频，或者直接用摄像头录。教练做 3–5 下就够了。'}
+  if(S.mode==='live'){$('emptyTitle').textContent=currentProfile()?t('empty.liveReady'):t('empty.refTitle');
+    $('emptyText').textContent=currentProfile()?t('empty.liveReadyText'):t('empty.liveNone')}
+  else{$('emptyTitle').textContent=t('empty.refTitle');$('emptyText').textContent=t('empty.refText')}
 }
 function setMode(m){
   if(S.mode!==m){stopSource();showStage(false);$('refCamStart').hidden=false;$('refCamStop').hidden=true;$('liveStart').hidden=false;$('liveStop').hidden=true}
@@ -749,30 +760,32 @@ window.addEventListener('resize',()=>{if(S.live)drawSpark()});
 
 /* ---------- 训练计划 ---------- */
 // 计划存 localStorage（fm.plan），视频存 IndexedDB（videos）。都只在这台设备上。
+// 双语：计划里每个训练日、动作有 en:{...}（英文名、目标、要点…），英文界面用 loc(obj,字段) 取，没有就用中文
 const P={plan:store.get('plan',null),day:null,linked:new Set(),urls:[]};
 async function refreshLinked(){P.linked=new Set(await DB.videoIds())}
 function closeVideos(){P.urls.forEach(u=>URL.revokeObjectURL(u));P.urls=[];document.querySelectorAll('.ex-video').forEach(el=>{el.innerHTML='';el.hidden=true})}
 function planStatus(msg,cls){setStatus($('planStatus'),msg,cls)}
+const planPrinciples=plan=>(isEn()&&plan.en&&plan.en.principles)||plan.principles||[];
 function renderPlan(){
   const plan=P.plan,body=$('planBody'),tabs=$('dayTabs');
-  if(!plan){tabs.innerHTML='';body.innerHTML='<div class="panel"><h2>还没有训练计划</h2><p style="margin:0">在下面"计划和视频"里点"导入训练计划"，选 Google Drive → coach →训练计划.json。</p></div>';$('planAdmin').open=true;renderVideoList();return}
+  if(!plan){tabs.innerHTML='';body.innerHTML=`<div class="panel"><h2>${t('plan.empty')}</h2><p style="margin:0">${t('plan.emptyText')}</p></div>`;$('planAdmin').open=true;renderVideoList();return}
   if(!P.day||!plan.days.some(d=>d.id===P.day))P.day=defaultDayId(plan);
   tabs.innerHTML='';
-  for(const d of plan.days){const b=document.createElement('button');b.setAttribute('role','tab');b.textContent=d.name.split(' · ')[0];b.setAttribute('aria-selected',d.id===P.day);
+  for(const d of plan.days){const b=document.createElement('button');b.setAttribute('role','tab');b.textContent=t('plan.dayShort',{name:loc(d,'name'),short:loc(d,'short')});b.setAttribute('aria-selected',d.id===P.day);
     b.onclick=()=>{closeVideos();P.day=d.id;renderPlan()};tabs.append(b)}
   const day=plan.days.find(d=>d.id===P.day);
   const n=(()=>{let k=0;return ex=>/热身/.test(ex.name)?'·':String(++k)})();
-  body.innerHTML=`<div class="dayhead"><h2>${esc(day.name)}${day.minutes?` <span class="note">约 ${day.minutes} 分钟</span>`:''}</h2>
-    ${day.notes&&day.notes.length?`<ul>${day.notes.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div>
+  const notes=loc(day,'notes')||[], principles=planPrinciples(plan);
+  body.innerHTML=`<div class="dayhead"><h2>${esc(loc(day,'name'))}${day.minutes?` <span class="note">${t('plan.minutes',{n:day.minutes})}</span>`:''}</h2>
+    ${notes.length?`<ul>${notes.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div>
     <div class="exlist">${day.exercises.map(ex=>exCard(ex,n(ex),plan)).join('')}</div>
-    ${plan.principles&&plan.principles.length?`<details class="panel" style="margin-top:12px"><summary style="cursor:pointer;font-weight:600">通用原则</summary><ul style="margin:8px 0 0;padding-left:18px">${plan.principles.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}`;
+    ${principles.length?`<details class="panel" style="margin-top:12px"><summary style="cursor:pointer;font-weight:600">${t('plan.principles')}</summary><ul style="margin:8px 0 0;padding-left:18px">${principles.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}`;
   body.querySelectorAll('[data-say]').forEach(b=>b.onclick=()=>{
     unlockWebAudio();const ex=day.exercises.find(e=>e.id===b.dataset.say),card=b.closest('.ex');
     card.querySelector('.say-msg')?.remove();
     speak(exerciseSpeech(ex,plan.plates),{interrupt:true,onSilent:why=>{
       const m=document.createElement('div');m.className='status err say-msg';
-      m.textContent=why==='off'?'语音被关掉了：到"② 我来练 → 设置 → 语音"里选一个中文声音。'
-        :'手机没有念出来。检查：手机侧面的静音键是不是打开了（橙色）、音量是不是太小、有没有连着别的蓝牙设备。再点一次"听要点"试试。';
+      m.textContent=why==='off'?t('plan.voiceOff'):t('plan.silent');
       b.closest('.row').after(m)}})});
   body.querySelectorAll('[data-stop]').forEach(b=>b.onclick=()=>{try{speechSynthesis.cancel()}catch(e){}});
   body.querySelectorAll('[data-play]').forEach(b=>b.onclick=()=>playVideo(b.dataset.ex,b.dataset.play));
@@ -780,67 +793,84 @@ function renderPlan(){
   renderVideoList();
 }
 function exCard(ex,num,plan){
+  const f=k=>loc(ex,k);
   const loads=loadLines(ex.load,plan.plates);
   const vids=(ex.videos||[]).map(v=>P.linked.has(v)
-    ?`<button class="btn" data-play="${esc(v)}" data-ex="${esc(ex.id)}">▶ 看视频${ex.videos.length>1?' '+esc(v.replace(/\D/g,'')):''}</button>`
-    :`<label class="btn" for="lk-${esc(ex.id)}-${esc(v)}">关联视频 ${esc(v)}</label><input type="file" accept="video/*" hidden id="lk-${esc(ex.id)}-${esc(v)}" data-link="${esc(v)}">`).join('');
-  const detail=[['设置',ex.setup],['动作',ex.action],['要点',ex.cues],['',ex.alt]].filter(x=>x[1]).map(([k,v])=>`<p>${k?`<b>${k}</b>：`:''}${esc(v)}</p>`).join('');
+    ?`<button class="btn" data-play="${esc(v)}" data-ex="${esc(ex.id)}">${esc(t('plan.play',{num:ex.videos.length>1?v.replace(/\D/g,''):''}))}</button>`
+    :`<label class="btn" for="lk-${esc(ex.id)}-${esc(v)}">${esc(t('plan.link',{id:v}))}</label><input type="file" accept="video/*" hidden id="lk-${esc(ex.id)}-${esc(v)}" data-link="${esc(v)}">`).join('');
+  const colon=isEn()?': ':'：';
+  const detail=[[t('plan.setup'),f('setup')],[t('plan.action'),f('action')],[t('plan.cues'),f('cues')],['',f('alt')]].filter(x=>x[1]).map(([k,v])=>`<p>${k?`<b>${k}</b>${colon}`:''}${esc(v)}</p>`).join('');
   return `<article class="ex" id="ex-${esc(ex.id)}">
-    <div class="ex-h"><span class="n">${num}</span><b>${esc(ex.name)}</b>${ex.side?`<span class="chip">${esc(ex.side)}</span>`:''}${ex.optional?'<span class="chip">可选</span>':''}${(ex.videos||[]).length?'':'<span class="chip">没有视频</span>'}</div>
-    ${ex.target?`<div class="ex-target"><b>目标</b>　${esc(ex.target)}</div>`:''}
+    <div class="ex-h"><span class="n">${num}</span><b>${esc(f('name'))}</b>${f('side')?`<span class="chip">${esc(f('side'))}</span>`:''}${ex.optional?`<span class="chip">${t('plan.optional')}</span>`:''}${(ex.videos||[]).length?'':`<span class="chip">${t('plan.noVideo')}</span>`}</div>
+    ${f('target')?`<div class="ex-target"><b>${t('plan.target')}</b>　${esc(f('target'))}</div>`:''}
     ${loads.length?`<div class="ex-load">${loads.map(esc).join('<br>')}</div>`:''}
-    ${ex.last?`<div class="note">上次：${esc(ex.last)}</div>`:''}
-    <div class="row"><button class="btn primary" data-say="${esc(ex.id)}">听要点</button><button class="btn sm" data-stop>停</button>${vids}</div>
+    ${f('last')?`<div class="note">${esc(t('plan.last',{text:f('last')}))}</div>`:''}
+    <div class="row"><button class="btn primary" data-say="${esc(ex.id)}">${t('plan.say')}</button><button class="btn sm" data-stop>${t('plan.stop')}</button>${vids}</div>
     <div class="ex-video" hidden></div>
-    ${detail?`<details><summary class="note" style="cursor:pointer">设置 · 动作 · 要点</summary>${detail}</details>`:''}
+    ${detail?`<details><summary class="note" style="cursor:pointer">${t('plan.details')}</summary>${detail}</details>`:''}
   </article>`;
 }
 async function playVideo(exId,vid){
   const box=document.querySelector(`#ex-${CSS.escape(exId)} .ex-video`);if(!box)return;
-  const rec=await DB.video(vid);if(!rec){planStatus(`找不到视频 ${vid}，重新关联一下。`,'err');await refreshLinked();renderPlan();return}
+  const rec=await DB.video(vid);if(!rec){planStatus(t('plan.videoMissing',{id:vid}),'err');await refreshLinked();renderPlan();return}
   closeVideos();
   const url=URL.createObjectURL(rec.blob);P.urls.push(url);
-  box.innerHTML=`<video controls playsinline autoplay src="${url}"></video><div class="row" style="margin-top:6px"><span class="note">${esc(vid)}</span><button class="btn sm" data-close>收起</button></div>`;
+  box.innerHTML=`<video controls playsinline autoplay src="${url}"></video><div class="row" style="margin-top:6px"><span class="note">${esc(vid)}</span><button class="btn sm" data-close>${t('plan.close')}</button></div>`;
   box.hidden=false;box.querySelector('[data-close]').onclick=closeVideos;
   box.scrollIntoView({block:'nearest',behavior:'smooth'});
 }
 async function linkVideo(vid,file){
   try{
-    planStatus(`正在保存 ${vid}（${Math.round(file.size/1e6)} MB）…`);
+    planStatus(t('plan.saving',{id:vid,mb:Math.round(file.size/1e6)}));
     await DB.putVideo({id:vid,blob:file,name:file.name,type:file.type,size:file.size,addedAt:new Date().toISOString()});
     try{await navigator.storage?.persist?.()}catch(e){} // 请浏览器别自动清掉
-    await refreshLinked();planStatus(`已保存 ${vid}。`,'ok');renderPlan();
-  }catch(err){planStatus('保存失败：'+(err.message||err),'err')}
+    await refreshLinked();planStatus(t('plan.savedVideo',{id:vid}),'ok');renderPlan();
+  }catch(err){planStatus(t('plan.saveFail',{msg:err.message||err}),'err')}
 }
 function renderVideoList(){
   const box=$('videoList'),plan=P.plan;
-  $('planMeta').textContent=plan?`计划更新于 ${plan.updated||'—'}${plan.source?'，来自'+plan.source:''}`:'';
+  $('planMeta').textContent=plan?t('plan.meta',{date:plan.updated||'—',source:plan.source}):'';
   if(!plan){box.innerHTML='';return}
   const ids=allVideoIds(plan);
-  box.innerHTML=`<table class="sum"><tr><th>视频</th><th>动作</th><th></th></tr>${ids.map(v=>{const exs=plan.days.flatMap(d=>d.exercises.filter(e=>(e.videos||[]).includes(v)).map(e=>e.name));
-    return `<tr><td>${esc(v)}</td><td>${esc([...new Set(exs)].join('、'))}</td><td>${P.linked.has(v)?`<span class="vid-ok">已存</span> <button class="btn sm danger" data-unlink="${esc(v)}">删除</button>`:'<span class="note">还没关联</span>'}</td></tr>`}).join('')}</table>`;
-  box.querySelectorAll('[data-unlink]').forEach(b=>b.onclick=async()=>{if(!b.dataset.armed){b.dataset.armed='1';b.textContent='再点一次';return}
+  box.innerHTML=`<table class="sum"><tr><th>${t('plan.thVideo')}</th><th>${t('plan.thEx')}</th><th></th></tr>${ids.map(v=>{const exs=plan.days.flatMap(d=>d.exercises.filter(e=>(e.videos||[]).includes(v)).map(e=>loc(e,'name')));
+    return `<tr><td>${esc(v)}</td><td>${esc([...new Set(exs)].join(t('list.sep')))}</td><td>${P.linked.has(v)?`<span class="vid-ok">${t('plan.stored')}</span> <button class="btn sm danger" data-unlink="${esc(v)}">${t('lib.del')}</button>`:`<span class="note">${t('plan.notLinked')}</span>`}</td></tr>`}).join('')}</table>`;
+  box.querySelectorAll('[data-unlink]').forEach(b=>b.onclick=async()=>{if(!b.dataset.armed){b.dataset.armed='1';b.textContent=t('plan.again');return}
     await DB.delVideo(b.dataset.unlink);await refreshLinked();renderPlan()});
 }
 $('planFile').addEventListener('change',async e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;
   try{const j=JSON.parse(await f.text());const err=validatePlan(j);if(err){planStatus(err,'err');return}
-    P.plan=j;store.set('plan',j);P.day=null;planStatus(`已导入：${j.days.length} 个训练日，${j.days.reduce((s,d)=>s+d.exercises.length,0)} 个动作。`,'ok');renderPlan()}
-  catch(err){planStatus('这个文件读不了，确认是训练计划.json。','err')}
+    P.plan=j;store.set('plan',j);P.day=null;planStatus(t('plan.imported',{days:j.days.length,ex:j.days.reduce((s,d)=>s+d.exercises.length,0)}),'ok');renderPlan()}
+  catch(err){planStatus(t('plan.badFile'),'err')}
 });
 $('videoBulk').addEventListener('change',async e=>{
   const files=[...e.target.files];e.target.value='';if(!files.length)return;
-  if(!P.plan){planStatus('先导入训练计划，才知道每个视频对应哪个动作。','err');return}
+  if(!P.plan){planStatus(t('plan.needPlan'),'err');return}
   const ids=allVideoIds(P.plan),done=[],miss=[];
   for(const f of files){const id=matchVideoId(f.name,ids);if(!id){miss.push(f.name);continue}
-    try{planStatus(`正在保存 ${id}…`);await DB.putVideo({id,blob:f,name:f.name,type:f.type,size:f.size,addedAt:new Date().toISOString()});done.push(id)}catch(err){miss.push(f.name+'（'+(err.message||err)+'）')}}
+    try{planStatus(t('plan.savingShort',{id}));await DB.putVideo({id,blob:f,name:f.name,type:f.type,size:f.size,addedAt:new Date().toISOString()});done.push(id)}catch(err){miss.push(`${f.name} (${err.message||err})`)}}
   try{await navigator.storage?.persist?.()}catch(e){}
   await refreshLinked();renderPlan();
-  planStatus(`存好 ${done.length} 个：${done.join('、')||'无'}。`+(miss.length?` 没认出编号的：${miss.join('、')}，到对应动作下面点"关联视频"单独选。`:''),miss.length?'':'ok');
+  planStatus(t('plan.bulkDone',{n:done.length,list:done.join(t('list.sep')),miss:miss.join(t('list.sep'))}),miss.length?'':'ok');
 });
 
-(async()=>{S.profiles=await DB.all();selectPreset();await refreshLinked();setMode('plan');
-  if(!window.isSecureContext)setStatus($('refStatus'),'提示：需要用 https 地址或本地文件打开，摄像头才能用。','err')})();
+/* ---------- 语言切换 ---------- */
+// 切换后：固定文字（data-i18n）、声音列表、动作下拉、拍摄说明、当前页面重画。正在显示的一组总结保持原语言，下一组起用新语言
+function applyLang(l){
+  setLang(l);store.set('lang',getLang());document.documentElement.lang=isEn()?'en':'zh-CN';
+  $('langZh').setAttribute('aria-selected',!isEn());$('langEn').setAttribute('aria-selected',isEn());
+  document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t(el.dataset.i18n)});
+  document.querySelectorAll('[data-i18n-aria]').forEach(el=>el.setAttribute('aria-label',t(el.dataset.i18nAria)));
+  if(!S.live||!S.live.reps.length)$('youCap').textContent=t('live.youCap');
+  try{speechSynthesis.cancel()}catch(e){}
+  if('speechSynthesis' in window)loadVoices();
+  fillExSel();selectPreset();setEmpty();planStatus(''); // 旧语言的状态提示清掉
+  if(S.mode==='plan')renderPlan();if(S.mode==='lib')renderLib();
+}
+$('langZh').onclick=()=>applyLang('zh');$('langEn').onclick=()=>applyLang('en');
+
+(async()=>{S.profiles=await DB.all();applyLang(store.get('lang','zh'));await refreshLinked();setMode('plan');
+  if(!window.isSecureContext)setStatus($('refStatus'),t('cam.insecureHint'),'err')})();
 </script>
 </body>
 </html>
