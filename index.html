@@ -320,14 +320,28 @@ function unlockAudio(){
 }
 function beep(){try{if(!audioCtx)return;const t=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();
   o.frequency.value=880;g.gain.setValueAtTime(.3,t);g.gain.exponentialRampToValueAtTime(.001,t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+.2)}catch(e){}}
-function speak(text,{interrupt=false,beepIfSilent=false}={}){try{
-  const vn=$('voiceSel').value;if(vn==='off'||!('speechSynthesis' in window)){if(beepIfSilent&&vn!=='off')beep();return}
+/* 只解锁 Web Audio（"嘀"声用），不发无声语音。用在马上就要 speak() 的点击里：
+   那次 speak 本身就是点击触发的，不需要再垫一句无声的话（垫了反而要先 cancel） */
+function unlockWebAudio(){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state!=='running')audioCtx.resume()}catch(e){}}
+/* speak：
+   - interrupt：先停掉正在念的，再**同步**开始念。不能 setTimeout：iPhone 只认点击当下发出的语音，
+     11/15 用户反馈"听要点"没声音，就是因为原来 cancel 后等了 80 毫秒才念
+   - 长文按句子拆成几段排队念（iPhone 上一段太长有时会卡住）
+   - beepIfSilent：0.8 秒没开始念就"嘀"一声代替（报数用）；onSilent：1.5 秒没开始念时回调（给出提示） */
+function speak(text,{interrupt=false,beepIfSilent=false,onSilent=null}={}){try{
+  const vn=$('voiceSel').value;if(vn==='off'||!('speechSynthesis' in window)){if(beepIfSilent&&vn!=='off')beep();if(onSilent)onSilent(vn==='off'?'off':'none');return}
   const s=speechSynthesis;if(s.paused)s.resume();
-  const go=()=>{const u=new SpeechSynthesisUtterance(text);u.lang='zh-CN';u.rate=1.08;const v=voices.find(x=>x.name===vn);if(v)u.voice=v;
-    let started=false;u.onstart=()=>{started=true};const busy=s.speaking||s.pending;s.speak(u);
-    if(beepIfSilent&&!busy)setTimeout(()=>{if(!started){beep();S.speechMuted=(S.speechMuted||0)+1}},800)};
-  if(interrupt&&(s.speaking||s.pending)){s.cancel();setTimeout(go,80)}else go();
-}catch(e){}}
+  if(interrupt&&(s.speaking||s.pending))s.cancel();
+  const busy=s.speaking||s.pending;
+  const chunks=String(text).replace(/([。；！？])/g,'$1\n').split('\n').map(x=>x.trim()).filter(Boolean);
+  let started=false;
+  chunks.forEach((c,i)=>{const u=new SpeechSynthesisUtterance(c);u.lang='zh-CN';u.rate=1.08;const v=voices.find(x=>x.name===vn);if(v)u.voice=v;
+    if(i===0)u.onstart=()=>{started=true};s.speak(u)});
+  if(!busy||interrupt){
+    if(beepIfSilent)setTimeout(()=>{if(!started){beep();S.speechMuted=(S.speechMuted||0)+1}},800);
+    if(onSilent)setTimeout(()=>{if(!started)onSilent('silent')},1500);
+  }
+}catch(e){if(onSilent)onSilent('error')}}
 const NUM_ZH=['零','一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十'];
 
 /* ---------- model ---------- */
@@ -665,7 +679,7 @@ $('liveStart').addEventListener('click',async()=>{
   }catch(err){setStatus($('liveStatus'),camError(err),'err')}
 });
 $('liveStop').addEventListener('click',()=>{unlockAudio();endLive()});
-$('voiceTest').addEventListener('click',()=>{unlockAudio();speak('一，二，三',{interrupt:true,beepIfSilent:true})});
+$('voiceTest').addEventListener('click',()=>{unlockWebAudio();speak('一，二，三',{interrupt:true,beepIfSilent:true})});
 $('liveFileLbl').addEventListener('click',unlockAudio);
 $('liveFile').addEventListener('change',async e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;
@@ -752,7 +766,14 @@ function renderPlan(){
     ${day.notes&&day.notes.length?`<ul>${day.notes.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div>
     <div class="exlist">${day.exercises.map(ex=>exCard(ex,n(ex),plan)).join('')}</div>
     ${plan.principles&&plan.principles.length?`<details class="panel" style="margin-top:12px"><summary style="cursor:pointer;font-weight:600">通用原则</summary><ul style="margin:8px 0 0;padding-left:18px">${plan.principles.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}`;
-  body.querySelectorAll('[data-say]').forEach(b=>b.onclick=()=>{unlockAudio();const ex=day.exercises.find(e=>e.id===b.dataset.say);speak(exerciseSpeech(ex,plan.plates),{interrupt:true})});
+  body.querySelectorAll('[data-say]').forEach(b=>b.onclick=()=>{
+    unlockWebAudio();const ex=day.exercises.find(e=>e.id===b.dataset.say),card=b.closest('.ex');
+    card.querySelector('.say-msg')?.remove();
+    speak(exerciseSpeech(ex,plan.plates),{interrupt:true,onSilent:why=>{
+      const m=document.createElement('div');m.className='status err say-msg';
+      m.textContent=why==='off'?'语音被关掉了：到"② 我来练 → 设置 → 语音"里选一个中文声音。'
+        :'手机没有念出来。检查：手机侧面的静音键是不是打开了（橙色）、音量是不是太小、有没有连着别的蓝牙设备。再点一次"听要点"试试。';
+      b.closest('.row').after(m)}})});
   body.querySelectorAll('[data-stop]').forEach(b=>b.onclick=()=>{try{speechSynthesis.cancel()}catch(e){}});
   body.querySelectorAll('[data-play]').forEach(b=>b.onclick=()=>playVideo(b.dataset.ex,b.dataset.play));
   body.querySelectorAll('input[data-link]').forEach(inp=>inp.onchange=async e=>{const f=e.target.files[0];e.target.value='';if(f)await linkVideo(inp.dataset.link,f)});
