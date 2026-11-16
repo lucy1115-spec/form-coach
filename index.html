@@ -522,34 +522,61 @@ function endLive(){
      <div class="field"><label for="setWeight">重量（磅）</label><input id="setWeight" inputmode="decimal" value="${esc(last.weight??'')}" style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px"></div>
      <div class="field"><label for="setRir">余力（RIR）</label><input id="setRir" inputmode="numeric" value="${esc(last.rir??'')}" style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px"></div>
    </div>
-   <div class="row" style="margin-top:10px"><button class="btn primary" id="setSave">保存这一组</button><button class="btn" id="logExport">导出训练记录 CSV</button></div>
+   <div class="row" style="margin-top:10px"><button class="btn primary" id="setSave">保存这一组到 Google Drive</button><button class="btn" id="logExport" hidden>补存没存上的</button></div>
+   <p class="note">点了之后会弹出分享菜单：选"存储到文件"→ Google Drive →"coach"文件夹 →"存储"。之后同一个文件夹会被记住。</p>
    <p class="note" id="logNote"></p>`;
   $('setSave').onclick=saveSet;$('logExport').onclick=exportLog;renderLogNote();
   speak(sum.speech,{interrupt:true});
   if(S.speechMuted)setStatus($('liveStatus'),`这一组有 ${S.speechMuted} 次报数手机没念出来，已用"嘀"声代替。可以在设置里点"测试语音"检查。`);
 }
 
-/* ---------- 训练记录：先存在这台设备，导出成 CSV（第 5 步再接 Google Drive） ---------- */
-function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
-function saveSet(){
-  const L=S.live;if(!L||!L.summary)return;
-  const weight=$('setWeight').value.trim(),rir=$('setRir').value.trim();
-  store.set('lastSet.'+S.preset.id,{weight,rir});
-  const log=store.get('log',[]);
-  log.push({date:today(),exercise:S.preset.name,reps:L.summary.n,weight_lb:weight,rir,note:formNote(L.summary),at:new Date().toISOString(),exported:false});
-  store.set('log',log);
-  $('setSave').disabled=true;$('setSave').textContent='已保存';renderLogNote();
-}
-function exportLog(){
-  const log=store.get('log',[]);if(!log.length){renderLogNote('还没有保存的记录。');return}
-  const csv=[TRAINING_LOG_HEADER,...log.map(r=>trainingLogRow(r))].join('\n')+'\n';
+/* ---------- 训练记录：每组存一个小 CSV 到 Google Drive 的 coach 文件夹 ----------
+   手机上用系统分享菜单（navigator.share 带文件）→"存储到文件"→ Google Drive。不支持时退回下载。
+   文件名 form-coach-<日期>-<时间>.csv 不会重复；电脑上 coach/scripts/import-form-coach.mjs 按文件名
+   只导入一次，追加到 data/training_log.csv。只有分享或下载成功才标记为已存，取消了可以"补存"。 */
+const pad2=n=>String(n).padStart(2,'0');
+function today(d=new Date()){return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`}
+function stamp(d=new Date()){return `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}-${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`}
+async function shareCsv(rows){
+  const csv=[TRAINING_LOG_HEADER,...rows.map(r=>trainingLogRow(r))].join('\n')+'\n';
+  const name=`form-coach-${stamp()}.csv`, file=new File([csv],name,{type:'text/csv'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{await navigator.share({files:[file],title:name});return {ok:true,name,how:'share'}}
+    catch(e){if(e&&e.name==='AbortError')return {ok:false,name,how:'cancel'}} // 其他错误退回下载
+  }
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
-  a.download=`training_log-${today()}.csv`;document.body.append(a);a.click();a.remove();
-  log.forEach(r=>r.exported=true);store.set('log',log);renderLogNote();
+  a.download=name;document.body.append(a);a.click();a.remove();
+  return {ok:true,name,how:'download'};
+}
+async function saveSet(){
+  const L=S.live;if(!L||!L.summary)return;
+  const btn=$('setSave');
+  let log=store.get('log',[]);
+  if(!L.savedId){ // 同一组只记一次；取消分享后再点只是重新分享
+    const weight=$('setWeight').value.trim(),rir=$('setRir').value.trim();
+    store.set('lastSet.'+S.preset.id,{weight,rir});
+    L.savedId='s'+Date.now();
+    log.push({id:L.savedId,date:today(),exercise:S.preset.name,reps:L.summary.n,weight_lb:weight,rir,note:formNote(L.summary),at:new Date().toISOString(),exported:false});
+    store.set('log',log);
+  }
+  const rec=log.find(r=>r.id===L.savedId);
+  const res=await shareCsv([rec]);
+  if(res.ok){log=store.get('log',[]);const r=log.find(x=>x.id===L.savedId);if(r){r.exported=true;r.file=res.name}store.set('log',log);
+    btn.disabled=true;btn.textContent=res.how==='share'?'已保存':'已下载';}
+  else btn.textContent='没存上，再点一次';
+  renderLogNote(res.ok?null:'取消了分享。这组记录还在手机上，可以再点一次，或之后用"补存没存上的"。');
+}
+async function exportLog(){
+  let log=store.get('log',[]);const pending=log.filter(r=>!r.exported);
+  if(!pending.length){renderLogNote('所有记录都已经存过了。');return}
+  const res=await shareCsv(pending);
+  if(res.ok){log=store.get('log',[]);for(const r of log)if(pending.some(p=>p.id===r.id||p.at===r.at)){r.exported=true;r.file=res.name}store.set('log',log)}
+  renderLogNote(res.ok?null:'取消了分享，记录还在手机上。');
 }
 function renderLogNote(msg){
   const el=$('logNote');if(!el)return;const log=store.get('log',[]);const pending=log.filter(r=>!r.exported).length;
-  el.textContent=msg||`这台设备上共 ${log.length} 组记录，${pending} 组还没导出。导出的文件每组一行，列和 coach/data/training_log.csv 一样。`;
+  const ex=$('logExport');if(ex)ex.hidden=!pending||(pending===1&&S.live&&S.live.savedId&&log.some(r=>r.id===S.live.savedId&&!r.exported));
+  el.textContent=msg||(pending?`手机上还有 ${pending} 组没存到 Drive。`:`这台设备上的 ${log.length} 组记录都存过了。`);
 }
 $('liveStart').addEventListener('click',async()=>{
   unlockAudio(); // 必须在点击的同一时刻、任何 await 之前
