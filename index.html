@@ -43,7 +43,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 24px;justify-co
 .field{display:flex;flex-direction:column;gap:4px;min-width:0}
 .field label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;max-width:100%}
-.tabs{display:inline-flex;background:var(--sunk);border-radius:9px;padding:3px;gap:3px}
+.tabs{display:inline-flex;flex-wrap:wrap;background:var(--sunk);border-radius:9px;padding:3px;gap:3px}
 .tabs button{border:0;background:transparent;padding:7px 14px;border-radius:7px;font-weight:600;color:var(--muted)}
 .tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 
@@ -111,17 +111,32 @@ table.sum th{font-weight:500;color:var(--muted);font-size:12px}
 .libitem .meta{min-width:0;display:flex;flex-direction:column;gap:4px}
 .libitem .meta b{font-weight:600}
 .foot{font-size:12px;color:var(--muted);text-align:center}
+/* 训练计划 */
+.dayhead{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.dayhead h2{font:600 24px/1.1 var(--f-display);letter-spacing:.03em;margin:0}
+.dayhead ul{margin:0;padding-left:18px;font-size:14px;color:var(--muted)}
+.exlist{display:flex;flex-direction:column;gap:12px}
+.ex{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.ex-h{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.ex-h .n{font:700 22px/1 var(--f-display);color:var(--muted);min-width:22px}
+.ex-h b{font-size:17px}
+.ex-target{font-size:15px}
+.ex-load{font-size:14px;background:var(--sunk);border-radius:8px;padding:6px 10px;font-variant-numeric:tabular-nums}
+.ex-video video{width:100%;max-height:70vh;border-radius:8px;background:#000;display:block}
+.ex details p{margin:6px 0;font-size:14px}
+.vid-ok{color:var(--good);font-weight:600}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="brand"><h1>Form Mirror</h1><span>拿教练的标准动作，对比你自己的每一下</span></div>
+    <div class="brand"><h1>Form Coach</h1><span>今天练什么 · 动作要点 · 和教练示范对比</span></div>
     <div class="controls">
-      <div class="field"><label for="exSel">动作</label><select id="exSel"></select></div>
+      <div class="field" id="exField"><label for="exSel">动作</label><select id="exSel"></select></div>
       <div class="field"><label>模式</label>
         <div class="tabs" role="tablist">
+          <button role="tab" id="tabPlan" aria-selected="false">今天练什么</button>
           <button role="tab" id="tabRef" aria-selected="true">① 录教练标准</button>
           <button role="tab" id="tabLive" aria-selected="false">② 我来练</button>
           <button role="tab" id="tabLib" aria-selected="false">标准库</button>
@@ -129,6 +144,23 @@ table.sum th{font-weight:500;color:var(--muted);font-size:12px}
       </div>
     </div>
   </header>
+
+  <!-- 训练计划：每个动作的组数、重量、杠铃片、要点和教练视频。计划和视频都只存在这台设备上 -->
+  <section id="planView" hidden>
+    <div class="tabs" role="tablist" id="dayTabs"></div>
+    <div id="planBody" style="margin-top:12px"></div>
+    <details class="panel" style="margin-top:16px" id="planAdmin">
+      <summary style="cursor:pointer;font-weight:600">计划和视频</summary>
+      <div class="row" style="margin-top:10px">
+        <label class="btn primary" for="planFile">导入训练计划</label><input type="file" id="planFile" accept="application/json,.json" hidden>
+        <label class="btn" for="videoBulk">一次关联多个视频</label><input type="file" id="videoBulk" accept="video/*" multiple hidden>
+      </div>
+      <p class="note" id="planMeta"></p>
+      <div class="status" id="planStatus" hidden></div>
+      <div id="videoList" class="lib"></div>
+      <p class="note">计划文件在 Google Drive 的 coach 文件夹里（训练计划.json）。视频从相册选，按文件名里的编号自动对上（如 IMG_0688）；对不上的到对应动作下面单独关联。计划和视频都只存在这台手机上。</p>
+    </details>
+  </section>
 
   <div class="grid">
     <div class="stage" id="stage">
@@ -226,12 +258,20 @@ import {PoseLandmarker,FilesetResolver} from "https://cdn.jsdelivr.net/npm/@medi
 import {SIDES,METRICS,Tracker,RepCounter,analyzeReference,compareRep,fmtVal,median,summarizeSet,formNote,trainingLogRow,TRAINING_LOG_HEADER} from "./src/engine.js";
 import {PRESETS} from "./src/presets.js";
 import {reviewSet} from "./src/ai.js";
+import {loadLines,exerciseSpeech,defaultDayId,allVideoIds,matchVideoId,validatePlan} from "./src/plan.js";
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem('fm.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('fm.'+k,JSON.stringify(v))}catch(e){}}};
 
 /* ---------- IndexedDB for reference profiles ---------- */
 const DB={db:null,mem:[],
-  async open(){if(this.db)return this.db;try{this.db=await new Promise((res,rej)=>{const r=indexedDB.open('form-mirror',1);r.onupgradeneeded=()=>r.result.createObjectStore('profiles',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}catch(e){this.db=null}return this.db},
+  // v2 加了 videos：教练示范视频存在本机（{id:'IMG_0688', blob, name, size, addedAt}），健身房没网也能播
+  async open(){if(this.db)return this.db;try{this.db=await new Promise((res,rej)=>{const r=indexedDB.open('form-mirror',2);r.onupgradeneeded=()=>{const d=r.result;
+    if(!d.objectStoreNames.contains('profiles'))d.createObjectStore('profiles',{keyPath:'id'});
+    if(!d.objectStoreNames.contains('videos'))d.createObjectStore('videos',{keyPath:'id'})};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}catch(e){this.db=null}return this.db},
+  async video(id){const db=await this.open();if(!db)return null;return new Promise(res=>{const q=db.transaction('videos').objectStore('videos').get(id);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null)})},
+  async videoIds(){const db=await this.open();if(!db)return [];return new Promise(res=>{const q=db.transaction('videos').objectStore('videos').getAllKeys();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([])})},
+  async putVideo(v){const db=await this.open();if(!db)throw new Error('这台设备不能存视频');return new Promise((res,rej)=>{const tx=db.transaction('videos','readwrite');tx.objectStore('videos').put(v);tx.oncomplete=res;tx.onerror=()=>rej(tx.error||new Error('存视频失败（可能手机空间不够）'))})},
+  async delVideo(id){const db=await this.open();if(!db)return;return new Promise(res=>{const tx=db.transaction('videos','readwrite');tx.objectStore('videos').delete(id);tx.oncomplete=res;tx.onerror=res})},
   async all(){const db=await this.open();if(!db)return this.mem;return new Promise(res=>{const q=db.transaction('profiles').objectStore('profiles').getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([])})},
   async put(p){const db=await this.open();if(!db){this.mem=this.mem.filter(x=>x.id!==p.id).concat(p);return}return new Promise(res=>{const tx=db.transaction('profiles','readwrite');tx.objectStore('profiles').put(p);tx.oncomplete=res;tx.onerror=res})},
   async del(id){const db=await this.open();if(!db){this.mem=this.mem.filter(x=>x.id!==id);return}return new Promise(res=>{const tx=db.transaction('profiles','readwrite');tx.objectStore('profiles').delete(id);tx.oncomplete=res;tx.onerror=res})}
@@ -683,14 +723,102 @@ function setEmpty(){
 }
 function setMode(m){
   if(S.mode!==m){stopSource();showStage(false);$('refCamStart').hidden=false;$('refCamStop').hidden=true;$('liveStart').hidden=false;$('liveStop').hidden=true}
-  S.mode=m;$('tabRef').setAttribute('aria-selected',m==='ref');$('tabLive').setAttribute('aria-selected',m==='live');$('tabLib').setAttribute('aria-selected',m==='lib');
+  S.mode=m;$('tabPlan').setAttribute('aria-selected',m==='plan');$('tabRef').setAttribute('aria-selected',m==='ref');$('tabLive').setAttribute('aria-selected',m==='live');$('tabLib').setAttribute('aria-selected',m==='lib');
   $('panelRef').hidden=m!=='ref';$('panelLive').hidden=m!=='live';$('panelLib').hidden=m!=='lib';
-  if(m==='lib')renderLib();if(m==='live')renderProfSel();setEmpty();
+  // 训练计划页不用摄像头区域和动作下拉
+  document.querySelector('.grid').hidden=m==='plan';$('exField').hidden=m==='plan';$('planView').hidden=m!=='plan';
+  if(m!=='plan')closeVideos();
+  if(m==='plan')renderPlan();if(m==='lib')renderLib();if(m==='live')renderProfSel();setEmpty();
 }
-$('tabRef').onclick=()=>setMode('ref');$('tabLive').onclick=()=>setMode('live');$('tabLib').onclick=()=>setMode('lib');
+$('tabPlan').onclick=()=>setMode('plan');$('tabRef').onclick=()=>setMode('ref');$('tabLive').onclick=()=>setMode('live');$('tabLib').onclick=()=>setMode('lib');
 window.addEventListener('resize',()=>{if(S.live)drawSpark()});
 
-(async()=>{S.profiles=await DB.all();selectPreset();setMode('ref');
+/* ---------- 训练计划 ---------- */
+// 计划存 localStorage（fm.plan），视频存 IndexedDB（videos）。都只在这台设备上。
+const P={plan:store.get('plan',null),day:null,linked:new Set(),urls:[]};
+async function refreshLinked(){P.linked=new Set(await DB.videoIds())}
+function closeVideos(){P.urls.forEach(u=>URL.revokeObjectURL(u));P.urls=[];document.querySelectorAll('.ex-video').forEach(el=>{el.innerHTML='';el.hidden=true})}
+function planStatus(msg,cls){setStatus($('planStatus'),msg,cls)}
+function renderPlan(){
+  const plan=P.plan,body=$('planBody'),tabs=$('dayTabs');
+  if(!plan){tabs.innerHTML='';body.innerHTML='<div class="panel"><h2>还没有训练计划</h2><p style="margin:0">在下面"计划和视频"里点"导入训练计划"，选 Google Drive → coach →训练计划.json。</p></div>';$('planAdmin').open=true;renderVideoList();return}
+  if(!P.day||!plan.days.some(d=>d.id===P.day))P.day=defaultDayId(plan);
+  tabs.innerHTML='';
+  for(const d of plan.days){const b=document.createElement('button');b.setAttribute('role','tab');b.textContent=d.name.split(' · ')[0];b.setAttribute('aria-selected',d.id===P.day);
+    b.onclick=()=>{closeVideos();P.day=d.id;renderPlan()};tabs.append(b)}
+  const day=plan.days.find(d=>d.id===P.day);
+  const n=(()=>{let k=0;return ex=>/热身/.test(ex.name)?'·':String(++k)})();
+  body.innerHTML=`<div class="dayhead"><h2>${esc(day.name)}${day.minutes?` <span class="note">约 ${day.minutes} 分钟</span>`:''}</h2>
+    ${day.notes&&day.notes.length?`<ul>${day.notes.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div>
+    <div class="exlist">${day.exercises.map(ex=>exCard(ex,n(ex),plan)).join('')}</div>
+    ${plan.principles&&plan.principles.length?`<details class="panel" style="margin-top:12px"><summary style="cursor:pointer;font-weight:600">通用原则</summary><ul style="margin:8px 0 0;padding-left:18px">${plan.principles.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}`;
+  body.querySelectorAll('[data-say]').forEach(b=>b.onclick=()=>{unlockAudio();const ex=day.exercises.find(e=>e.id===b.dataset.say);speak(exerciseSpeech(ex,plan.plates),{interrupt:true})});
+  body.querySelectorAll('[data-stop]').forEach(b=>b.onclick=()=>{try{speechSynthesis.cancel()}catch(e){}});
+  body.querySelectorAll('[data-play]').forEach(b=>b.onclick=()=>playVideo(b.dataset.ex,b.dataset.play));
+  body.querySelectorAll('input[data-link]').forEach(inp=>inp.onchange=async e=>{const f=e.target.files[0];e.target.value='';if(f)await linkVideo(inp.dataset.link,f)});
+  renderVideoList();
+}
+function exCard(ex,num,plan){
+  const loads=loadLines(ex.load,plan.plates);
+  const vids=(ex.videos||[]).map(v=>P.linked.has(v)
+    ?`<button class="btn" data-play="${esc(v)}" data-ex="${esc(ex.id)}">▶ 看视频${ex.videos.length>1?' '+esc(v.replace(/\D/g,'')):''}</button>`
+    :`<label class="btn" for="lk-${esc(ex.id)}-${esc(v)}">关联视频 ${esc(v)}</label><input type="file" accept="video/*" hidden id="lk-${esc(ex.id)}-${esc(v)}" data-link="${esc(v)}">`).join('');
+  const detail=[['设置',ex.setup],['动作',ex.action],['要点',ex.cues],['',ex.alt]].filter(x=>x[1]).map(([k,v])=>`<p>${k?`<b>${k}</b>：`:''}${esc(v)}</p>`).join('');
+  return `<article class="ex" id="ex-${esc(ex.id)}">
+    <div class="ex-h"><span class="n">${num}</span><b>${esc(ex.name)}</b>${ex.side?`<span class="chip">${esc(ex.side)}</span>`:''}${ex.optional?'<span class="chip">可选</span>':''}${(ex.videos||[]).length?'':'<span class="chip">没有视频</span>'}</div>
+    ${ex.target?`<div class="ex-target"><b>目标</b>　${esc(ex.target)}</div>`:''}
+    ${loads.length?`<div class="ex-load">${loads.map(esc).join('<br>')}</div>`:''}
+    ${ex.last?`<div class="note">上次：${esc(ex.last)}</div>`:''}
+    <div class="row"><button class="btn primary" data-say="${esc(ex.id)}">听要点</button><button class="btn sm" data-stop>停</button>${vids}</div>
+    <div class="ex-video" hidden></div>
+    ${detail?`<details><summary class="note" style="cursor:pointer">设置 · 动作 · 要点</summary>${detail}</details>`:''}
+  </article>`;
+}
+async function playVideo(exId,vid){
+  const box=document.querySelector(`#ex-${CSS.escape(exId)} .ex-video`);if(!box)return;
+  const rec=await DB.video(vid);if(!rec){planStatus(`找不到视频 ${vid}，重新关联一下。`,'err');await refreshLinked();renderPlan();return}
+  closeVideos();
+  const url=URL.createObjectURL(rec.blob);P.urls.push(url);
+  box.innerHTML=`<video controls playsinline autoplay src="${url}"></video><div class="row" style="margin-top:6px"><span class="note">${esc(vid)}</span><button class="btn sm" data-close>收起</button></div>`;
+  box.hidden=false;box.querySelector('[data-close]').onclick=closeVideos;
+  box.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+async function linkVideo(vid,file){
+  try{
+    planStatus(`正在保存 ${vid}（${Math.round(file.size/1e6)} MB）…`);
+    await DB.putVideo({id:vid,blob:file,name:file.name,type:file.type,size:file.size,addedAt:new Date().toISOString()});
+    try{await navigator.storage?.persist?.()}catch(e){} // 请浏览器别自动清掉
+    await refreshLinked();planStatus(`已保存 ${vid}。`,'ok');renderPlan();
+  }catch(err){planStatus('保存失败：'+(err.message||err),'err')}
+}
+function renderVideoList(){
+  const box=$('videoList'),plan=P.plan;
+  $('planMeta').textContent=plan?`计划更新于 ${plan.updated||'—'}${plan.source?'，来自'+plan.source:''}`:'';
+  if(!plan){box.innerHTML='';return}
+  const ids=allVideoIds(plan);
+  box.innerHTML=`<table class="sum"><tr><th>视频</th><th>动作</th><th></th></tr>${ids.map(v=>{const exs=plan.days.flatMap(d=>d.exercises.filter(e=>(e.videos||[]).includes(v)).map(e=>e.name));
+    return `<tr><td>${esc(v)}</td><td>${esc([...new Set(exs)].join('、'))}</td><td>${P.linked.has(v)?`<span class="vid-ok">已存</span> <button class="btn sm danger" data-unlink="${esc(v)}">删除</button>`:'<span class="note">还没关联</span>'}</td></tr>`}).join('')}</table>`;
+  box.querySelectorAll('[data-unlink]').forEach(b=>b.onclick=async()=>{if(!b.dataset.armed){b.dataset.armed='1';b.textContent='再点一次';return}
+    await DB.delVideo(b.dataset.unlink);await refreshLinked();renderPlan()});
+}
+$('planFile').addEventListener('change',async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{const j=JSON.parse(await f.text());const err=validatePlan(j);if(err){planStatus(err,'err');return}
+    P.plan=j;store.set('plan',j);P.day=null;planStatus(`已导入：${j.days.length} 个训练日，${j.days.reduce((s,d)=>s+d.exercises.length,0)} 个动作。`,'ok');renderPlan()}
+  catch(err){planStatus('这个文件读不了，确认是训练计划.json。','err')}
+});
+$('videoBulk').addEventListener('change',async e=>{
+  const files=[...e.target.files];e.target.value='';if(!files.length)return;
+  if(!P.plan){planStatus('先导入训练计划，才知道每个视频对应哪个动作。','err');return}
+  const ids=allVideoIds(P.plan),done=[],miss=[];
+  for(const f of files){const id=matchVideoId(f.name,ids);if(!id){miss.push(f.name);continue}
+    try{planStatus(`正在保存 ${id}…`);await DB.putVideo({id,blob:f,name:f.name,type:f.type,size:f.size,addedAt:new Date().toISOString()});done.push(id)}catch(err){miss.push(f.name+'（'+(err.message||err)+'）')}}
+  try{await navigator.storage?.persist?.()}catch(e){}
+  await refreshLinked();renderPlan();
+  planStatus(`存好 ${done.length} 个：${done.join('、')||'无'}。`+(miss.length?` 没认出编号的：${miss.join('、')}，到对应动作下面点"关联视频"单独选。`:''),miss.length?'':'ok');
+});
+
+(async()=>{S.profiles=await DB.all();selectPreset();await refreshLinked();setMode('plan');
   if(!window.isSecureContext)setStatus($('refStatus'),'提示：需要用 https 地址或本地文件打开，摄像头才能用。','err')})();
 </script>
 </body>
