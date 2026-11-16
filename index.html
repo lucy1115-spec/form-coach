@@ -197,6 +197,12 @@ table.sum th{font-weight:500;color:var(--muted);font-size:12px}
           <label class="chk"><input type="checkbox" id="optCount" checked> 报数</label>
           <label class="chk"><input type="checkbox" id="optCue"> 每一下都语音提示问题（默认只报数，一组做完再总结）</label>
         </div>
+        <div class="settings" style="margin-top:12px;grid-template-columns:1fr">
+          <div class="field"><label for="apiKey">AI 点评 · Anthropic API key</label>
+            <input id="apiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-…" style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px"></div>
+          <label class="chk"><input type="checkbox" id="optAi" checked> 每组结束后自动 AI 点评（有 key 时）</label>
+          <p class="note" id="apiKeyNote" style="margin:0">key 只存在这台手机的浏览器里，不会上传到别处。每组点评会把三张截图和这组的数字发给 Anthropic，大约几美分。</p>
+        </div>
       </details>
     </section>
 
@@ -219,6 +225,7 @@ table.sum th{font-weight:500;color:var(--muted);font-size:12px}
 import {PoseLandmarker,FilesetResolver} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
 import {SIDES,METRICS,Tracker,RepCounter,analyzeReference,compareRep,fmtVal,median,summarizeSet,formNote,trainingLogRow,TRAINING_LOG_HEADER} from "./src/engine.js";
 import {PRESETS} from "./src/presets.js";
+import {reviewSet} from "./src/ai.js";
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem('fm.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('fm.'+k,JSON.stringify(v))}catch(e){}}};
 
@@ -249,6 +256,10 @@ $('optCount').checked=store.get('count',true); $('optCue').checked=store.get('cu
 ['tolSel','camSel','modelSel'].forEach(id=>$(id).addEventListener('change',e=>store.set(id.replace('Sel',''),e.target.value)));
 $('optCount').addEventListener('change',e=>store.set('count',e.target.checked));
 $('optCue').addEventListener('change',e=>store.set('cue',e.target.checked));
+// API key：只存在本机 localStorage
+$('apiKey').value=store.get('apiKey','');$('optAi').checked=store.get('ai',true);
+$('apiKey').addEventListener('change',e=>{const v=e.target.value.trim();store.set('apiKey',v);$('apiKeyNote').textContent=v?'已保存在这台手机上。清空这一栏就会删除。':'已删除 key。'});
+$('optAi').addEventListener('change',e=>store.set('ai',e.target.checked));
 
 /* ---------- voice ---------- */
 let voices=[];
@@ -353,8 +364,8 @@ function drawPose(c,lm,W,H,mirror,hi){
     const x=X(p)+lw*5,y=Y(p)-lw*3;c.lineWidth=fs/6;c.strokeStyle='rgba(0,0,0,.75)';c.strokeText(hi.label,x,y);c.fillStyle='#fff';c.fillText(hi.label,x,y)}}
 }
 function primaryJoint(key,side){const s=SIDES[side||'L'];return {knee:s.K,kneeMin:s.K,hip:s.H,elbow:s.E,shoulder:s.S,kneeSpread:25,trunk:s.H}[key]??s.H}
-function snapshot(lm,hi){
-  const W=240,H=Math.round(240*video.videoHeight/video.videoWidth)||180;const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
+function snapshot(lm,hi,W=240){
+  const H=Math.round(W*video.videoHeight/video.videoWidth)||Math.round(W*.75);const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
   g.drawImage(video,0,0,W,H);if(lm)drawPose(g,lm,W,H,false,hi);return c.toDataURL('image/jpeg',.72);
 }
 
@@ -451,7 +462,7 @@ function liveFrame(lm,t){
   if(!r.ok)return;
   const v=r.values[P];L.trace.push({t,v});while(L.trace.length&&t-L.trace[0].t>12)L.trace.shift();
   const rep=L.counter.push(t,v,r.values);L.tracker.locked=L.counter.state==='out';
-  if(L.counter.cur&&L.counter.cur.newFar&&t-L.lastFarSnap>.1){L.farImg=snapshot(lm,{joint:primaryJoint(P,r.side)});L.lastFarSnap=t}
+  if(L.counter.cur&&L.counter.cur.newFar&&t-L.lastFarSnap>.1){L.farImg=snapshot(lm,{joint:primaryJoint(P,r.side)},360);L.lastFarSnap=t}
   if(rep){rep.img=L.farImg;onRep(rep)}
   drawSpark();renderMetrics(r.values);
 }
@@ -518,6 +529,7 @@ function endLive(){
    <tr><th>${METRICS[P].zh}</th><td>你的中位数 ${fmtVal(P,sum.farMedian)} · 教练 ${fmtVal(P,L.prof.far)}</td></tr>
    ${sum.top.slice(0,3).map(x=>`<tr><th>${x.count}/${n-sum.skipped} 下</th><td>${esc(x.voice)}</td></tr>`).join('')}</table>
    <div class="compare" style="grid-template-columns:repeat(${imgs.length},1fr);margin-top:10px">${imgs.join('')}</div>
+   <div id="aiBox" style="margin-top:12px"></div>
    <div class="settings" style="margin-top:12px">
      <div class="field"><label for="setWeight">重量（磅）</label><input id="setWeight" inputmode="decimal" value="${esc(last.weight??'')}" style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px"></div>
      <div class="field"><label for="setRir">余力（RIR）</label><input id="setRir" inputmode="numeric" value="${esc(last.rir??'')}" style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px"></div>
@@ -528,6 +540,28 @@ function endLive(){
   $('setSave').onclick=saveSet;$('logExport').onclick=exportLog;renderLogNote();
   speak(sum.speech,{interrupt:true});
   if(S.speechMuted)setStatus($('liveStatus'),`这一组有 ${S.speechMuted} 次报数手机没念出来，已用"嘀"声代替。可以在设置里点"测试语音"检查。`);
+  renderAi(store.get('apiKey','')&&$('optAi').checked&&sum.n-(sum.skipped||0)>0);
+}
+
+/* ---------- AI 点评 ---------- */
+function renderAi(autoRun){
+  const box=$('aiBox'),L=S.live;if(!box||!L)return;
+  const key=store.get('apiKey','');
+  if(L.ai&&L.ai.speech){box.innerHTML=`<div class="eyebrow" style="margin-bottom:6px">AI 点评</div><div class="status ok" style="margin-bottom:6px">${esc(L.ai.speech)}</div><p style="margin:0;font-size:14px">${esc(L.ai.details)}</p>`;return}
+  if(L.ai&&L.ai.pending){box.innerHTML='<div class="status">AI 正在看这一组…（大约 10–30 秒）</div>';return}
+  const err=L.ai&&L.ai.error?`<div class="status err" style="margin-bottom:6px">${esc(L.ai.error)}</div>`:'';
+  if(!key){box.innerHTML=err+'<p class="note" style="margin:0">想要 AI 文字点评：在下面"设置"里粘贴 Anthropic API key。</p>';return}
+  box.innerHTML=err+`<button class="btn" id="aiRun">${L.ai?'再试一次 AI 点评':'AI 点评这一组'}</button>`;
+  $('aiRun').onclick=()=>{unlockAudio();runAi()};
+  if(autoRun&&!L.ai)runAi();
+}
+async function runAi(){
+  const L=S.live,key=store.get('apiKey','');if(!L||!L.summary||!key)return;
+  L.ai={pending:true};renderAi();
+  const res=await reviewSet(key,{exercise:S.preset.zh,standardName:L.prof.name,summary:L.summary,reps:L.reps,profile:L.prof});
+  if(S.live!==L)return; // 已经开始下一组
+  L.ai=res;renderAi();
+  if(res.speech)speak('AI 点评：'+res.speech);
 }
 
 /* ---------- 训练记录：每组存一个小 CSV 到 Google Drive 的 coach 文件夹 ----------
@@ -557,7 +591,8 @@ async function saveSet(){
     const weight=$('setWeight').value.trim(),rir=$('setRir').value.trim();
     store.set('lastSet.'+S.preset.id,{weight,rir});
     L.savedId='s'+Date.now();
-    log.push({id:L.savedId,date:today(),exercise:S.preset.name,reps:L.summary.n,weight_lb:weight,rir,note:formNote(L.summary),at:new Date().toISOString(),exported:false});
+    const note=formNote(L.summary)+(L.ai&&L.ai.speech?'；AI：'+L.ai.speech:'');
+    log.push({id:L.savedId,date:today(),exercise:S.preset.name,reps:L.summary.n,weight_lb:weight,rir,note,at:new Date().toISOString(),exported:false});
     store.set('log',log);
   }
   const rec=log.find(r=>r.id===L.savedId);
