@@ -541,7 +541,8 @@ async function shareCsv(rows){
   const csv=[TRAINING_LOG_HEADER,...rows.map(r=>trainingLogRow(r))].join('\n')+'\n';
   const name=`form-coach-${stamp()}.csv`, file=new File([csv],name,{type:'text/csv'});
   if(navigator.canShare&&navigator.canShare({files:[file]})){
-    try{await navigator.share({files:[file],title:name});return {ok:true,name,how:'share'}}
+    // 不传 title/text：iPhone 会把它另存成一个多余的 .txt 文件
+    try{await navigator.share({files:[file]});return {ok:true,name,how:'share'}}
     catch(e){if(e&&e.name==='AbortError')return {ok:false,name,how:'cancel'}} // 其他错误退回下载
   }
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
