@@ -4,48 +4,59 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Form Coach</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>
-/* Layout: gym-whiteboard tool. Camera stage on the left, a coaching panel on the right; stacks on phones. */
+/* 视觉：高级、克制（11/15 用户要求）。米白底 + 近黑字，主按钮用墨黑；字体用 iPhone 系统字体（SF / 苹方）。
+   页面切换在底部导航栏，顶部只有日期、标题和语言。 */
 :root{
-  --bg:#EEF0EE; --surface:#FFFFFF; --sunk:#E3E7E5; --ink:#15191C; --muted:#5B636B; --line:#D3D8D5;
-  --accent:#1F5FBF; --accent-ink:#FFFFFF; --good:#1D8049; --warn:#A86C12; --bad:#BE3328;
-  --good-bg:#E2F2E8; --warn-bg:#F7EBD6; --bad-bg:#F8E1DE; --stage:#0E1114;
-  --f-display:"Barlow Condensed","PingFang SC","Microsoft YaHei",sans-serif;
-  --f-body:"Barlow",-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
-  --r:10px;
+  --bg:#F5F3EF; --surface:#FFFFFF; --sunk:#EDEAE4; --ink:#141414; --muted:#7B766F; --line:rgba(20,20,20,.08);
+  --accent:#141414; --accent-ink:#FFFFFF; --good:#2F7D55; --warn:#A8701E; --bad:#B4412F;
+  --good-bg:#E6F0E9; --warn-bg:#F5ECDD; --bad-bg:#F6E3DF; --stage:#0E0E0F;
+  --f-display:-apple-system,"SF Pro Display","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;
+  --f-body:-apple-system,"SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;
+  --r:20px; --shadow:0 1px 1px rgba(20,20,20,.03),0 10px 30px rgba(20,20,20,.05);
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#101315; --surface:#181C1F; --sunk:#20262A; --ink:#E8ECEE; --muted:#97A1A9; --line:#2A3136;
-  --accent:#6EA2F0; --accent-ink:#0B1420; --good:#4CC27D; --warn:#E3A94C; --bad:#F06B5F;
-  --good-bg:#16301F; --warn-bg:#33270F; --bad-bg:#3A1A17; --stage:#050607; color-scheme:dark}}
+  --bg:#0D0D0E; --surface:#18181A; --sunk:#232326; --ink:#F2F0EC; --muted:#9A958E; --line:rgba(255,255,255,.08);
+  --accent:#F2F0EC; --accent-ink:#111111; --good:#5DBB86; --warn:#E0A955; --bad:#EE7B66;
+  --good-bg:#17291F; --warn-bg:#2E2414; --bad-bg:#331C17; --stage:#050506; --shadow:0 1px 0 rgba(255,255,255,.03);color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#101315; --surface:#181C1F; --sunk:#20262A; --ink:#E8ECEE; --muted:#97A1A9; --line:#2A3136;
-  --accent:#6EA2F0; --accent-ink:#0B1420; --good:#4CC27D; --warn:#E3A94C; --bad:#F06B5F;
-  --good-bg:#16301F; --warn-bg:#33270F; --bad-bg:#3A1A17; --stage:#050607; color-scheme:dark}
+  --bg:#0D0D0E; --surface:#18181A; --sunk:#232326; --ink:#F2F0EC; --muted:#9A958E; --line:rgba(255,255,255,.08);
+  --accent:#F2F0EC; --accent-ink:#111111; --good:#5DBB86; --warn:#E0A955; --bad:#EE7B66;
+  --good-bg:#17291F; --warn-bg:#2E2414; --bad-bg:#331C17; --stage:#050506; --shadow:0 1px 0 rgba(255,255,255,.03);color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);
-  padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(16px,env(safe-area-inset-left,0px))}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--f-body);-webkit-font-smoothing:antialiased;
+  padding:env(safe-area-inset-top,0px) max(20px,env(safe-area-inset-right,0px)) calc(96px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px))}
 [hidden]{display:none!important}
 button,select,input{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .wrap{max-width:1280px;margin:0 auto;padding-block:16px 40px;display:flex;flex-direction:column;gap:16px}
 
-header{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 24px;justify-content:space-between}
-.brand{display:flex;align-items:baseline;gap:10px}
-.brand h1{font:700 30px/1 var(--f-display);letter-spacing:.02em;margin:0;text-transform:uppercase}
-.brand span{color:var(--muted);font-size:13px}
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-top:12px}
+.brand{display:flex;flex-direction:column;gap:2px;min-width:0}
+.brand .date{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.brand h1{font:700 30px/1.1 var(--f-display);letter-spacing:-.02em;margin:0}
 .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.field{display:flex;flex-direction:column;gap:4px;min-width:0}
-.field label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;max-width:100%}
-.tabs{display:inline-flex;flex-wrap:wrap;background:var(--sunk);border-radius:9px;padding:3px;gap:3px}
-.tabs button{border:0;background:transparent;padding:7px 14px;border-radius:7px;font-weight:600;color:var(--muted)}
-.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+select{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;max-width:100%;min-height:48px}
+.tabs{display:inline-flex;flex-wrap:wrap;background:var(--sunk);border-radius:12px;padding:3px;gap:3px}
+.tabs button{border:0;background:transparent;padding:8px 14px;border-radius:9px;font-weight:600;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.10)}
+.langpill{flex:none;margin-top:6px}
+.langpill button{min-width:52px;min-height:40px;font-size:15px}
+/* 底部导航（像 iPhone 原生 App） */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:50;display:grid;grid-template-columns:repeat(4,1fr);
+  padding:8px max(12px,env(safe-area-inset-left,0px)) calc(8px + env(safe-area-inset-bottom,0px));
+  background:color-mix(in srgb,var(--bg) 82%,transparent);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);
+  border-top:1px solid var(--line)}
+.tabbar button{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:4px;min-height:58px;justify-content:center;
+  color:var(--muted);font-size:12px;font-weight:600;border-radius:14px}
+.tabbar button svg{width:26px;height:26px}
+.tabbar button[aria-selected="true"]{color:var(--ink)}
+.subbar{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
 
 .grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:16px;align-items:start}
 @media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
@@ -112,55 +123,53 @@ table.sum th{font-weight:500;color:var(--muted);font-size:12px}
 .libitem .meta b{font-weight:600}
 .foot{font-size:12px;color:var(--muted);text-align:center}
 /* 训练计划（"今天练什么"）：大元素、克制的高级感。只作用于 #planView */
-#planView{--pv-r:18px;--pv-shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px rgba(16,24,40,.06);font-size:17px;max-width:720px;width:100%;margin:0 auto}
-#planView .daybar{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;background:var(--sunk);border-radius:16px;padding:4px}
-#planView .daybar button{border:0;background:transparent;min-height:52px;border-radius:12px;font:600 18px/1 var(--f-body);color:var(--muted)}
-#planView .daybar button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(16,24,40,.12)}
-.dayhead{display:flex;flex-direction:column;gap:12px;margin:22px 2px 18px}
-.dayhead .title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.dayhead h2{font:700 30px/1.1 var(--f-display);letter-spacing:.01em;margin:0}
-.dayhead .dur{font-size:15px;color:var(--muted);font-variant-numeric:tabular-nums}
-.dayhead ul{margin:0;padding:14px 16px 14px 32px;font-size:16px;line-height:1.55;color:var(--muted);background:var(--sunk);border-radius:14px}
-.dayhead li+li{margin-top:6px}
-.exlist{display:flex;flex-direction:column;gap:16px}
-.ex{background:var(--surface);border:1px solid var(--line);border-radius:var(--pv-r);padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0;box-shadow:var(--pv-shadow)}
-.ex-h{display:grid;grid-template-columns:40px minmax(0,1fr);gap:14px;align-items:start}
-.ex-h .n{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font:700 20px/1 var(--f-display);background:var(--sunk);color:var(--ink)}
-.ex-h .n.warm{background:transparent;border:2px dashed var(--line);color:transparent}
-.ex-h .name{font:600 22px/1.25 var(--f-body);margin:0;letter-spacing:-.005em}
-.ex-h .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-.ex-h .tag{font-size:14px;font-weight:600;color:var(--muted);background:var(--sunk);border-radius:999px;padding:3px 10px}
-.ex-target .k,.ex-load .k{display:block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
-.ex-target .v{font-size:19px;line-height:1.4;font-weight:500}
-.ex-load{background:var(--sunk);border-radius:14px;padding:12px 14px;font-variant-numeric:tabular-nums}
-.ex-load .pl{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:6px 0}
-.ex-load .pl+.pl{border-top:1px solid var(--line)}
-.ex-load .tot{font:700 22px/1.1 var(--f-display)}
-.ex-load .side{font-size:18px;font-weight:600;text-align:right}
-.ex-load .side small{font-size:13px;font-weight:500;color:var(--muted);margin-right:2px}
-.ex .last{font-size:15px;color:var(--muted);margin:-4px 0 0}
+#planView{font-size:17px;max-width:680px;width:100%;margin:0 auto}
+#planView .daybar{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;margin-top:4px}
+#planView .daybar button{border:1px solid var(--line);background:var(--surface);min-height:54px;border-radius:16px;font:600 17px/1 var(--f-body);color:var(--muted);letter-spacing:.01em}
+#planView .daybar button[aria-selected="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.dayhead{display:flex;flex-direction:column;gap:6px;margin:30px 4px 22px}
+.dayhead .meta{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.dayhead h2{font:700 32px/1.12 var(--f-display);letter-spacing:-.02em;margin:0}
+.dayhead ul{list-style:none;margin:14px 0 0;padding:0 0 0 16px;border-left:2px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.dayhead li{font-size:16px;line-height:1.55;color:var(--muted)}
+.exlist{display:flex;flex-direction:column;gap:18px}
+.ex{background:var(--surface);border-radius:24px;padding:24px 22px 10px;display:flex;flex-direction:column;gap:18px;min-width:0;box-shadow:var(--shadow);border:1px solid var(--line)}
+.ex-h .n{font:600 14px/1 var(--f-body);letter-spacing:.12em;color:var(--muted);font-variant-numeric:tabular-nums;text-transform:uppercase}
+.ex-h .name{font:650 24px/1.22 var(--f-display);letter-spacing:-.015em;margin:8px 0 0}
+.ex-h .tags{margin-top:6px;font-size:15px;color:var(--muted)}
+.ex-h .tags span+span::before{content:" · "}
+.ex .k{display:block;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.ex-target .v{font-size:20px;line-height:1.45;font-weight:500;letter-spacing:-.005em}
+.ex-load{border-top:1px solid var(--line);padding-top:14px;font-variant-numeric:tabular-nums}
+.ex-load .pl{display:flex;align-items:baseline;gap:10px;padding:6px 0}
+.ex-load .pl::after{content:"";order:1;flex:1;border-bottom:1px dotted var(--muted);opacity:.45;transform:translateY(-4px)}
+.ex-load .tot{order:0;font:700 22px/1.1 var(--f-display);letter-spacing:-.01em}
+.ex-load .side{order:2;font-size:18px;font-weight:600;white-space:nowrap}
+.ex-load .side small{font-size:13px;font-weight:500;color:var(--muted);margin-right:4px}
+.ex .last{font-size:15px;color:var(--muted);margin:-6px 0 0;line-height:1.5}
 .ex-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
 .ex-actions .primary{grid-column:1/-1}
 .bigbtn span{white-space:nowrap}
-.bigbtn{display:flex;align-items:center;justify-content:center;gap:10px;min-height:58px;padding:0 14px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 18px/1.1 var(--f-body);cursor:pointer;text-align:center}
-.bigbtn svg{width:22px;height:22px;flex:none}
-.bigbtn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.bigbtn{display:flex;align-items:center;justify-content:center;gap:10px;min-height:58px;padding:0 14px;border-radius:18px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 17px/1.1 var(--f-body);cursor:pointer;text-align:center;letter-spacing:.01em}
+.bigbtn svg{width:21px;height:21px;flex:none}
+.bigbtn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);min-height:60px;font-size:18px}
 .bigbtn.ghost{border-style:dashed;color:var(--muted);font-weight:500}
-.bigbtn:active{transform:scale(.985)}
-.ex-video video{width:100%;max-height:70vh;border-radius:14px;background:#000;display:block}
+.bigbtn:active{transform:scale(.985);opacity:.92}
+.ex-video video{width:100%;max-height:70vh;border-radius:18px;background:#000;display:block}
 .ex-video .row{justify-content:space-between}
-.ex details{border-top:1px solid var(--line);padding-top:4px}
-.ex details summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;min-height:48px;font-size:16px;font-weight:600;color:var(--muted)}
+.ex details{border-top:1px solid var(--line)}
+.ex details summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;min-height:56px;font-size:16px;font-weight:600}
 .ex details summary::-webkit-details-marker{display:none}
-.ex details summary::after{content:"";width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin-right:6px;transition:transform .2s}
+.ex details summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin-right:6px;transition:transform .2s}
 .ex details[open] summary::after{transform:rotate(-135deg)}
-.ex details p{margin:4px 0 12px;font-size:17px;line-height:1.6}
-.ex details p b{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
-.say-msg{font-size:15px}
-#planView details.principles{margin-top:18px;background:var(--surface);border:1px solid var(--line);border-radius:var(--pv-r);padding:4px 20px}
-#planView details.principles summary{list-style:none;cursor:pointer;min-height:56px;display:flex;align-items:center;font-size:18px;font-weight:600}
-#planView details.principles ul{margin:0 0 16px;padding-left:20px;font-size:16px;line-height:1.6}
-#planView #planAdmin{margin-top:18px;border-radius:var(--pv-r)}
+.ex details p{margin:0 0 18px;font-size:17px;line-height:1.65}
+.ex details p b{display:block;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.say-msg{font-size:15px;border-radius:14px}
+#planView details.principles{margin-top:22px;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:4px 22px;box-shadow:var(--shadow)}
+#planView details.principles summary{list-style:none;cursor:pointer;min-height:60px;display:flex;align-items:center;font-size:18px;font-weight:600}
+#planView details.principles ul{margin:0 0 18px;padding-left:20px;font-size:16px;line-height:1.65;color:var(--muted)}
+#planView details.principles li+li{margin-top:8px}
+#planView #planAdmin{margin-top:22px;border-radius:24px;box-shadow:none}
 #planView #planAdmin summary{min-height:44px;display:flex;align-items:center;font-size:17px}
 .vid-ok{color:var(--good);font-weight:600}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -169,23 +178,19 @@ table.sum th{font-weight:500;color:var(--muted);font-size:12px}
 <body>
 <div class="wrap">
   <header>
-    <div class="brand"><h1>Form Coach</h1><span data-i18n="brand.sub">今天练什么 · 动作要点 · 和教练示范对比</span></div>
-    <div class="controls">
-      <div class="field" id="exField"><label for="exSel" data-i18n="lbl.exercise">动作</label><select id="exSel"></select></div>
-      <div class="field"><label data-i18n="lbl.mode">模式</label>
-        <div class="tabs" role="tablist">
-          <button role="tab" id="tabPlan" aria-selected="false" data-i18n="tab.plan">今天练什么</button>
-          <button role="tab" id="tabRef" aria-selected="true" data-i18n="tab.ref">① 录教练标准</button>
-          <button role="tab" id="tabLive" aria-selected="false" data-i18n="tab.live">② 我来练</button>
-          <button role="tab" id="tabLib" aria-selected="false" data-i18n="tab.lib">标准库</button>
-        </div>
-      </div>
-      <!-- 语言开关：文字、语音、AI 点评、计划内容一起切换；记在 localStorage fm.lang -->
-      <div class="field"><label data-i18n="lbl.lang">语言</label>
-        <div class="tabs" role="tablist"><button role="tab" id="langZh" lang="zh">中文</button><button role="tab" id="langEn" lang="en">EN</button></div>
-      </div>
-    </div>
+    <div class="brand"><span class="date" id="todayDate"></span><h1 id="pageTitle">Form Coach</h1></div>
+    <!-- 语言开关：文字、语音、AI 点评、计划内容一起切换；记在 localStorage fm.lang -->
+    <div class="tabs langpill" role="tablist" aria-label="Language"><button role="tab" id="langZh" lang="zh">中</button><button role="tab" id="langEn" lang="en">EN</button></div>
   </header>
+  <div class="subbar" id="exField"><div class="field"><label for="exSel" data-i18n="lbl.exercise">动作</label><select id="exSel"></select></div></div>
+
+  <!-- 底部导航：四个页面 -->
+  <nav class="tabbar" role="tablist">
+    <button role="tab" id="tabPlan" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span data-i18n="nav.plan">今天</span></button>
+    <button role="tab" id="tabRef" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6.5" width="13" height="11" rx="2.5"/><path d="m16 10.5 5-3v9l-5-3"/></svg><span data-i18n="nav.ref">录标准</span></button>
+    <button role="tab" id="tabLive" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span data-i18n="nav.live">对比</span></button>
+    <button role="tab" id="tabLib" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4.5h10a3 3 0 0 1 3 3V20H8a3 3 0 0 1-3-3z"/><path d="M8 4.5V17M18 20H8"/></svg><span data-i18n="nav.lib">标准库</span></button>
+  </nav>
 
   <!-- 训练计划：每个动作的组数、重量、杠铃片、要点和教练视频。计划和视频都只存在这台设备上 -->
   <section id="planView" hidden>
@@ -791,6 +796,7 @@ function setMode(m){
   // 训练计划页不用摄像头区域和动作下拉
   document.querySelector('.grid').hidden=m==='plan';$('exField').hidden=m==='plan';$('planView').hidden=m!=='plan';
   if(m!=='plan')closeVideos();
+  renderTitle();
   if(m==='plan')renderPlan();if(m==='lib')renderLib();if(m==='live')renderProfSel();setEmpty();
 }
 $('tabPlan').onclick=()=>setMode('plan');$('tabRef').onclick=()=>setMode('ref');$('tabLive').onclick=()=>setMode('live');$('tabLib').onclick=()=>setMode('lib');
@@ -814,7 +820,8 @@ function renderPlan(){
   const day=plan.days.find(d=>d.id===P.day);
   const n=(()=>{let k=0;return ex=>/热身/.test(ex.name)?'':String(++k)})();
   const notes=loc(day,'notes')||[], principles=planPrinciples(plan);
-  body.innerHTML=`<div class="dayhead"><div class="title"><h2>${esc(loc(day,'name'))}</h2>${day.minutes?`<span class="dur">${t('plan.minutes',{n:day.minutes})}</span>`:''}</div>
+  const meta=[day.minutes?t('plan.minutes',{n:day.minutes}):'',t('plan.count',{n:day.exercises.length})].filter(Boolean).join(' · ');
+  body.innerHTML=`<div class="dayhead"><span class="meta">${esc(meta)}</span><h2>${esc(loc(day,'name'))}</h2>
     ${notes.length?`<ul>${notes.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div>
     <div class="exlist">${day.exercises.map(ex=>exCard(ex,n(ex),plan)).join('')}</div>
     ${principles.length?`<details class="principles"><summary>${t('plan.principles')}</summary><ul>${principles.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}`;
@@ -858,7 +865,7 @@ function exCard(ex,num,plan){
   const detail=[[t('plan.setup'),f('setup')],[t('plan.action'),f('action')],[t('plan.cues'),f('cues')],['',f('alt')]].filter(x=>x[1]).map(([k,v])=>`<p>${k?`<b>${k}</b>`:''}${esc(v)}</p>`).join('');
   const tags=[f('side'),ex.optional?t('plan.optional'):''].filter(Boolean);
   return `<article class="ex" id="ex-${esc(ex.id)}">
-    <div class="ex-h"><span class="n${num?'':' warm'}">${num||'·'}</span><div><h3 class="name">${esc(f('name'))}</h3>${tags.length?`<div class="tags">${tags.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}</div>`:''}</div></div>
+    <div class="ex-h"><span class="n">${num?String(num).padStart(2,'0'):t('plan.warm')}</span><h3 class="name">${esc(f('name').replace(/[（(](热身|warm-up)[）)]/i,'').trim())}</h3>${tags.length?`<div class="tags">${tags.map(x=>`<span>${esc(x)}</span>`).join('')}</div>`:''}</div>
     ${f('target')?`<div class="ex-target"><span class="k">${t('plan.target')}</span><span class="v">${esc(f('target'))}</span></div>`:''}
     ${loads.length?`<div class="ex-load"><span class="k">${esc(plateHead)}</span>${plateRows.map(r=>`<div class="pl"><span class="tot">${esc(r.a)}</span><span class="side">${r.b?`<small>${perSide}</small> ${esc(r.b)}`:''}</span></div>`).join('')}</div>`:''}
     ${f('last')?`<p class="last">${esc(t('plan.last',{text:f('last')}))}</p>`:''}
@@ -911,6 +918,12 @@ $('videoBulk').addEventListener('change',async e=>{
   planStatus(t('plan.bulkDone',{n:done.length,list:done.join(t('list.sep')),miss:miss.join(t('list.sep'))}),miss.length?'':'ok');
 });
 
+/* 顶部：日期 + 当前页面标题 */
+function renderTitle(){
+  $('pageTitle').textContent=t('title.'+(S.mode||'plan'));
+  try{$('todayDate').textContent=new Date().toLocaleDateString(isEn()?'en-US':'zh-CN',{weekday:'long',month:'long',day:'numeric'})}catch(e){}
+}
+
 /* ---------- 语言切换 ---------- */
 // 切换后：固定文字（data-i18n）、声音列表、动作下拉、拍摄说明、当前页面重画。正在显示的一组总结保持原语言，下一组起用新语言
 function applyLang(l){
@@ -921,7 +934,7 @@ function applyLang(l){
   if(!S.live||!S.live.reps.length)$('youCap').textContent=t('live.youCap');
   try{speechSynthesis.cancel()}catch(e){}
   if('speechSynthesis' in window)loadVoices();
-  fillExSel();selectPreset();setEmpty();planStatus(''); // 旧语言的状态提示清掉
+  fillExSel();selectPreset();setEmpty();planStatus('');renderTitle(); // 旧语言的状态提示清掉
   if(S.mode==='plan')renderPlan();if(S.mode==='lib')renderLib();
 }
 $('langZh').onclick=()=>applyLang('zh');$('langEn').onclick=()=>applyLang('en');
