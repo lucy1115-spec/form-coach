@@ -844,6 +844,8 @@ function renderPlan(){
     P.sayTimer=setInterval(()=>{const busy=speechSynthesis.speaking||speechSynthesis.pending;quiet=busy?0:quiet+1;if(quiet>=3)sayIdle()},400)});
   body.querySelectorAll('[data-play]').forEach(b=>b.onclick=()=>playVideo(b.dataset.ex,b.dataset.play));
   body.querySelectorAll('input[data-link]').forEach(inp=>inp.onchange=async e=>{const f=e.target.files[0];e.target.value='';if(f)await linkVideo(inp.dataset.link,f)});
+  body.querySelectorAll('input[data-addex]').forEach(inp=>inp.onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+    const m=String(f.name).match(/(\d{3,5})/);await linkVideo(`ex:${inp.dataset.addex}:${m?m[1]:Date.now()}`,f)});
   renderVideoList();
 }
 // 简单线条图标（继承文字颜色）
@@ -857,6 +859,11 @@ function exCard(ex,num,plan){
   const f=k=>loc(ex,k);
   const loads=loadLines(ex.load,plan.plates);
   const multi=(ex.videos||[]).length>1, vnum=v=>multi?v.replace(/\D/g,''):'';
+  // 用户自己加的视频：存为 ex:<动作 id>:<编号>（编号取文件名里的数字，没有就用时间戳）
+  const added=[...P.linked].filter(k=>k.startsWith(`ex:${ex.id}:`)).sort();
+  const addedNum=(k,i)=>{const n=k.split(':')[2];return /^\d{3,5}$/.test(n)?n:String(i+1)};
+  const addedBtns=added.map((k,i)=>`<button class="bigbtn" data-play="${esc(k)}" data-ex="${esc(ex.id)}">${ICON.play}<span>${esc(t('plan.play',{num:(added.length+(ex.videos||[]).length)>1?addedNum(k,i):''}))}</span></button>`).join('');
+  const addBtn=`<label class="bigbtn ghost" for="add-${esc(ex.id)}">${ICON.link}<span>${t('plan.addVideo')}</span></label><input type="file" accept="video/*" hidden id="add-${esc(ex.id)}" data-addex="${esc(ex.id)}">`;
   const vids=(ex.videos||[]).map(v=>P.linked.has(v)
     ?`<button class="bigbtn" data-play="${esc(v)}" data-ex="${esc(ex.id)}">${ICON.play}<span>${esc(t('plan.play',{num:vnum(v)}))}</span></button>`
     :`<label class="bigbtn ghost" for="lk-${esc(ex.id)}-${esc(v)}" title="${esc(v)}">${ICON.link}<span>${esc(t('plan.link',{num:vnum(v)}))}</span></label><input type="file" accept="video/*" hidden id="lk-${esc(ex.id)}-${esc(v)}" data-link="${esc(v)}">`).join('');
@@ -873,7 +880,7 @@ function exCard(ex,num,plan){
     ${f('target')?`<div class="ex-target"><span class="k">${t('plan.target')}</span><span class="v">${esc(f('target'))}</span></div>`:''}
     ${loads.length?`<div class="ex-load"><span class="k">${esc(plateHead)}</span>${plateRows.map(r=>`<div class="pl"><span class="tot">${esc(r.a)}</span><span class="side">${r.b?`<small>${perSide}</small> ${esc(r.b)}`:''}</span></div>`).join('')}</div>`:''}
     ${f('last')?`<p class="last">${esc(t('plan.last',{text:f('last')}))}</p>`:''}
-    <div class="ex-actions"><button class="bigbtn primary" data-say="${esc(ex.id)}">${ICON.say}<span>${t('plan.say')}</span></button>${vids}</div>
+    <div class="ex-actions"><button class="bigbtn primary" data-say="${esc(ex.id)}">${ICON.say}<span>${t('plan.say')}</span></button>${vids}${addedBtns}${addBtn}</div>
     <div class="ex-video" hidden></div>
     ${detail?`<details><summary>${t('plan.details')}</summary>${detail}</details>`:''}
   </article>`;
@@ -883,7 +890,7 @@ async function playVideo(exId,vid){
   const rec=await DB.video(vid);if(!rec){planStatus(t('plan.videoMissing',{id:vid}),'err');await refreshLinked();renderPlan();return}
   closeVideos();
   const url=URL.createObjectURL(rec.blob);P.urls.push(url);
-  box.innerHTML=`<video controls playsinline autoplay src="${url}"></video><div class="row" style="margin-top:10px"><span class="note">${esc(vid)}</span><button class="bigbtn" style="min-height:48px" data-close>${t('plan.close')}</button></div>`;
+  box.innerHTML=`<video controls playsinline autoplay src="${url}"></video><div class="row" style="margin-top:10px"><span class="note">${esc(rec.name||vid)}</span><button class="bigbtn" style="min-height:48px" data-close>${t('plan.close')}</button></div>`;
   box.hidden=false;box.querySelector('[data-close]').onclick=closeVideos;
   box.scrollIntoView({block:'nearest',behavior:'smooth'});
 }
@@ -900,8 +907,12 @@ function renderVideoList(){
   $('planMeta').textContent=plan?t('plan.meta',{date:plan.updated||'—',source:plan.source}):'';
   if(!plan){box.innerHTML='';return}
   const ids=allVideoIds(plan);
+  // 计划里写好的视频 + 用户在卡片上自己加的视频（ex:<动作>:<编号>）
+  const exName=id=>{for(const d of plan.days){const e=d.exercises.find(x=>x.id===id);if(e)return loc(e,'name')}return id};
+  const extra=[...P.linked].filter(k=>k.startsWith('ex:')).sort();
+  const row=(label,exs,key,stored)=>`<tr><td>${esc(label)}</td><td>${esc(exs)}</td><td>${stored?`<span class="vid-ok">${t('plan.stored')}</span> <button class="btn sm danger" data-unlink="${esc(key)}">${t('lib.del')}</button>`:`<span class="note">${t('plan.notLinked')}</span>`}</td></tr>`;
   box.innerHTML=`<table class="sum"><tr><th>${t('plan.thVideo')}</th><th>${t('plan.thEx')}</th><th></th></tr>${ids.map(v=>{const exs=plan.days.flatMap(d=>d.exercises.filter(e=>(e.videos||[]).includes(v)).map(e=>loc(e,'name')));
-    return `<tr><td>${esc(v)}</td><td>${esc([...new Set(exs)].join(t('list.sep')))}</td><td>${P.linked.has(v)?`<span class="vid-ok">${t('plan.stored')}</span> <button class="btn sm danger" data-unlink="${esc(v)}">${t('lib.del')}</button>`:`<span class="note">${t('plan.notLinked')}</span>`}</td></tr>`}).join('')}</table>`;
+    return row(v,[...new Set(exs)].join(t('list.sep')),v,P.linked.has(v))}).join('')}${extra.map(k=>{const [,id,n]=k.split(':');return row(/^\d{3,5}$/.test(n)?`IMG_${n}`:t('plan.myVideo'),exName(id),k,true)}).join('')}</table>`;
   box.querySelectorAll('[data-unlink]').forEach(b=>b.onclick=async()=>{if(!b.dataset.armed){b.dataset.armed='1';b.textContent=t('plan.again');return}
     await DB.delVideo(b.dataset.unlink);await refreshLinked();renderPlan()});
 }
