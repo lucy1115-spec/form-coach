@@ -178,6 +178,9 @@ table.sum th{font-weight:600;color:var(--muted);font-size:13px;letter-spacing:.0
 /* 只用"今天"一页：其他三页的底部导航只在进了"更多工具"后出现 */
 body.plan-mode .tabbar{display:none}
 #moreTools{width:100%;margin-top:14px}
+#planView .drivebox{margin-top:16px;border-radius:24px;display:flex;flex-direction:column;gap:12px}
+#planView .drivebox b{font-size:17px}
+#planView .drivebox .note{margin:4px 0 0;font-size:15px;line-height:1.5}
 /* 记一组 */
 .ex-log{background:var(--sunk);border-radius:20px;padding:16px 14px;display:flex;flex-direction:column;gap:12px}
 .lg-h{display:flex;justify-content:space-between;align-items:baseline;padding:0 4px}
@@ -282,6 +285,11 @@ body.resting{padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))}
       <div id="videoList" class="lib"></div>
       <p class="note" data-i18n="plan.adminNote">计划文件在 Google Drive 的 coach 文件夹里（训练计划.json）。视频从相册选，按文件名里的编号自动对上（如 IMG_0688）；对不上的到对应动作下面单独关联。计划和视频都只存在这台手机上。</p>
     </details>
+    <div class="panel drivebox" id="driveBox" hidden>
+      <div><b>Google Drive</b><p class="note" id="driveText"></p></div>
+      <button class="bigbtn" id="driveBtn"></button>
+      <div class="status" id="driveStatus" hidden></div>
+    </div>
     <button class="bigbtn ghost" id="moreTools" data-i18n="more.tools">更多工具：录标准 · 对比 · 标准库</button>
   </section>
   <div id="restBar" hidden><div><span class="k" data-i18n="rest.label">组间休息</span><b id="restTime">2:00</b></div>
@@ -386,6 +394,7 @@ import {PRESETS} from "./src/presets.js";
 import {reviewSet} from "./src/ai.js";
 import {loadLines,platesPerSide,exerciseSpeech,defaultDayId,allVideoIds,matchVideoId,validatePlan,FEELS,feelById,setDefaults,suggestNext,sessionRows,weightStep,restSeconds} from "./src/plan.js";
 import {t,setLang,getLang,isEn,loc} from "./src/i18n.js";
+import {CLIENT_ID,SCOPE,DRIVE_FOLDER,tokenValid,tokenFrom,ensureFolder,uploadCsv} from "./src/drive.js";
 const tr=t; // refFrame/liveFrame 的参数 t 是时间，会遮住 t()，那里用 tr()
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem('fm.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('fm.'+k,JSON.stringify(v))}catch(e){}}};
@@ -761,9 +770,16 @@ async function runAi(){
 const pad2=n=>String(n).padStart(2,'0');
 function today(d=new Date()){return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`}
 function stamp(d=new Date()){return `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}-${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`}
-async function shareCsv(rows){
+/* 连了 Google Drive 就直接上传（11/20 起）；没连、或 force 'share' 时用分享菜单。
+   注意：要授权时会弹 Google 登录窗口，必须在点击的同一时刻发出，所以调用方点击后要先调 shareCsv，前面不能有 await */
+async function shareCsv(rows,{force}={}){
   const csv=[TRAINING_LOG_HEADER,...rows.map(r=>trainingLogRow(r))].join('\n')+'\n';
-  const name=`form-coach-${stamp()}.csv`, file=new File([csv],name,{type:'text/csv'});
+  const name=`form-coach-${stamp()}.csv`;
+  if(driveOn()&&force!=='share'){
+    try{const tok=await driveToken();await driveUpload(tok,name,csv);return {ok:true,name,how:'drive'}}
+    catch(e){return {ok:false,name,how:'driveFail',msg:e.message||String(e)}}
+  }
+  const file=new File([csv],name,{type:'text/csv'});
   if(navigator.canShare&&navigator.canShare({files:[file]})){
     // 不传 title/text：iPhone 会把它另存成一个多余的 .txt 文件
     try{await navigator.share({files:[file]});return {ok:true,name,how:'share'}}
@@ -773,6 +789,46 @@ async function shareCsv(rows){
   a.download=name;document.body.append(a);a.click();a.remove();
   return {ok:true,name,how:'download'};
 }
+/* ---------- Google Drive ----------
+   授权：Google Identity Services 的 token client，token 1 小时有效，存 fm.drive.token；过期了保存时再弹一次（第一次同意后基本是一闪而过）。
+   fm.drive.on = 已连接；fm.drive.folder = App 自己建的文件夹 id（"Form Coach 记录"）。 */
+const GIS={client:null,res:null,rej:null};
+if(location.hostname==='localhost')window.__GIS=GIS; // 本地测试用：可以换成假的 token client
+const driveOn=()=>!!(CLIENT_ID&&store.get('drive.on',false));
+function loadGis(){
+  if(!CLIENT_ID||GIS.loading)return;GIS.loading=true;
+  const sc=document.createElement('script');sc.src='https://accounts.google.com/gsi/client';sc.async=true;
+  sc.onload=()=>{try{GIS.client=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPE,
+    callback:r=>{if(r.error){GIS.rej&&GIS.rej(new Error(r.error_description||r.error));return}const tk=tokenFrom(r);store.set('drive.token',tk);GIS.res&&GIS.res(tk.access_token)},
+    error_callback:e=>{GIS.rej&&GIS.rej(new Error(e&&e.type==='popup_closed'?t('drive.popupClosed'):e&&e.type==='popup_failed_to_open'?t('drive.popupBlocked'):(e&&(e.message||e.type))||'error'))}})}catch(e){}};
+  document.head.append(sc);
+}
+function driveToken(consent=false){
+  const tok=store.get('drive.token',null);if(!consent&&tokenValid(tok))return Promise.resolve(tok.access_token);
+  if(!GIS.client)return Promise.reject(new Error(t('drive.notReady')));
+  return new Promise((res,rej)=>{GIS.res=res;GIS.rej=rej;GIS.client.requestAccessToken({prompt:consent?'consent':''})});
+}
+async function driveUpload(token,name,csv){
+  const f=window.fetch.bind(window);
+  try{const folder=await ensureFolder(f,token,store.get('drive.folder',null));store.set('drive.folder',folder);
+    return await uploadCsv(f,token,{name,csv,folderId:folder})}
+  catch(e){if(e.status===401)store.set('drive.token',null);throw e}
+}
+function renderDrive(){
+  const box=$('driveBox');if(!box)return;box.hidden=!CLIENT_ID;if(!CLIENT_ID)return;
+  $('driveText').textContent=driveOn()?t('drive.on',{folder:DRIVE_FOLDER}):t('drive.off');
+  $('driveBtn').textContent=driveOn()?t('drive.disconnect'):t('drive.connect');
+  $('driveBtn').className='bigbtn'+(driveOn()?'':' primary');
+}
+$('driveBtn').onclick=()=>{
+  if(driveOn()){const tok=store.get('drive.token',null);try{if(tok)google.accounts.oauth2.revoke(tok.access_token,()=>{})}catch(e){}
+    store.set('drive.on',false);store.set('drive.token',null);setStatus($('driveStatus'),'');renderDrive();return}
+  const p=driveToken(true); // 同步弹出登录窗口
+  setStatus($('driveStatus'),t('drive.waiting'));
+  p.then(async tok=>{const folder=await ensureFolder(window.fetch.bind(window),tok,store.get('drive.folder',null));store.set('drive.folder',folder);
+      store.set('drive.on',true);setStatus($('driveStatus'),t('drive.connected',{folder:DRIVE_FOLDER}),'ok');renderDrive()})
+   .catch(e=>setStatus($('driveStatus'),t('drive.connectFail',{msg:e.message||e}),'err'));
+};
 async function saveSet(){
   const L=S.live;if(!L||!L.summary)return;
   const btn=$('setSave');
@@ -922,7 +978,7 @@ function renderPlan(){
   body.querySelectorAll('input[data-link]').forEach(inp=>inp.onchange=async e=>{const f=e.target.files[0];e.target.value='';if(f)await linkVideo(inp.dataset.link,f)});
   body.querySelectorAll('input[data-addex]').forEach(inp=>inp.onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
     const m=String(f.name).match(/(\d{3,5})/);await linkVideo(`ex:${inp.dataset.addex}:${m?m[1]:Date.now()}`,f)});
-  renderVideoList();
+  renderVideoList();renderDrive();
 }
 // 简单线条图标（继承文字颜色）
 const ICON={
@@ -1071,18 +1127,21 @@ function openEnd(){
   box.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><h2>${t('end.title')}</h2>
     ${list.length?list.map(x=>`<div class="es-ex"><h4>${esc(loc(x.ex,'name').replace(/[（(](热身|warm-up)[）)]/i,'').trim())}</h4><div class="sets">${esc(x.line)}</div>${x.next?`<div class="nx"><b>${t('end.next')}</b>${esc(x.next)}</div>`:''}</div>`).join(''):`<p>${t('end.none')}</p>`}
     <div class="status" id="endStatus" hidden></div>
-    <div class="acts">${list.length&&unsaved?`<button class="bigbtn primary" id="endSave">${t('end.save')}</button>`:''}<button class="bigbtn" id="endBack">${t('end.back')}</button></div></div>`;
+    <div class="acts">${list.length&&unsaved?`<button class="bigbtn primary" id="endSave">${driveOn()?t('end.saveDrive'):t('end.save')}</button>`:''}<button class="bigbtn" id="endBack">${t('end.back')}</button></div></div>`;
   box.hidden=false;
   box.onclick=e=>{if(e.target===box)closeEnd()};
   $('endBack').onclick=closeEnd;
   const sv=$('endSave');if(sv)sv.onclick=async()=>{
     const cur=ses(),only={date:cur.date,sets:{}};
     for(const [id,a] of Object.entries(cur.sets))if(a.some(x=>!x.saved))only.sets[id]=a.filter(x=>!x.saved);
-    const res=await shareCsv(sessionRows(only,P.plan));
-    if(!res.ok){setStatus($('endStatus'),t('end.cancel'),'err');return}
+    const res=await shareCsv(sessionRows(only,P.plan),{force:sv.dataset.force});
+    if(!res.ok){
+      if(res.how==='driveFail'){setStatus($('endStatus'),t('drive.fail',{msg:res.msg}),'err');sv.dataset.force='share';sv.textContent=t('drive.useShare')}
+      else setStatus($('endStatus'),t('end.cancel'),'err');
+      return}
     const now=ses();for(const a of Object.values(now.sets))for(const x of a)x.saved=true;store.set('session',now);
     for(const x of exSummary(now))store.set('exLast.'+x.id,{date:now.date,next:x.next,sets:x.sets.map(({w,r,warm,feel})=>({w,r,warm,feel}))});
-    setStatus($('endStatus'),res.how==='share'?t('end.saved'):t('end.downloaded'),'ok');sv.remove();
+    setStatus($('endStatus'),res.how==='drive'?t('end.savedDrive',{folder:DRIVE_FOLDER}):res.how==='share'?t('end.saved'):t('end.downloaded'),'ok');sv.remove();
   };
 }
 function closeEnd(){$('endSheet').hidden=true;$('endSheet').innerHTML='';renderPlan()}
@@ -1094,8 +1153,10 @@ function pendingBanner(){
 async function savePending(i){
   const p=store.get('pendingSessions',[]),s=p[i];if(!s)return;
   const only={date:s.date,sets:{}};for(const [id,a] of Object.entries(s.sets))only.sets[id]=a.filter(x=>!x.saved);
-  const res=await shareCsv(sessionRows(only,P.plan));
-  if(res.ok){p.splice(i,1);store.set('pendingSessions',p);renderPlan()}
+  const res=await shareCsv(sessionRows(only,P.plan),{force:P.pendingForce});
+  if(res.ok){P.pendingForce=null;p.splice(i,1);store.set('pendingSessions',p);renderPlan();return}
+  if(res.how==='driveFail'){P.pendingForce='share';const b=document.querySelector(`[data-act="savePrev"][data-i="${i}"]`);
+    if(b){b.textContent=t('drive.useShare');const ban=b.closest('.banner');ban.querySelector('.status')?.remove();ban.insertAdjacentHTML('beforeend',`<div class="status err">${esc(t('drive.fail',{msg:res.msg}))}</div>`)}}
 }
 $('moreTools').onclick=()=>{setMode('ref');window.scrollTo(0,0)};
 
@@ -1168,6 +1229,7 @@ function applyLang(l){
 }
 $('langZh').onclick=()=>applyLang('zh');$('langEn').onclick=()=>applyLang('en');
 
+loadGis();
 (async()=>{S.profiles=await DB.all();applyLang(store.get('lang','zh'));await refreshLinked();setMode('plan');
   if(!window.isSecureContext)setStatus($('refStatus'),t('cam.insecureHint'),'err')})();
 </script>
