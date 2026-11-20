@@ -188,8 +188,24 @@ body.plan-mode .tabbar{display:none}
 .lg-rows li{display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:8px;min-height:46px;border-bottom:1px solid var(--line);font-size:18px;font-variant-numeric:tabular-nums}
 .lg-rows li:last-child{border-bottom:0}
 .lg-rows .i{font-size:13px;font-weight:650;color:var(--muted)}
-.lg-rows small{font-size:13px;color:var(--muted);margin-left:8px;font-weight:500}
+.lg-rows small{white-space:nowrap;font-size:13px;color:var(--muted);margin-left:8px;font-weight:500}
 .lg-rows .fe{font-size:24px;line-height:1}
+.lg-rows li{grid-template-columns:30px 1fr auto 16px}
+.lg-rows li[data-act]{cursor:pointer}
+.lg-rows li.on{background:var(--surface);margin:0 -8px;padding:0 8px;border-radius:12px 12px 0 0;border-bottom:0}
+.lg-rows .chev{color:var(--muted);font-size:20px;text-align:right}
+.lg-rows li.saved{color:var(--muted)}
+.lg-rows .lg-edit{display:flex;flex-direction:column;align-items:stretch;gap:10px;background:var(--surface);margin:0 -8px 8px;padding:4px 8px 12px;border-radius:0 0 12px 12px;border-bottom:0}
+.lg-edit .stp{background:var(--bg);grid-template-columns:auto 50px minmax(0,1fr) 50px;padding-left:12px}
+.lg-edit .stp button{height:50px}
+.lg-edit .stp b{font-size:26px}
+.lg-edit .opts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.lg-edit .opts button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:72px;border-radius:14px;border:1px solid var(--line);background:var(--bg);font-size:13px;font-weight:600;color:var(--muted)}
+.lg-edit .opts button span{font-size:28px;line-height:1}
+.lg-edit .opts button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
+.lg-edit .ed-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lg-edit .ed-acts .bigbtn{min-height:54px;font-size:16px}
+.lg-hint{margin:-4px 4px 0;font-size:13px;color:var(--muted)}
 .feel{background:var(--surface);border-radius:16px;padding:12px 10px;border:1px solid var(--line)}
 .feel .q{font-size:15px;font-weight:600;margin:0 0 10px 4px}
 .feel .opts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
@@ -199,7 +215,7 @@ body.plan-mode .tabbar{display:none}
 .feel .undo{display:block;margin:10px auto 0;border:0;background:none;color:var(--muted);font-size:14px;min-height:36px;text-decoration:underline;text-underline-offset:3px}
 .lg-next{display:flex;flex-direction:column;gap:8px}
 .lg-next .which{font-size:14px;font-weight:650;color:var(--muted);padding:0 4px;letter-spacing:.02em}
-.stp{display:grid;grid-template-columns:auto 58px 1fr 58px;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:8px 8px 8px 16px}
+.stp{display:grid;grid-template-columns:auto 58px minmax(0,1fr) 58px;min-width:0;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:8px 8px 8px 16px}
 .stp .lab{white-space:nowrap;padding-right:4px;font-size:15px;font-weight:600;color:var(--muted)}
 .stp button{height:56px;border-radius:13px;border:0;background:var(--sunk);font-size:28px;font-weight:400;color:var(--ink);line-height:1}
 .stp button:active{background:var(--accent-soft)}
@@ -974,19 +990,26 @@ function logBlock(ex,plan){
   const d=setDefaults(ex),done=ses().sets[ex.id]||[],u=d.unit;
   const dr=P.draft[ex.id]||(P.draft[ex.id]=draftFor(ex));
   const total=d.sets.length,n=done.length+1,last=done[done.length-1];
-  const rows=done.map((x,i)=>`<li><span class="i">${i+1}</span><span>${esc(wTxt(u,x.w))} × ${fmtN(x.r)}${x.warm?`<small>${t('log.warmTag')}</small>`:''}</span><span class="fe">${x.feel?feelById(x.feel).emoji:''}</span></li>`).join('');
-  const askFeel=last&&!last.feel;
+  // 已记的组：还没保存的点一下就能改（重量、次数、感受、删除）；已存到 Drive 的锁住
+  const ed=P.edit&&P.edit.ex===ex.id&&done[P.edit.i]?P.edit.i:-1;
+  const stp=(k,lab,val,unit)=>`<div class="stp"><span class="lab">${lab}</span><button data-act="${k}-" data-ex="${esc(ex.id)}" aria-label="−">−</button><b>${fmtN(val)}${unit&&val!=null?`<small>${unit}</small>`:''}</b><button data-act="${k}+" data-ex="${esc(ex.id)}" aria-label="+">+</button></div>`;
+  const wLab=u==='level'?t('log.levelK'):t('log.weight');
+  const editBox=x=>`<li class="lg-edit"><div class="lg-next">${stp('ew',wLab,x.w,unitLbl(u))}${stp('er',t('log.reps'),x.r,'')}</div>
+    <div class="opts">${FEELS.map(f=>`<button data-act="efeel" data-feel="${f.id}" data-ex="${esc(ex.id)}" aria-pressed="${x.feel===f.id}"><span>${f.emoji}</span>${t('feel.'+f.id)}</button>`).join('')}</div>
+    <div class="ed-acts"><button class="bigbtn primary" data-act="eclose" data-ex="${esc(ex.id)}">${t('log.editDone')}</button><button class="bigbtn" data-act="edel" data-ex="${esc(ex.id)}">${t('log.undo')}</button></div></li>`;
+  const rows=done.map((x,i)=>`<li${x.saved?' class="saved"':` data-act="edit" data-ex="${esc(ex.id)}" data-i="${i}"${i===ed?' class="on"':''}`}><span class="i">${i+1}</span><span>${esc(wTxt(u,x.w))} × ${fmtN(x.r)}${x.warm?`<small>${t('log.warmTag')}</small>`:''}${x.saved?`<small>${t('log.savedTag')}</small>`:''}</span><span class="fe">${x.feel?feelById(x.feel).emoji:''}</span><span class="chev">${x.saved?'':'›'}</span></li>${i===ed?editBox(x):''}`).join('');
+  const canEdit=done.some(x=>!x.saved);
+  const askFeel=ed<0&&last&&!last.feel;
   const feel=askFeel?`<div class="feel"><p class="q">${t('log.feelQ')}</p><div class="opts">${FEELS.map(f=>`<button data-act="feel" data-feel="${f.id}" data-ex="${esc(ex.id)}"><span>${f.emoji}</span>${t('feel.'+f.id)}</button>`).join('')}</div>
     <button class="undo" data-act="undo" data-ex="${esc(ex.id)}">${t('log.undo')}</button></div>`:'';
   const prev=store.get('exLast.'+ex.id,null);
   const prevLine=prev&&prev.date!==today()&&prev.next?`<p class="lg-prev">${esc(t('plan.last',{text:`${prev.date.slice(5).replace('-','/')} · ${prev.next}`}))}</p>`:'';
-  const stp=(k,lab,val,unit)=>`<div class="stp"><span class="lab">${lab}</span><button data-act="${k}-" data-ex="${esc(ex.id)}" aria-label="−">−</button><b>${fmtN(val)}${unit&&val!=null?`<small>${unit}</small>`:''}</b><button data-act="${k}+" data-ex="${esc(ex.id)}" aria-label="+">+</button></div>`;
   return `<div class="ex-log" data-log="${esc(ex.id)}">
     <div class="lg-h"><span class="k">${t('log.title')}</span><span class="prog">${t('log.progress',{done:done.length,total})}</span></div>
-    ${prevLine}${rows?`<ol class="lg-rows">${rows}</ol>`:''}${feel}
-    <div class="lg-next"><span class="which">${t('log.setN',{n})}${dr.warm?` · ${t('log.warmTag')}`:''}</span>
-      ${stp('w',u==='level'?t('log.levelK'):t('log.weight'),dr.w,unitLbl(u))}${stp('r',t('log.reps'),dr.r,'')}</div>
-    <button class="bigbtn ${done.length>=total?'ghost':'primary'}" data-act="done" data-ex="${esc(ex.id)}">${done.length>=total?t('log.extra'):t('log.done',{n})}</button>
+    ${prevLine}${rows?`<ol class="lg-rows">${rows}</ol>`:''}${canEdit&&ed<0&&!askFeel?`<p class="lg-hint">${t('log.tapEdit')}</p>`:''}${feel}
+    ${ed>=0?'':`<div class="lg-next"><span class="which">${t('log.setN',{n})}${dr.warm?` · ${t('log.warmTag')}`:''}</span>
+      ${stp('w',wLab,dr.w,unitLbl(u))}${stp('r',t('log.reps'),dr.r,'')}</div>
+    <button class="bigbtn ${done.length>=total?'ghost':'primary'}" data-act="done" data-ex="${esc(ex.id)}">${done.length>=total?t('log.extra'):t('log.done',{n})}</button>`}
   </div>`;
 }
 function findEx(id){for(const d of (P.plan?P.plan.days:[])){const e=d.exercises.find(x=>x.id===id);if(e)return e}return null}
@@ -1004,9 +1027,20 @@ $('planBody').addEventListener('click',e=>{
   else if(act==='done'){
     unlockAudio(); // 休息结束的"嘀"声和语音要在这次点击里先解锁
     const s=ses();(s.sets[id]=s.sets[id]||[]).push({w:dr.w,r:dr.r,warm:dr.warm,feel:null,at:new Date().toISOString()});store.set('session',s);
-    P.draft[id]=draftFor(ex);startRest(restSeconds(ex));
+    P.edit=null;P.draft[id]=draftFor(ex);startRest(restSeconds(ex));
   }
   else if(act==='feel'){const s=ses(),a=s.sets[id]||[];if(a.length){a[a.length-1].feel=b.dataset.feel;store.set('session',s)}}
+  else if(act==='edit'){const i=+b.dataset.i;P.edit=P.edit&&P.edit.ex===id&&P.edit.i===i?null:{ex:id,i}}
+  else if(act==='eclose'){P.edit=null}
+  else if(act==='edel'){if(!b.dataset.armed){b.dataset.armed='1';b.textContent=t('end.dropConfirm');return}
+    const s=ses(),a=s.sets[id]||[];if(P.edit&&a[P.edit.i]&&!a[P.edit.i].saved)a.splice(P.edit.i,1);if(!a.length)delete s.sets[id];store.set('session',s);P.edit=null;P.draft[id]=draftFor(ex)}
+  else if(/^e[wr][+-]$/.test(act)||act==='efeel'){
+    const s=ses(),x=(s.sets[id]||[])[P.edit&&P.edit.ex===id?P.edit.i:-1];if(!x||x.saved)return;
+    if(act==='efeel')x.feel=b.dataset.feel;
+    else if(act[1]==='w'){const st=weightStep(d.unit,x.w,ex.load&&ex.load.kind);x.w=x.w==null?(d.unit==='level'?5:10):Math.max(0,Math.round((x.w+(act[2]==='+'?st:-st))*100)/100)}
+    else x.r=x.r==null?10:Math.max(0,x.r+(act[2]==='+'?1:-1));
+    store.set('session',s);
+  }
   else if(act==='undo'){const s=ses(),a=s.sets[id]||[];a.pop();if(!a.length)delete s.sets[id];store.set('session',s);P.draft[id]=draftFor(ex);stopRest()}
   rerenderLog(id);
 });

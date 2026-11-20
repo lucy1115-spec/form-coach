@@ -189,7 +189,7 @@ const ZH = {
   // 记一组 / 组间休息 / 结束训练
   'log.title': '记录', 'log.progress': v => `${v.done}/${v.total} 组`, 'log.setN': v => `第 ${v.n} 组`, 'log.warmTag': '热身',
   'log.weight': '重量', 'log.reps': '次数', 'log.level': v => `${v.n} 级`, 'log.lb': v => `${v.n} 磅`, 'log.levelK': '辅助级别',
-  'log.done': v => `完成第 ${v.n} 组`, 'log.extra': '再加一组', 'log.feelQ': '这组感觉怎么样？', 'log.undo': '删掉这组',
+  'log.done': v => `完成第 ${v.n} 组`, 'log.extra': '再加一组', 'log.feelQ': '这组感觉怎么样？', 'log.undo': '删掉这组', 'log.editDone': '改好了', 'log.savedTag': '已存', 'log.tapEdit': '记错了？点那一组就能改。',
   'feel.easy': '轻松', 'feel.ok': '刚好', 'feel.hard': '吃力', 'feel.fail': '做不完',
   'rest.label': '组间休息', 'rest.add': '+30 秒', 'rest.skip': '跳过', 'rest.over': '休息结束，准备下一组。',
   'end.btn': '结束训练', 'end.title': '今天的训练', 'end.none': '还没记任何一组。', 'end.next': '下次',
@@ -370,7 +370,7 @@ const EN = {
   // Set logging / rest / finish workout
   'log.title': 'Log', 'log.progress': v => `${v.done}/${v.total} sets`, 'log.setN': v => `Set ${v.n}`, 'log.warmTag': 'Warm-up',
   'log.weight': 'Weight', 'log.reps': 'Reps', 'log.level': v => `level ${v.n}`, 'log.lb': v => `${v.n} lb`, 'log.levelK': 'Assist level',
-  'log.done': v => `Done — set ${v.n}`, 'log.extra': 'Add a set', 'log.feelQ': 'How did that set feel?', 'log.undo': 'Delete this set',
+  'log.done': v => `Done — set ${v.n}`, 'log.extra': 'Add a set', 'log.feelQ': 'How did that set feel?', 'log.undo': 'Delete this set', 'log.editDone': 'Done', 'log.savedTag': 'Saved', 'log.tapEdit': 'Logged it wrong? Tap the set to fix it.',
   'feel.easy': 'Easy', 'feel.ok': 'Just right', 'feel.hard': 'Hard', 'feel.fail': 'Failed',
   'rest.label': 'Rest', 'rest.add': '+30 s', 'rest.skip': 'Skip', 'rest.over': 'Rest is over. Get ready for the next set.',
   'end.btn': 'Finish workout', 'end.title': "Today's workout", 'end.none': 'No sets logged yet.', 'end.next': 'Next time',
