@@ -2,21 +2,21 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="theme-color" content="#111111">
+<meta name="theme-color" content="#F0E9E6">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Form Coach</title>
 <style>
-/* 视觉：高级、克制（11/15 用户要求）。配色"炭黑 + 香槟金"（11/16 用户从墨绿 + 奶油换过来，试用中）：
-   不分浅色/深色，始终是深色主题。字体用 iPhone 系统字体（SF / 苹方）。
-   页面切换在底部导航栏，顶部只有日期、标题和语言。上一版墨绿 + 奶油的色值在 git 历史里（d63c044）。 */
+/* 视觉：高级、克制（11/15 用户要求）。配色"莫兰迪 · 豆沙粉 + 米白"（11/20 用户从 6 套莫兰迪里选的；
+   要配人脸 emoji，暖色浅底最衬）。之前试过墨绿 + 奶油（app 提交 d63c044）、炭黑 + 香槟金（8f80de0）。
+   字体用 iPhone 系统字体（SF / 苹方）。只用浅色。 */
 :root{
-  --bg:#111111; --surface:#1B1B1B; --sunk:#242322; --ink:#F3EEE4; --muted:#8F897E; --line:rgba(243,238,228,.09);
-  --accent:#C9A96E; --accent-ink:#111111; --good:#8FC79F; --warn:#E3B66A; --bad:#E9826D;
-  --good-bg:#1C2A21; --warn-bg:#2E2615; --bad-bg:#33201B; --stage:#0A0A0A;
+  --bg:#F0E9E6; --surface:#FBF7F5; --sunk:#EFE6E3; --ink:#3A2F2F; --muted:#86797A; --line:rgba(58,47,47,.10);
+  --accent:#A27877; --accent-ink:#FFFFFF; --accent-soft:#EFDCDA; --good:#6E8268; --warn:#A8823C; --bad:#B0574A;
+  --good-bg:#E4EADF; --warn-bg:#F3E9D6; --bad-bg:#F4E0DC; --stage:#2B2523;
   --f-display:-apple-system,"SF Pro Display","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;
   --f-body:-apple-system,"SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;
-  --r:20px; --shadow:0 1px 0 rgba(243,238,228,.03),0 12px 32px rgba(0,0,0,.35);
-  color-scheme:dark;
+  --r:20px; --shadow:0 1px 1px rgba(58,47,47,.04),0 10px 28px rgba(120,80,75,.08);
+  color-scheme:light;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -152,7 +152,7 @@ table.sum th{font-weight:600;color:var(--muted);font-size:13px;letter-spacing:.0
 .ex-load .side small{font-size:13px;font-weight:500;color:var(--muted);margin-right:4px}
 .ex .last{font-size:15px;color:var(--muted);margin:-6px 0 0;line-height:1.5}
 .ex-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
-.ex-actions .primary{grid-column:1/-1}
+.ex-actions [data-say]{grid-column:1/-1}
 .bigbtn span{white-space:nowrap}
 .bigbtn{display:flex;align-items:center;justify-content:center;gap:10px;min-height:58px;padding:0 14px;border-radius:18px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 17px/1.1 var(--f-body);cursor:pointer;text-align:center;letter-spacing:.01em}
 .bigbtn svg{width:21px;height:21px;flex:none}
@@ -175,6 +175,61 @@ table.sum th{font-weight:600;color:var(--muted);font-size:13px;letter-spacing:.0
 #planView details.principles li+li{margin-top:8px}
 #planView #planAdmin{margin-top:22px;border-radius:24px;box-shadow:none}
 #planView #planAdmin summary{min-height:44px;display:flex;align-items:center;font-size:17px}
+/* 只用"今天"一页：其他三页的底部导航只在进了"更多工具"后出现 */
+body.plan-mode .tabbar{display:none}
+#moreTools{width:100%;margin-top:14px}
+/* 记一组 */
+.ex-log{background:var(--sunk);border-radius:20px;padding:16px 14px;display:flex;flex-direction:column;gap:12px}
+.lg-h{display:flex;justify-content:space-between;align-items:baseline;padding:0 4px}
+.ex .lg-h .k{margin:0}
+.lg-h .prog{font-size:15px;font-weight:650;color:var(--accent);font-variant-numeric:tabular-nums}
+.lg-prev{margin:-4px 4px 0;font-size:14px;color:var(--muted);line-height:1.45}
+.lg-rows{list-style:none;margin:0;padding:0 4px}
+.lg-rows li{display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:8px;min-height:46px;border-bottom:1px solid var(--line);font-size:18px;font-variant-numeric:tabular-nums}
+.lg-rows li:last-child{border-bottom:0}
+.lg-rows .i{font-size:13px;font-weight:650;color:var(--muted)}
+.lg-rows small{font-size:13px;color:var(--muted);margin-left:8px;font-weight:500}
+.lg-rows .fe{font-size:24px;line-height:1}
+.feel{background:var(--surface);border-radius:16px;padding:12px 10px;border:1px solid var(--line)}
+.feel .q{font-size:15px;font-weight:600;margin:0 0 10px 4px}
+.feel .opts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.feel .opts button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:78px;border-radius:14px;border:1px solid var(--line);background:var(--bg);font-size:13px;font-weight:600;color:var(--muted)}
+.feel .opts button span{font-size:32px;line-height:1}
+.feel .opts button:active{background:var(--accent-soft)}
+.feel .undo{display:block;margin:10px auto 0;border:0;background:none;color:var(--muted);font-size:14px;min-height:36px;text-decoration:underline;text-underline-offset:3px}
+.lg-next{display:flex;flex-direction:column;gap:8px}
+.lg-next .which{font-size:14px;font-weight:650;color:var(--muted);padding:0 4px;letter-spacing:.02em}
+.stp{display:grid;grid-template-columns:auto 58px 1fr 58px;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:8px 8px 8px 16px}
+.stp .lab{white-space:nowrap;padding-right:4px;font-size:15px;font-weight:600;color:var(--muted)}
+.stp button{height:56px;border-radius:13px;border:0;background:var(--sunk);font-size:28px;font-weight:400;color:var(--ink);line-height:1}
+.stp button:active{background:var(--accent-soft)}
+.stp b{text-align:center;font:700 30px/1 var(--f-display);letter-spacing:-.01em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stp b small{font-size:14px;font-weight:600;color:var(--muted);margin-left:3px;letter-spacing:0}
+.ex-log .bigbtn.primary{min-height:64px;font-size:19px}
+.ex-log .bigbtn.ghost{min-height:52px}
+.endbtn{width:100%;margin-top:22px;min-height:64px;background:var(--ink);border-color:var(--ink);color:var(--bg);font-size:18px}
+.banner{display:flex;flex-direction:column;gap:10px;background:var(--warn-bg);border-radius:20px;padding:16px 18px;margin-top:16px;font-size:16px;line-height:1.45}
+.banner .row{display:flex;gap:10px}
+.banner .bigbtn{flex:1;min-height:52px}
+/* 组间休息：固定在底部 */
+#restBar{position:fixed;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:60;
+  max-width:656px;margin:0 auto;background:var(--ink);color:var(--bg);border-radius:24px;padding:12px 12px 12px 22px;display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;
+  box-shadow:0 14px 40px rgba(58,47,47,.28);overflow:hidden}
+#restBar .k{display:block;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(251,247,245,.6)}
+#restBar b{display:block;font:700 34px/1.05 var(--f-display);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+#restBar button{min-height:56px;min-width:76px;border-radius:16px;border:0;background:rgba(251,247,245,.12);color:var(--bg);font-size:16px;font-weight:600;padding:0 14px}
+#restBar .bar{position:absolute;left:0;bottom:0;height:3px;background:var(--accent-soft);transition:width .25s linear}
+body.resting{padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))}
+/* 结束训练：底部弹出 */
+#endSheet{position:fixed;inset:0;z-index:70;background:rgba(58,47,47,.38);display:flex;align-items:flex-end;justify-content:center}
+#endSheet .sheet{background:var(--surface);width:100%;max-width:680px;max-height:88vh;overflow:auto;border-radius:28px 28px 0 0;padding:26px 22px calc(22px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:16px}
+#endSheet h2{font:700 28px/1.15 var(--f-display);letter-spacing:-.02em;margin:0}
+.es-ex{border-top:1px solid var(--line);padding-top:14px}
+.es-ex h4{margin:0 0 4px;font-size:18px;font-weight:650}
+.es-ex .sets{font-size:16px;font-variant-numeric:tabular-nums;line-height:1.6}
+.es-ex .nx{margin-top:6px;font-size:15px;color:var(--accent);font-weight:600;line-height:1.45}
+.es-ex .nx b{font-weight:650;color:var(--muted);font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin-right:6px}
+#endSheet .acts{display:flex;flex-direction:column;gap:10px;margin-top:6px}
 .vid-ok{color:var(--good);font-weight:600}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -211,7 +266,11 @@ table.sum th{font-weight:600;color:var(--muted);font-size:13px;letter-spacing:.0
       <div id="videoList" class="lib"></div>
       <p class="note" data-i18n="plan.adminNote">计划文件在 Google Drive 的 coach 文件夹里（训练计划.json）。视频从相册选，按文件名里的编号自动对上（如 IMG_0688）；对不上的到对应动作下面单独关联。计划和视频都只存在这台手机上。</p>
     </details>
+    <button class="bigbtn ghost" id="moreTools" data-i18n="more.tools">更多工具：录标准 · 对比 · 标准库</button>
   </section>
+  <div id="restBar" hidden><div><span class="k" data-i18n="rest.label">组间休息</span><b id="restTime">2:00</b></div>
+    <button id="restAdd" data-i18n="rest.add">+30 秒</button><button id="restSkip" data-i18n="rest.skip">跳过</button><div class="bar" id="restProg"></div></div>
+  <div id="endSheet" hidden></div>
 
   <div class="grid">
     <div class="stage" id="stage">
@@ -309,7 +368,7 @@ import {PoseLandmarker,FilesetResolver} from "https://cdn.jsdelivr.net/npm/@medi
 import {SIDES,METRICS,mname,Tracker,RepCounter,analyzeReference,compareRep,fmtVal,median,summarizeSet,formNote,trainingLogRow,TRAINING_LOG_HEADER} from "./src/engine.js";
 import {PRESETS} from "./src/presets.js";
 import {reviewSet} from "./src/ai.js";
-import {loadLines,platesPerSide,exerciseSpeech,defaultDayId,allVideoIds,matchVideoId,validatePlan} from "./src/plan.js";
+import {loadLines,platesPerSide,exerciseSpeech,defaultDayId,allVideoIds,matchVideoId,validatePlan,FEELS,feelById,setDefaults,suggestNext,sessionRows,weightStep,restSeconds} from "./src/plan.js";
 import {t,setLang,getLang,isEn,loc} from "./src/i18n.js";
 const tr=t; // refFrame/liveFrame 的参数 t 是时间，会遮住 t()，那里用 tr()
 const $=id=>document.getElementById(id);
@@ -795,7 +854,7 @@ function setEmpty(){
 }
 function setMode(m){
   if(S.mode!==m){stopSource();showStage(false);$('refCamStart').hidden=false;$('refCamStop').hidden=true;$('liveStart').hidden=false;$('liveStop').hidden=true}
-  S.mode=m;$('tabPlan').setAttribute('aria-selected',m==='plan');$('tabRef').setAttribute('aria-selected',m==='ref');$('tabLive').setAttribute('aria-selected',m==='live');$('tabLib').setAttribute('aria-selected',m==='lib');
+  S.mode=m;document.body.classList.toggle('plan-mode',m==='plan');$('tabPlan').setAttribute('aria-selected',m==='plan');$('tabRef').setAttribute('aria-selected',m==='ref');$('tabLive').setAttribute('aria-selected',m==='live');$('tabLib').setAttribute('aria-selected',m==='lib');
   $('panelRef').hidden=m!=='ref';$('panelLive').hidden=m!=='live';$('panelLib').hidden=m!=='lib';
   // 训练计划页不用摄像头区域和动作下拉
   document.querySelector('.grid').hidden=m==='plan';$('exField').hidden=m==='plan'||m==='lib';$('stage').hidden=m==='lib';$('planView').hidden=m!=='plan';
@@ -825,9 +884,10 @@ function renderPlan(){
   const n=(()=>{let k=0;return ex=>/热身/.test(ex.name)?'':String(++k)})();
   const notes=loc(day,'notes')||[], principles=planPrinciples(plan);
   const meta=[day.minutes?t('plan.minutes',{n:day.minutes}):'',t('plan.count',{n:day.exercises.length})].filter(Boolean).join(' · ');
-  body.innerHTML=`<div class="dayhead"><span class="meta">${esc(meta)}</span><h2>${esc(loc(day,'name'))}</h2>
+  body.innerHTML=pendingBanner()+`<div class="dayhead"><span class="meta">${esc(meta)}</span><h2>${esc(loc(day,'name'))}</h2>
     ${notes.length?`<ul>${notes.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div>
     <div class="exlist">${day.exercises.map(ex=>exCard(ex,n(ex),plan)).join('')}</div>
+    <button class="bigbtn endbtn" data-act="end">${t('end.btn')}</button>
     ${principles.length?`<details class="principles"><summary>${t('plan.principles')}</summary><ul>${principles.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}`;
   // "听要点"按钮念的时候变成"停"，念完自动变回来
   body.querySelectorAll('[data-say]').forEach(b=>b.onclick=()=>{
@@ -880,11 +940,131 @@ function exCard(ex,num,plan){
     ${f('target')?`<div class="ex-target"><span class="k">${t('plan.target')}</span><span class="v">${esc(f('target'))}</span></div>`:''}
     ${loads.length?`<div class="ex-load"><span class="k">${esc(plateHead)}</span>${plateRows.map(r=>`<div class="pl"><span class="tot">${esc(r.a)}</span><span class="side">${r.b?`<small>${perSide}</small> ${esc(r.b)}`:''}</span></div>`).join('')}</div>`:''}
     ${f('last')?`<p class="last">${esc(t('plan.last',{text:f('last')}))}</p>`:''}
-    <div class="ex-actions"><button class="bigbtn primary" data-say="${esc(ex.id)}">${ICON.say}<span>${t('plan.say')}</span></button>${vids}${addedBtns}${addBtn}</div>
+    ${logBlock(ex,plan)}
+    <div class="ex-actions"><button class="bigbtn" data-say="${esc(ex.id)}">${ICON.say}<span>${t('plan.say')}</span></button>${vids}${addedBtns}${addBtn}</div>
     <div class="ex-video" hidden></div>
     ${detail?`<details><summary>${t('plan.details')}</summary>${detail}</details>`:''}
   </article>`;
 }
+/* ---------- 记一组 ----------
+   今天的训练存在 localStorage fm.session = {date, sets:{动作id:[{w,r,warm,feel,note,at,saved}]}}，刷新页面不丢。
+   过了一天还没保存的，挪到 fm.pendingSessions，页面顶部提示保存。保存 = 每组一行的 CSV，经分享菜单存到 Google Drive。 */
+function nSets(s){return Object.values(s.sets||{}).reduce((a,x)=>a+x.length,0)}
+function ses(){
+  let s=store.get('session',null);
+  if(s&&s.date!==today()){if(Object.values(s.sets||{}).some(a=>a.some(x=>!x.saved))){const p=store.get('pendingSessions',[]);p.push(s);store.set('pendingSessions',p)}s=null}
+  if(!s){s={date:today(),sets:{}};store.set('session',s)}
+  return s;
+}
+const fmtN=n=>n==null?'—':String(Math.round(n*100)/100);
+const unitLbl=u=>u==='level'?(isEn()?'level':'级'):(isEn()?'lb':'磅');
+const wTxt=(u,w)=>w==null?'—':u==='level'?t('log.level',{n:fmtN(w)}):t('log.lb',{n:fmtN(w)});
+P.draft={};
+function draftFor(ex){
+  const d=setDefaults(ex),done=ses().sets[ex.id]||[],i=done.length;
+  const planned=d.sets[Math.min(i,d.sets.length-1)]||{w:null,r:null,warm:false},prev=done[i-1];
+  // 计划的组做完了，再加的组照上一组
+  if(i>=d.sets.length&&prev)return {w:prev.w,r:prev.r,warm:false};
+  // 上一组用户改了重量（和计划里那一组不一样），这一组沿用改过的；否则按计划（比如引体 7 级、6 级、6 级）
+  const pp=d.sets[i-1];
+  const w=prev&&pp&&!!prev.warm===!!planned.warm&&prev.w!==pp.w?prev.w:planned.w;
+  return {w,r:planned.r,warm:!!planned.warm};
+}
+function logBlock(ex,plan){
+  const d=setDefaults(ex),done=ses().sets[ex.id]||[],u=d.unit;
+  const dr=P.draft[ex.id]||(P.draft[ex.id]=draftFor(ex));
+  const total=d.sets.length,n=done.length+1,last=done[done.length-1];
+  const rows=done.map((x,i)=>`<li><span class="i">${i+1}</span><span>${esc(wTxt(u,x.w))} × ${fmtN(x.r)}${x.warm?`<small>${t('log.warmTag')}</small>`:''}</span><span class="fe">${x.feel?feelById(x.feel).emoji:''}</span></li>`).join('');
+  const askFeel=last&&!last.feel;
+  const feel=askFeel?`<div class="feel"><p class="q">${t('log.feelQ')}</p><div class="opts">${FEELS.map(f=>`<button data-act="feel" data-feel="${f.id}" data-ex="${esc(ex.id)}"><span>${f.emoji}</span>${t('feel.'+f.id)}</button>`).join('')}</div>
+    <button class="undo" data-act="undo" data-ex="${esc(ex.id)}">${t('log.undo')}</button></div>`:'';
+  const prev=store.get('exLast.'+ex.id,null);
+  const prevLine=prev&&prev.date!==today()&&prev.next?`<p class="lg-prev">${esc(t('plan.last',{text:`${prev.date.slice(5).replace('-','/')} · ${prev.next}`}))}</p>`:'';
+  const stp=(k,lab,val,unit)=>`<div class="stp"><span class="lab">${lab}</span><button data-act="${k}-" data-ex="${esc(ex.id)}" aria-label="−">−</button><b>${fmtN(val)}${unit&&val!=null?`<small>${unit}</small>`:''}</b><button data-act="${k}+" data-ex="${esc(ex.id)}" aria-label="+">+</button></div>`;
+  return `<div class="ex-log" data-log="${esc(ex.id)}">
+    <div class="lg-h"><span class="k">${t('log.title')}</span><span class="prog">${t('log.progress',{done:done.length,total})}</span></div>
+    ${prevLine}${rows?`<ol class="lg-rows">${rows}</ol>`:''}${feel}
+    <div class="lg-next"><span class="which">${t('log.setN',{n})}${dr.warm?` · ${t('log.warmTag')}`:''}</span>
+      ${stp('w',u==='level'?t('log.levelK'):t('log.weight'),dr.w,unitLbl(u))}${stp('r',t('log.reps'),dr.r,'')}</div>
+    <button class="bigbtn ${done.length>=total?'ghost':'primary'}" data-act="done" data-ex="${esc(ex.id)}">${done.length>=total?t('log.extra'):t('log.done',{n})}</button>
+  </div>`;
+}
+function findEx(id){for(const d of (P.plan?P.plan.days:[])){const e=d.exercises.find(x=>x.id===id);if(e)return e}return null}
+function rerenderLog(id){const el=document.querySelector(`[data-log="${CSS.escape(id)}"]`),ex=findEx(id);if(el&&ex)el.outerHTML=logBlock(ex,P.plan)}
+$('planBody').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;const act=b.dataset.act,id=b.dataset.ex,ex=id&&findEx(id);
+  if(act==='end'){openEnd();return}
+  if(act==='drop'){if(!b.dataset.armed){b.dataset.armed='1';b.textContent=t('end.dropConfirm');return}
+    const p=store.get('pendingSessions',[]);p.splice(+b.dataset.i,1);store.set('pendingSessions',p);renderPlan();return}
+  if(act==='savePrev'){savePending(+b.dataset.i);return}
+  if(!ex)return;
+  const d=setDefaults(ex),dr=P.draft[id]||(P.draft[id]=draftFor(ex));
+  if(act==='w+'||act==='w-'){const st=weightStep(d.unit,dr.w,ex.load&&ex.load.kind);dr.w=dr.w==null?(d.unit==='level'?5:10):Math.max(0,Math.round((dr.w+(act==='w+'?st:-st))*100)/100)}
+  else if(act==='r+'||act==='r-'){dr.r=dr.r==null?10:Math.max(0,dr.r+(act==='r+'?1:-1))}
+  else if(act==='done'){
+    unlockAudio(); // 休息结束的"嘀"声和语音要在这次点击里先解锁
+    const s=ses();(s.sets[id]=s.sets[id]||[]).push({w:dr.w,r:dr.r,warm:dr.warm,feel:null,at:new Date().toISOString()});store.set('session',s);
+    P.draft[id]=draftFor(ex);startRest(restSeconds(ex));
+  }
+  else if(act==='feel'){const s=ses(),a=s.sets[id]||[];if(a.length){a[a.length-1].feel=b.dataset.feel;store.set('session',s)}}
+  else if(act==='undo'){const s=ses(),a=s.sets[id]||[];a.pop();if(!a.length)delete s.sets[id];store.set('session',s);P.draft[id]=draftFor(ex);stopRest()}
+  rerenderLog(id);
+});
+
+/* 组间休息：按结束时间算，锁屏再回来也准。到点"嘀"两声 + 语音 */
+const REST={end:0,total:0,timer:null};
+function startRest(sec){REST.total=sec;REST.end=Date.now()+sec*1000;$('restBar').hidden=false;document.body.classList.add('resting');clearInterval(REST.timer);REST.timer=setInterval(tickRest,250);tickRest()}
+function stopRest(){clearInterval(REST.timer);REST.timer=null;$('restBar').hidden=true;document.body.classList.remove('resting')}
+function tickRest(){
+  const left=Math.max(0,Math.ceil((REST.end-Date.now())/1000));
+  $('restTime').textContent=`${Math.floor(left/60)}:${pad2(left%60)}`;$('restProg').style.width=(100*left/REST.total)+'%';
+  if(left<=0){stopRest();beep();setTimeout(beep,260);speak(t('rest.over'));try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}
+}
+$('restAdd').onclick=()=>{REST.end+=30000;REST.total+=30;tickRest()};
+$('restSkip').onclick=stopRest;
+
+/* 结束训练：每个动作这次做了什么 + 下次建议，保存到 Google Drive */
+function exSummary(s){
+  const out=[];
+  for(const [id,sets] of Object.entries(s.sets||{})){const ex=findEx(id);if(!ex||!sets.length)continue;const u=setDefaults(ex).unit;
+    const nx=suggestNext(ex,sets);
+    out.push({id,ex,sets,next:nx&&nx.text,line:sets.map(x=>`${x.warm?t('log.warmTag')+' ':''}${wTxt(u,x.w)} × ${fmtN(x.r)}${x.feel?' '+feelById(x.feel).emoji:''}`).join(' · ')})}
+  return out;
+}
+function openEnd(){
+  stopRest();const s=ses(),list=exSummary(s),box=$('endSheet');
+  const unsaved=Object.values(s.sets).some(a=>a.some(x=>!x.saved));
+  box.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><h2>${t('end.title')}</h2>
+    ${list.length?list.map(x=>`<div class="es-ex"><h4>${esc(loc(x.ex,'name').replace(/[（(](热身|warm-up)[）)]/i,'').trim())}</h4><div class="sets">${esc(x.line)}</div>${x.next?`<div class="nx"><b>${t('end.next')}</b>${esc(x.next)}</div>`:''}</div>`).join(''):`<p>${t('end.none')}</p>`}
+    <div class="status" id="endStatus" hidden></div>
+    <div class="acts">${list.length&&unsaved?`<button class="bigbtn primary" id="endSave">${t('end.save')}</button>`:''}<button class="bigbtn" id="endBack">${t('end.back')}</button></div></div>`;
+  box.hidden=false;
+  box.onclick=e=>{if(e.target===box)closeEnd()};
+  $('endBack').onclick=closeEnd;
+  const sv=$('endSave');if(sv)sv.onclick=async()=>{
+    const cur=ses(),only={date:cur.date,sets:{}};
+    for(const [id,a] of Object.entries(cur.sets))if(a.some(x=>!x.saved))only.sets[id]=a.filter(x=>!x.saved);
+    const res=await shareCsv(sessionRows(only,P.plan));
+    if(!res.ok){setStatus($('endStatus'),t('end.cancel'),'err');return}
+    const now=ses();for(const a of Object.values(now.sets))for(const x of a)x.saved=true;store.set('session',now);
+    for(const x of exSummary(now))store.set('exLast.'+x.id,{date:now.date,next:x.next,sets:x.sets.map(({w,r,warm,feel})=>({w,r,warm,feel}))});
+    setStatus($('endStatus'),res.how==='share'?t('end.saved'):t('end.downloaded'),'ok');sv.remove();
+  };
+}
+function closeEnd(){$('endSheet').hidden=true;$('endSheet').innerHTML='';renderPlan()}
+function pendingBanner(){
+  ses(); // 先把昨天没保存的挪进 pendingSessions
+  const p=store.get('pendingSessions',[]);
+  return p.map((s,i)=>`<div class="banner"><span>${esc(t('end.pending',{date:s.date.slice(5).replace('-','/'),n:nSets(s)}))}</span><div class="row"><button class="bigbtn primary" data-act="savePrev" data-i="${i}">${t('end.savePrev')}</button><button class="bigbtn" data-act="drop" data-i="${i}">${t('end.drop')}</button></div></div>`).join('');
+}
+async function savePending(i){
+  const p=store.get('pendingSessions',[]),s=p[i];if(!s)return;
+  const only={date:s.date,sets:{}};for(const [id,a] of Object.entries(s.sets))only.sets[id]=a.filter(x=>!x.saved);
+  const res=await shareCsv(sessionRows(only,P.plan));
+  if(res.ok){p.splice(i,1);store.set('pendingSessions',p);renderPlan()}
+}
+$('moreTools').onclick=()=>{setMode('ref');window.scrollTo(0,0)};
+
 async function playVideo(exId,vid){
   const box=document.querySelector(`#ex-${CSS.escape(exId)} .ex-video`);if(!box)return;
   const rec=await DB.video(vid);if(!rec){planStatus(t('plan.videoMissing',{id:vid}),'err');await refreshLinked();renderPlan();return}

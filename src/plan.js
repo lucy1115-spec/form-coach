@@ -103,3 +103,111 @@ export function validatePlan(j) {
   }
   return null;
 }
+
+/* ---------- 记一组 ----------
+   每组记：重量（或辅助级别）、次数、感受。感受用 4 个表情，对应留几次余力（RIR），写进训练记录的 rir 列。 */
+export const FEELS = [
+  {id: 'easy', emoji: '😌', rir: 3},
+  {id: 'ok', emoji: '🙂', rir: 2},
+  {id: 'hard', emoji: '😣', rir: 1},
+  {id: 'fail', emoji: '😵', rir: 0},
+];
+export const feelById = id => FEELS.find(f => f.id === id) || null;
+
+const num = s => (s == null || s === '' ? null : Number(s));
+// "轻松就加到…""做到 3 × 15 再…"这类是条件，不是今天要做的组
+const CONDITIONAL = /轻松|做到|再加|再用|再回到|后加到|就最后|if easy|once/i;
+
+/* 从计划目标文字（中文）读出今天每一组：[{warm, w, r, rMax}]，unit 是 'lb' 或 'level'。
+   认得：3 × 10–12 @ 25–30 磅、热身 1 × 15、热身 20 磅、12 @ 7 级、2 组 @ 3–5 磅。重量是范围时取小的。
+   读不出来就给 3 组空白，用户自己填。计划里写了 ex.log.sets 就直接用。 */
+export function parseTarget(text) {
+  const s = String(text || '');
+  const unit = /级/.test(s) ? 'level' : 'lb';
+  const sets = [];
+  for (const seg of s.split(/[；;，,、]/)) {
+    if (CONDITIONAL.test(seg)) continue;
+    const warm = /热身/.test(seg);
+    let m = seg.match(/(\d+)\s*×\s*(\d+)(?:\s*[–-]\s*(\d+))?(?:\s*@\s*(\d+(?:\.\d+)?)(?:\s*[–-]\s*\d+(?:\.\d+)?)?)?/);
+    if (m) { for (let i = 0; i < +m[1]; i++) sets.push({warm, w: num(m[4]), r: +m[2], rMax: num(m[3]) ?? +m[2]}); continue; }
+    m = seg.match(/(\d+)(?:\s*[–-]\s*(\d+))?\s*@\s*(\d+(?:\.\d+)?)\s*级/);
+    if (m) { sets.push({warm, w: +m[3], r: +m[1], rMax: num(m[2]) ?? +m[1]}); continue; }
+    m = seg.match(/(\d+)\s*[组轮]\s*@\s*(\d+(?:\.\d+)?)/);
+    if (m) { for (let i = 0; i < +m[1]; i++) sets.push({warm, w: +m[2], r: null, rMax: null}); continue; }
+    m = seg.match(/(\d+(?:\.\d+)?)\s*磅/);
+    if (warm && m) { sets.push({warm: true, w: +m[1], r: null, rMax: null}); continue; }
+    m = seg.match(/(\d+)\s*[组轮]/);
+    if (m && !sets.length) for (let i = 0; i < +m[1]; i++) sets.push({warm, w: null, r: null, rMax: null});
+  }
+  // "3 组，每边 12 步"：次数写在别的段里
+  const steps = s.match(/(\d+)\s*步/);
+  if (steps) for (const x of sets) if (x.r == null) { x.r = +steps[1]; x.rMax = x.r; }
+  // 热身没写次数：用正式组的次数
+  const main = sets.find(x => !x.warm && x.r);
+  for (const x of sets) if (x.warm && x.r == null && main) { x.r = main.r; x.rMax = main.r; }
+  return {sets: sets.length ? sets : [1, 2, 3].map(() => ({warm: false, w: null, r: null, rMax: null})), unit};
+}
+
+export function setDefaults(ex) {
+  if (ex && ex.log && Array.isArray(ex.log.sets)) return {unit: ex.log.unit || 'lb', sets: ex.log.sets.map(x => ({warm: !!x.warm, w: num(x.w), r: num(x.r), rMax: num(x.rMax) ?? num(x.r)}))};
+  const d = parseTarget(ex && ex.target);
+  // 杠铃热身没写重量：空杆
+  if (ex && ex.load && ex.load.kind === 'barbell') for (const x of d.sets) if (x.warm && x.w == null) x.w = ex.load.bar ?? 35;
+  return d;
+}
+
+/* +/− 一下加减多少：级别 1；杠铃 / 史密斯 5 磅（每边 2.5）；其他 25 磅以下 2.5，以上 5 */
+export function weightStep(unit, w, kind) {
+  if (unit === 'level') return 1;
+  if (kind === 'barbell' || kind === 'smith') return 5;
+  return w != null && w < 25 ? 2.5 : 5;
+}
+
+/* 休息多久（秒）：杠铃 / 史密斯 2 分钟，其他 75 秒 */
+export const restSeconds = ex => (ex && ex.load && (ex.load.kind === 'barbell' || ex.load.kind === 'smith') ? 120 : 75);
+
+/* 下次建议（双重进阶）。done = 这次记的组 [{warm, w, r, feel}]，plan = setDefaults 的结果。
+   - 组数没做完、有一组"做不完"、或次数没到下限 → 保持
+   - 正式组都做到上限、感受都是轻松或刚好 → 加重（级别：试更难一级）；计划写了不加重 → 保持
+   - 其他 → 保持重量，争取多做 1 次 */
+export function suggestNext(ex, done, plan = setDefaults(ex)) {
+  const work = (done || []).filter(x => !x.warm && x.r != null);
+  if (!work.length) return null;
+  const tgt = plan.sets.filter(x => !x.warm);
+  // 第 i 个正式组和计划里第 i 个正式组比（多做的组按最后一组算）
+  const tg = i => tgt[Math.min(i, tgt.length - 1)] || {};
+  const ws = work.map(x => x.w).filter(x => x != null), wTop = ws.length ? Math.max(...ws) : null;
+  const unit = plan.unit, step = weightStep(unit, wTop, ex && ex.load && ex.load.kind);
+  const fmt = v => (v == null ? '' : unit === 'level' ? t('log.level', {n: v}) : t('log.lb', {n: v}));
+  // 计划的组没做完，不加重
+  if (work.length < tgt.length) return {kind: 'hold', text: t('next.hold', {w: fmt(wTop)})};
+  if (work.some(x => x.feel === 'fail') || work.some((x, i) => tg(i).r != null && x.r < tg(i).r)) return {kind: 'hold', text: t('next.hold', {w: fmt(wTop)})};
+  const allTop = work.every((x, i) => tg(i).rMax != null && x.r >= tg(i).rMax);
+  const allOk = work.every(x => x.feel === 'easy' || x.feel === 'ok');
+  if (allTop && allOk) {
+    if (/不加重|不再加重|不追重量|不变|就停/.test(String(ex && ex.target))) return {kind: 'keep', text: t('next.keep', {w: fmt(wTop)})};
+    if (unit === 'level') return {kind: 'up', text: t('next.levelUp')};
+    if (wTop == null) return {kind: 'up', text: t('next.upNoW')};
+    return {kind: 'up', w: wTop + step, text: t('next.up', {w: fmt(wTop + step)})};
+  }
+  return {kind: 'reps', text: t('next.reps', {w: fmt(wTop)})};
+}
+
+/* 训练记录的行（和 data/training_log.csv 同一套列）：每组一行，sets=1。
+   动作名用中文（和电脑上的记录一致），session 是训练日名字；级别写在 note，weight_lb 留空。 */
+export function sessionRows(session, plan) {
+  const rows = [];
+  const find = id => { for (const d of plan.days) { const e = d.exercises.find(x => x.id === id); if (e) return {d, e}; } return null; };
+  for (const [exId, sets] of Object.entries(session.sets || {})) {
+    const hit = find(exId), unit = hit ? setDefaults(hit.e).unit : 'lb';
+    for (const x of sets) {
+      const f = feelById(x.feel);
+      const note = [x.warm ? '热身' : '', unit === 'level' && x.w != null ? `${x.w} 级` : '', f ? `${f.emoji} ${FEEL_ZH[f.id]}` : '', x.note || ''].filter(Boolean).join('；');
+      rows.push({date: session.date, session: hit ? hit.d.name : '', exercise: hit ? hit.e.name : exId, sets: 1, reps: x.r ?? '',
+        weight_lb: unit === 'level' ? '' : (x.w ?? ''), rir: f ? f.rir : '', note});
+    }
+  }
+  return rows;
+}
+// 训练记录里的感受固定写中文（和电脑上其他记录一致）
+const FEEL_ZH = {easy: '轻松', ok: '刚好', hard: '吃力', fail: '做不完'};
