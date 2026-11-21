@@ -1099,7 +1099,8 @@ function renderPlan(){
   // 编号按计划顺序先算好，跳过的动作挪到最下面也保持原来的编号
   const mains=day.exercises.map(eff),num={};for(const ex of mains)num[ex.id]=n(ex);for(const x of extras)num[x.ex.id]=n(x.ex);
   // 今天有多少时间：按时间精简（今天已经记过组的动作不跳过）
-  const s0=ses(),tmin=((s0.time||{})[day.id])||null;
+  // 11/21 用户："今天有多少时间"多余（时间多了自己加动作），去掉。精简逻辑（trimForTime）留着，不再显示
+  const s0=ses(),tmin=null;
   const trim=trimForTime(mains,tmin,Object.keys(s0.sets||{}));
   const kept=mains.filter(ex=>!trim.skip.includes(ex.id)),skipped=mains.filter(ex=>trim.skip.includes(ex.id));
   const timebar=`<details class="timebar"${tmin?' open':''}><summary>${t('plan.timeQ')}<span>${tmin?t('plan.timeMin',{n:tmin}):t('plan.timeAll')}</span></summary><div class="chips">${[null,30,40].map(m=>`<button data-act="time" data-min="${m||''}" aria-pressed="${(m||null)===tmin}">${m?t('plan.timeMin',{n:m}):t('plan.timeAll')}</button>`).join('')}</div>
@@ -1130,7 +1131,6 @@ function renderPlan(){
   const ouraRow=renderToday(day,pk);
   body.innerHTML=pendingBanner()+(ouraRow?'':gap)+`<div class="dayhead"><h2>${esc(dayTitle(day))}</h2>${rot}
     ${notes.length?`<details class="daynotes"><summary>${t('plan.dayNotes')}</summary><ul>${notes.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}</div>
-    ${timebar}
     ${focusHtml}
     ${addBlock(plan,day,extras)}
     <button class="bigbtn endbtn" data-act="end">${t('end.btn')}</button>
