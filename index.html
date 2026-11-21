@@ -387,7 +387,13 @@ details.timebar[open]{padding-bottom:14px}
 .exrows{border-radius:20px;padding:6px;display:flex;flex-direction:column;gap:6px}
 .exrow{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;min-height:56px;padding:0 16px;border-radius:14px;text-align:left;font-size:17px;font-weight:550;color:var(--ink)}
 .exrow .nm{grid-column:2}.exrow:not(.done) .nm{grid-column:1/3}
-.exrow{grid-template-columns:auto 1fr auto 18px}
+.exrow{grid-template-columns:26px 1fr auto 18px}
+.exrow .ix{font-size:15px;font-weight:600;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+.exrow.done .ix{width:24px;height:24px;border-radius:50%;background:var(--good-bg);color:var(--good);display:flex;align-items:center;justify-content:center}
+.exrow.done .ix svg{width:15px;height:15px}
+.exrow .nm{grid-column:auto!important}
+.exrows>.ex{margin:4px 0 6px}
+.pickh{margin:4px 4px 10px;font-size:15px;color:var(--muted)}
 .exrow .go{color:var(--muted);display:flex}.exrow .go svg{width:18px;height:18px}
 .exrow.done .go{opacity:.5}
 .listh{display:flex;justify-content:space-between;align-items:baseline}
@@ -1124,18 +1130,19 @@ function renderPlan(){
   const allItems=items.concat(skipped.map(ex=>({ex,from:null,skipped:true})));
   const total=ex=>setDefaults(ex).sets.length,doneN=ex=>((s0.sets||{})[ex.id]||[]).length,finished=ex=>doneN(ex)>=total(ex);
   if(P.focusDay!==day.id){P.focusDay=day.id;P.focus=null}
-  let cur=allItems.find(x=>x.ex.id===P.focus)||items.find(x=>!finished(x.ex))||null;
+  // A 版"清单优先"（11/21 用户选的）：不替你选动作，先给完整清单；点哪个，哪个原地展开成记录卡；
+  // 最后一组选完感受自动收起，回到清单。P.focus = 展开的动作 id（没有就是 null）
+  const cur=allItems.find(x=>x.ex.id===P.focus)||null;
   const nItems=items.length,nDone=items.filter(x=>finished(x.ex)).length;
-  const pos=cur?Math.max(1,items.findIndex(x=>x.ex.id===cur.ex.id)+1):nItems;
   const feelsOf=ex=>((s0.sets||{})[ex.id]||[]).filter(x=>x.feel&&!x.warm).map(x=>feelById(x.feel).emoji).join('');
-  const row=(x,kind)=>`<button class="exrow${kind==='done'?' done':''}" data-act="focus" data-ex="${esc(x.ex.id)}">${kind==='done'?`<span class="ck">${ICON.check}</span>`:''}<span class="nm">${esc(loc(x.ex,'name').replace(/[（(](热身|warm-up)[）)]/i,'').trim())}</span><span class="mt">${kind==='done'?feelsOf(x.ex)||t('log.progress',{done:doneN(x.ex),total:total(x.ex)}):doneN(x.ex)?t('log.progress',{done:doneN(x.ex),total:total(x.ex)}):t('plan.sets',{n:total(x.ex)})}</span><span class="go">${ICON.chev}</span></button>`;
-  const upNext=items.filter(x=>!finished(x.ex)&&(!cur||x.ex.id!==cur.ex.id)),doneList=items.filter(x=>finished(x.ex)&&(!cur||x.ex.id!==cur.ex.id));
-  const focusHtml=`<div class="dayprog"><span>${esc(t('plan.progress',{n:pos,m:nItems}))}</span>${day.minutes?`<span>${esc(t('plan.minutes',{n:day.minutes}))}</span>`:''}</div>
-    <div class="pbar"><i style="width:${nItems?Math.round(100*nDone/nItems):0}%"></i></div>
-    ${cur?exCard(cur.ex,num[cur.ex.id],plan,cur.from,{focus:true,finished:finished(cur.ex)}):`<div class="alldone">${t('plan.allDone')}</div>`}
-    ${upNext.length?`<h3 class="listh">${t('plan.upNext')}<small>${t('plan.pickHint')}</small></h3><div class="exrows">${upNext.map(x=>row(x,'next')).join('')}</div>`:''}
-    ${skipped.filter(ex=>!cur||ex.id!==cur.ex.id).length?`<details class="skipped"><summary>${esc(t('plan.skipped',{n:skipped.length}))}</summary><div class="exrows">${skipped.filter(ex=>!cur||ex.id!==cur.ex.id).map(ex=>row({ex},'next')).join('')}</div></details>`:''}
-    ${doneList.length?`<h3 class="listh">${t('plan.doneList')}</h3><div class="exrows">${doneList.map(x=>row(x,'done')).join('')}</div>`:''}`;
+  const nm=ex=>esc(loc(ex,'name').replace(/[（(](热身|warm-up)[）)]/i,'').trim());
+  const row=x=>{const ex=x.ex,dn=finished(ex),k=num[ex.id];
+    return `<button class="exrow${dn?' done':''}" data-act="focus" data-ex="${esc(ex.id)}"><span class="ix">${dn?ICON.check:(k||'·')}</span><span class="nm">${nm(ex)}</span><span class="mt">${dn?(feelsOf(ex)||t('log.progress',{done:doneN(ex),total:total(ex)})):doneN(ex)?t('log.progress',{done:doneN(ex),total:total(ex)}):t('plan.sets',{n:total(ex)})}</span><span class="go">${ICON.chev}</span></button>`};
+  const list=xs=>xs.map(x=>cur&&x.ex.id===cur.ex.id?exCard(x.ex,num[x.ex.id],plan,x.from,{focus:true}):row(x)).join('');
+  const focusHtml=`<p class="pickh">${esc(t('plan.pickStart',{done:nDone,total:nItems}))}</p>
+    <div class="exrows">${list(items)}</div>
+    ${skipped.length?`<details class="skipped"${cur&&cur.skipped?' open':''}><summary>${esc(t('plan.skipped',{n:skipped.length}))}</summary><div class="exrows">${list(skipped.map(ex=>({ex,from:null,skipped:true})))}</div></details>`:''}
+    ${nItems&&nDone===nItems?`<div class="alldone">${t('plan.allDone')}</div>`:''}`;
   const notes=loc(day,'notes')||[], principles=planPrinciples(plan);
   const meta=[day.minutes?t('plan.minutes',{n:day.minutes}):'',t('plan.count',{n:day.exercises.length})].filter(Boolean).join(' · ');
   const lastDay=pk.last&&plan.days.find(d=>d.id===pk.last.dayId),md=x=>x.slice(5).replace('-','/');
@@ -1274,7 +1281,7 @@ $('todayBox').addEventListener('click',e=>{
     renderPlan();return}
   if(b.dataset.act==='periodStart'||b.dataset.act==='periodUndo')P.phaseOpen=true;
   if(b.dataset.act==='periodUndo'){const d=today();store.set('cycle',store.get('cycle',[]).filter(x=>x!==d));store.set('cyclePending',store.get('cyclePending',[]).filter(x=>x!==d));renderPlan();return}
-  if(b.dataset.act==='todaySee'){(document.querySelector('#planBody .ex.focus')||document.querySelector('#dayTabs'))?.scrollIntoView({block:'start',behavior:'smooth'});return}
+  if(b.dataset.act==='todaySee'){(document.querySelector('#planBody .ex.focus')||document.querySelector('#planBody .pickh')||document.querySelector('#dayTabs'))?.scrollIntoView({block:'start',behavior:'smooth'});return}
   if(b.dataset.act==='todayAsk'){
     const c=P.todayCtx||{};const last=(store.get('workouts',[])).slice(-1)[0];
     const lastTxt=last&&P.plan?(()=>{const d=P.plan.days.find(x=>x.id===last.dayId);return d?`${last.date.slice(5).replace('-','/')} ${dayTab(d)}`:''})():'';
@@ -1331,7 +1338,7 @@ function exCard(ex,num,plan,fromDay,opt={}){
     ${f('last')?`<p class="last">${esc(t('plan.last',{text:f('last')}))}</p>`:''}
     ${logBlock(ex,plan)}
     ${fromDay&&!(ses().sets[ex.id]||[]).length?`<button class="bigbtn ghost" data-act="unextra" data-ex="${esc(ex.id)}">${t('plan.removeExtra')}</button>`:''}
-    <div class="ex-actions two"><button class="bigbtn" data-say="${esc(ex.id)}">${ICON.say}<span>${t('plan.say')}</span></button>${opt.focus?`<button class="bigbtn${opt.finished?' primary':''}" data-act="next" data-ex="${esc(ex.id)}"><span>${t('plan.next')}</span>${ICON.next}</button>`:''}</div>
+    <div class="ex-actions two"><button class="bigbtn" data-say="${esc(ex.id)}">${ICON.say}<span>${t('plan.say')}</span></button>${opt.focus?`<button class="bigbtn" data-act="collapse" data-ex="${esc(ex.id)}"><span>${t('plan.collapse')}</span></button>`:''}</div>
     <details class="more"${P.swapOpen===ex.id?' open':''}><summary>${t('plan.more')}</summary><div class="ex-actions">${swapBtn}${ex.swapped?'':vids+addedBtns+addBtn}</div>${swapBox}</details>
     <div class="ex-video" hidden></div>
     ${detail?`<details><summary>${t('plan.details')}</summary>${detail}</details>`:''}
@@ -1410,7 +1417,8 @@ function rerenderLog(id){const el=document.querySelector(`[data-log="${CSS.escap
 $('planBody').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;const act=b.dataset.act,id=b.dataset.ex,ex=id&&findEx(id);
   if(act==='end'){openEnd();return}
-  if(act==='focus'){P.focus=id;renderPlan();document.querySelector('#planBody .ex.focus')?.scrollIntoView({block:'start',behavior:'smooth'});return}
+  if(act==='focus'){P.focus=P.focus===id?null:id;renderPlan();document.querySelector(P.focus?'#planBody .ex.focus':`#planBody [data-act="focus"][data-ex="${CSS.escape(id)}"]`)?.scrollIntoView({block:'start',behavior:'smooth'});return}
+  if(act==='collapse'){P.focus=null;renderPlan();document.querySelector(`#planBody [data-act="focus"][data-ex="${CSS.escape(id)}"]`)?.scrollIntoView({block:'center',behavior:'smooth'});return}
   if(act==='next'){
     // 下一个：按顺序找下一个还没做完的动作（到最后就从头找）
     const day=P.plan.days.find(d=>d.id===P.day),order=day.exercises.map(e=>e.id).concat(((ses().extra||{})[P.day])||[]);
@@ -1444,7 +1452,9 @@ $('planBody').addEventListener('click',e=>{
     P.edit=null;P.draft[id]=draftFor(ex);startRest(restSeconds(ex));
     if(s.sets[id].length===1){const c=document.getElementById('ex-'+id);c?.querySelectorAll('[data-act="swapOpen"],[data-act="unswap"],[data-act="unextra"],.swapbox').forEach(x=>x.remove())} // 第一组记下后，换动作 / 移除的按钮收起
   }
-  else if(act==='feel'){const s=ses(),a=s.sets[id]||[];if(a.length){a[a.length-1].feel=b.dataset.feel;store.set('session',s)}}
+  else if(act==='feel'){const s=ses(),a=s.sets[id]||[];if(a.length){a[a.length-1].feel=b.dataset.feel;store.set('session',s)}
+    // 这个动作的组做满了：选完感受自动收起，回到清单（A 版）
+    if(a.length>=setDefaults(ex).sets.length){P.focus=null;renderPlan();document.querySelector(`#planBody [data-act="focus"][data-ex="${CSS.escape(id)}"]`)?.scrollIntoView({block:'center',behavior:'smooth'});return}}
   else if(act==='edit'){const i=+b.dataset.i;P.edit=P.edit&&P.edit.ex===id&&P.edit.i===i?null:{ex:id,i}}
   else if(act==='eclose'){P.edit=null}
   else if(act==='edel'){if(!b.dataset.armed){b.dataset.armed='1';b.textContent=t('end.dropConfirm');return}
