@@ -227,6 +227,13 @@ body.plan-mode .tabbar{display:none}
 .stp b small{font-size:14px;font-weight:600;color:var(--muted);margin-left:3px;letter-spacing:0}
 .ex-log .bigbtn.primary{min-height:64px;font-size:19px}
 .ex-log .bigbtn.ghost{min-height:52px}
+.addbtn{width:100%;margin-top:18px}
+.addbox{margin-top:10px;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.addbox .note{margin:0;font-size:14px;color:var(--muted)}
+.addgrp{display:flex;flex-direction:column;gap:8px}
+.addgrp .k{display:block;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.addgrp .bigbtn{justify-content:flex-start;min-height:54px;font-weight:550}
+.ex [data-act="unextra"]{min-height:46px;font-size:15px}
 .endbtn{width:100%;margin-top:22px;min-height:64px;background:var(--ink);border-color:var(--ink);color:var(--bg);font-size:18px}
 .banner{display:flex;flex-direction:column;gap:10px;background:var(--warn-bg);border-radius:20px;padding:16px 18px;margin-top:16px;font-size:16px;line-height:1.45}
 .banner .row{display:flex;gap:10px}
@@ -958,6 +965,7 @@ function renderPlan(){
   for(const d of plan.days){const b=document.createElement('button');b.setAttribute('role','tab');b.textContent=dayTab(d);b.setAttribute('aria-selected',d.id===P.day);
     b.onclick=()=>{closeVideos();P.day=d.id;renderPlan()};tabs.append(b)}
   const day=plan.days.find(d=>d.id===P.day);
+  const extras=extraFor(plan,day.id);
   const n=(()=>{let k=0;return ex=>/热身/.test(ex.name)?'':String(++k)})();
   const notes=loc(day,'notes')||[], principles=planPrinciples(plan);
   const meta=[day.minutes?t('plan.minutes',{n:day.minutes}):'',t('plan.count',{n:day.exercises.length})].filter(Boolean).join(' · ');
@@ -967,7 +975,8 @@ function renderPlan(){
   const gap=pk.gapHours!=null&&pk.gapHours<48&&lastDay?`<div class="banner">${esc(t('plan.gap',{day:dayTab(lastDay),h:Math.max(1,Math.round(pk.gapHours))}))}</div>`:'';
   body.innerHTML=pendingBanner()+gap+`<div class="dayhead"><span class="meta">${esc(meta)}</span><h2>${esc(dayTitle(day))}</h2>${rot}
     ${notes.length?`<ul>${notes.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div>
-    <div class="exlist">${day.exercises.map(ex=>exCard(ex,n(ex),plan)).join('')}</div>
+    <div class="exlist">${day.exercises.map(ex=>exCard(ex,n(ex),plan)).join('')}${extras.map(x=>exCard(x.ex,n(x.ex),plan,x.day)).join('')}</div>
+    ${addBlock(plan,day,extras)}
     <button class="bigbtn endbtn" data-act="end">${t('end.btn')}</button>
     ${principles.length?`<details class="principles"><summary>${t('plan.principles')}</summary><ul>${principles.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}`;
   // "听要点"按钮念的时候变成"停"，念完自动变回来
@@ -996,7 +1005,7 @@ const ICON={
   play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>',
   link:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>'};
 function sayIdle(){clearInterval(P.sayTimer);document.querySelectorAll('[data-say][data-on]').forEach(b=>{delete b.dataset.on;b.innerHTML=ICON.say+`<span>${t('plan.say')}</span>`})}
-function exCard(ex,num,plan){
+function exCard(ex,num,plan,fromDay){
   const f=k=>loc(ex,k);
   const loads=loadLines(ex.load,plan.plates);
   const multi=(ex.videos||[]).length>1, vnum=v=>multi?v.replace(/\D/g,''):'';
@@ -1015,13 +1024,14 @@ function exCard(ex,num,plan){
   const perSide=isEn()?'per side':'每边';
   const plateHead=t('plan.plates')+(ex.load&&ex.load.kind==='smith'?` · ${t('plan.barExcl')}`:ex.load&&ex.load.kind==='barbell'?` · ${isEn()?`${ex.load.bar??35} lb bar`:`杆 ${ex.load.bar??35} 磅`}`:'');
   const detail=[[t('plan.setup'),f('setup')],[t('plan.action'),f('action')],[t('plan.cues'),f('cues')],['',f('alt')]].filter(x=>x[1]).map(([k,v])=>`<p>${k?`<b>${k}</b>`:''}${esc(v)}</p>`).join('');
-  const tags=[f('side'),ex.optional?t('plan.optional'):''].filter(Boolean);
+  const tags=[fromDay?t('plan.fromDay',{day:dayTab(fromDay)}):'',f('side'),ex.optional?t('plan.optional'):''].filter(Boolean);
   return `<article class="ex" id="ex-${esc(ex.id)}">
     <div class="ex-h"><span class="n">${num?String(num).padStart(2,'0'):t('plan.warm')}</span><h3 class="name">${esc(f('name').replace(/[（(](热身|warm-up)[）)]/i,'').trim())}</h3>${tags.length?`<div class="tags">${tags.map(x=>`<span>${esc(x)}</span>`).join('')}</div>`:''}</div>
     ${f('target')?`<div class="ex-target"><span class="k">${t('plan.target')}</span><span class="v">${esc(f('target'))}</span></div>`:''}
     ${loads.length?`<div class="ex-load"><span class="k">${esc(plateHead)}</span>${plateRows.map(r=>`<div class="pl"><span class="tot">${esc(r.a)}</span><span class="side">${r.b?`<small>${perSide}</small> ${esc(r.b)}`:''}</span></div>`).join('')}</div>`:''}
     ${f('last')?`<p class="last">${esc(t('plan.last',{text:f('last')}))}</p>`:''}
     ${logBlock(ex,plan)}
+    ${fromDay&&!(ses().sets[ex.id]||[]).length?`<button class="bigbtn ghost" data-act="unextra" data-ex="${esc(ex.id)}">${t('plan.removeExtra')}</button>`:''}
     <div class="ex-actions"><button class="bigbtn" data-say="${esc(ex.id)}">${ICON.say}<span>${t('plan.say')}</span></button>${vids}${addedBtns}${addBtn}</div>
     <div class="ex-video" hidden></div>
     ${detail?`<details><summary>${t('plan.details')}</summary>${detail}</details>`:''}
@@ -1050,6 +1060,21 @@ function draftFor(ex){
   const pp=d.sets[i-1];
   const w=prev&&pp&&!!prev.warm===!!planned.warm&&prev.w!==pp.w?prev.w:planned.w;
   return {w,r:planned.r,warm:!!planned.warm};
+}
+/* 今天从别的训练日加进来的动作（只在今天有效，存在 fm.session.extra[训练日 id]）。
+   11/20 用户：上肢日机器没空，就在下肢日补做肩推和飞鸟 */
+function extraFor(plan,dayId){
+  const ids=((ses().extra||{})[dayId])||[],out=[];
+  for(const id of ids)for(const d of plan.days){const ex=d.exercises.find(e=>e.id===id);if(ex&&d.id!==dayId){out.push({ex,day:d});break}}
+  return out;
+}
+function addBlock(plan,day,extras){
+  const have=new Set([...day.exercises.map(e=>e.id),...extras.map(x=>x.ex.id)]);
+  const groups=plan.days.filter(d=>d.id!==day.id).map(d=>({d,list:d.exercises.filter(e=>!have.has(e.id))})).filter(g=>g.list.length);
+  if(!groups.length)return '';
+  const name=e=>esc(loc(e,'name').replace(/[（(](热身|warm-up)[）)]/i,'').trim());
+  return `<button class="bigbtn ghost addbtn" data-act="addOpen">${ICON.link}<span>${t('plan.addEx')}</span></button>
+    ${P.addOpen?`<div class="addbox"><p class="note">${t('plan.addExNote')}</p>${groups.map(g=>`<div class="addgrp"><span class="k">${esc(dayTab(g.d))}</span>${g.list.map(e=>`<button class="bigbtn" data-act="addEx" data-ex="${esc(e.id)}">${name(e)}</button>`).join('')}</div>`).join('')}</div>`:''}`;
 }
 function logBlock(ex,plan){
   const d=setDefaults(ex),done=ses().sets[ex.id]||[],u=d.unit;
@@ -1082,6 +1107,10 @@ function rerenderLog(id){const el=document.querySelector(`[data-log="${CSS.escap
 $('planBody').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;const act=b.dataset.act,id=b.dataset.ex,ex=id&&findEx(id);
   if(act==='end'){openEnd();return}
+  if(act==='addOpen'){P.addOpen=!P.addOpen;renderPlan();if(P.addOpen)document.querySelector('.addbox')?.scrollIntoView({block:'start',behavior:'smooth'});return}
+  if(act==='addEx'){const s=ses();s.extra=s.extra||{};const a=s.extra[P.day]=s.extra[P.day]||[];if(!a.includes(id))a.push(id);store.set('session',s);
+    P.addOpen=false;renderPlan();document.getElementById('ex-'+id)?.scrollIntoView({block:'start',behavior:'smooth'});return}
+  if(act==='unextra'){const s=ses(),a=(s.extra||{})[P.day]||[];const i=a.indexOf(id);if(i>=0)a.splice(i,1);store.set('session',s);renderPlan();return}
   if(act==='drop'){if(!b.dataset.armed){b.dataset.armed='1';b.textContent=t('end.dropConfirm');return}
     const p=store.get('pendingSessions',[]);p.splice(+b.dataset.i,1);store.set('pendingSessions',p);renderPlan();return}
   if(act==='savePrev'){savePending(+b.dataset.i);return}
@@ -1091,7 +1120,7 @@ $('planBody').addEventListener('click',e=>{
   else if(act==='r+'||act==='r-'){dr.r=dr.r==null?10:Math.max(0,dr.r+(act==='r+'?1:-1))}
   else if(act==='done'){
     unlockAudio(); // 休息结束的"嘀"声和语音要在这次点击里先解锁
-    const s=ses();(s.sets[id]=s.sets[id]||[]).push({w:dr.w,r:dr.r,warm:dr.warm,feel:null,at:new Date().toISOString()});store.set('session',s);
+    const s=ses();(s.sets[id]=s.sets[id]||[]).push({w:dr.w,r:dr.r,warm:dr.warm,feel:null,day:P.day,at:new Date().toISOString()});store.set('session',s);
     P.edit=null;P.draft[id]=draftFor(ex);startRest(restSeconds(ex));
   }
   else if(act==='feel'){const s=ses(),a=s.sets[id]||[];if(a.length){a[a.length-1].feel=b.dataset.feel;store.set('session',s)}}
@@ -1113,8 +1142,8 @@ $('planBody').addEventListener('click',e=>{
 /* 今天练了哪一天（组最多的那天）记进 fm.workouts，下次打开 App 按它轮换 */
 function noteWorkout(){
   const s=ses(),count={};let at='';
-  for(const [id,a] of Object.entries(s.sets||{})){const d=P.plan&&P.plan.days.find(d=>d.exercises.some(e=>e.id===id));if(!d)continue;
-    count[d.id]=(count[d.id]||0)+a.length;for(const x of a)if(x.at>at)at=x.at}
+  for(const [id,a] of Object.entries(s.sets||{})){const d=P.plan&&P.plan.days.find(d=>d.exercises.some(e=>e.id===id));
+    for(const x of a){const k=x.day||(d&&d.id);if(!k)continue;count[k]=(count[k]||0)+1;if(x.at>at)at=x.at}}
   const dayId=Object.keys(count).sort((a,b)=>count[b]-count[a])[0]||null;
   store.set('workouts',recordWorkout(store.get('workouts',[]),{date:s.date,dayId,at}));
 }

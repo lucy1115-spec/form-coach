@@ -63,6 +63,10 @@ test('训练记录：每组一行，动作和训练日用中文，级别写在�
   const rows = sessionRows({date: '2026-11-20', sets: {
     'smith-squat': [{warm: true, w: 20, r: 12, feel: 'easy'}, {w: 45, r: 12, feel: 'ok', note: '左膝有点内扣'}],
     'assisted-pullup': [{w: 7, r: 12, feel: 'hard'}]}}, plan);
+  // 在别的训练日补做：训练日写实际练的那天
+  const extra = sessionRows({date: '2026-11-20', sets: {'smith-squat': [{w: 45, r: 12, feel: 'ok', day: 'mon'}]}}, {days: [...plan.days, {id: 'mon', name: '周一 · 下肢', exercises: []}]});
+  assert.equal(extra[0].session, '周一 · 下肢');
+  assert.equal(extra[0].exercise, '史密斯深蹲');
   assert.deepEqual(rows, [
     {date: '2026-11-20', session: '周四 · 全身', exercise: '史密斯深蹲', sets: 1, reps: 12, weight_lb: 20, rir: 3, note: '热身；😌 轻松'},
     {date: '2026-11-20', session: '周四 · 全身', exercise: '史密斯深蹲', sets: 1, reps: 12, weight_lb: 45, rir: 2, note: '🙂 刚好；左膝有点内扣'},

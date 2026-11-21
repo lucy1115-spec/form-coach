@@ -205,7 +205,9 @@ export function sessionRows(session, plan) {
     for (const x of sets) {
       const f = feelById(x.feel);
       const note = [x.warm ? '热身' : '', unit === 'level' && x.w != null ? `${x.w} 级` : '', f ? `${f.emoji} ${FEEL_ZH[f.id]}` : '', x.note || ''].filter(Boolean).join('；');
-      rows.push({date: session.date, session: hit ? hit.d.name : '', exercise: hit ? hit.e.name : exId, sets: 1, reps: x.r ?? '',
+      // 训练日写这一组实际练的那天（从别的训练日加进来的动作也算今天的训练日）
+      const done = x.day && plan.days.find(d => d.id === x.day);
+      rows.push({date: session.date, session: done ? done.name : hit ? hit.d.name : '', exercise: hit ? hit.e.name : exId, sets: 1, reps: x.r ?? '',
         weight_lb: unit === 'level' ? '' : (x.w ?? ''), rir: f ? f.rir : '', note});
     }
   }
