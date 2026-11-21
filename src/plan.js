@@ -204,10 +204,10 @@ export function sessionRows(session, plan) {
     const hit = find(exId), unit = hit ? setDefaults(hit.e).unit : 'lb';
     for (const x of sets) {
       const f = feelById(x.feel);
-      const note = [x.warm ? '热身' : '', unit === 'level' && x.w != null ? `${x.w} 级` : '', f ? `${f.emoji} ${FEEL_ZH[f.id]}` : '', x.note || ''].filter(Boolean).join('；');
+      const note = [x.warm ? '热身' : '', x.name && x.from ? `替代${x.from}` : '', unit === 'level' && x.w != null ? `${x.w} 级` : '', f ? `${f.emoji} ${FEEL_ZH[f.id]}` : '', x.note || ''].filter(Boolean).join('；');
       // 训练日写这一组实际练的那天（从别的训练日加进来的动作也算今天的训练日）
       const done = x.day && plan.days.find(d => d.id === x.day);
-      rows.push({date: session.date, session: done ? done.name : hit ? hit.d.name : '', exercise: hit ? hit.e.name : exId, sets: 1, reps: x.r ?? '',
+      rows.push({date: session.date, session: done ? done.name : hit ? hit.d.name : '', exercise: x.name || (hit ? hit.e.name : exId), sets: 1, reps: x.r ?? '',
         weight_lb: unit === 'level' ? '' : (x.w ?? ''), rir: f ? f.rir : '', note});
     }
   }
@@ -251,4 +251,39 @@ export function pickDay(plan, history, now = new Date(), today) {
   if (!last) return {id: defaultDayId(plan, now), gapHours: null, last: null};
   if (last.date === today) return {id: last.dayId, gapHours: null, last};
   return {id: nextDayId(plan, last.dayId), gapHours: (now - new Date(last.at)) / 3600000, last};
+}
+
+/* ---------- 时间不够（11/21，借鉴 Arvipace 的"时间少就缩短今天的训练"） ----------
+   每个动作估时：准备 1.5 分钟 + 每组（做 45 秒 + 组间休息）。 */
+export function exerciseMinutes(ex) {
+  return 1.5 + setDefaults(ex).sets.length * (0.75 + restSeconds(ex) / 60);
+}
+/* 按时间精简：先去掉可选动作，再从后往前去（计划里越往后越是辅助动作）；今天已经记过组的不去。
+   超出 10% 以内算够（差半分钟就砍掉一个大动作不划算）。返回 {skip: [id], total, full}（分钟，取整） */
+export function trimForTime(exercises, minutes, keepIds = []) {
+  const est = exercises.map(ex => ({ex, m: exerciseMinutes(ex)}));
+  const full = est.reduce((s, x) => s + x.m, 0);
+  let total = full; const skip = [];
+  if (minutes) {
+    const limit = minutes * 1.1, back = [...est].reverse();
+    for (const pass of [x => x.ex.optional, () => true]) for (const x of back) {
+      if (total <= limit) break;
+      if (skip.includes(x.ex.id) || keepIds.includes(x.ex.id) || !pass(x)) continue;
+      if (est.length - skip.length <= 1) break; // 至少留一个
+      skip.push(x.ex.id); total -= x.m;
+    }
+  }
+  return {skip, total: Math.round(total), full: Math.round(full)};
+}
+
+/* ---------- 换一个动作（11/21，机器被占、或想换的时候） ----------
+   计划里的动作可以写 swaps: [{name, target, en:{name, target}}]；用户也可以自己写名字。
+   换了以后：卡片用替代动作的名字和目标，杠铃片、视频、计划里的 log 覆盖都不用；记录记在替代动作名下。 */
+export function swapExercise(ex, swap) {
+  if (!swap || !swap.name) return ex;
+  // 自己写的替代动作没有目标：沿用原动作的组数和次数，重量空着让用户自己调
+  const log = swap.target ? null : {unit: 'lb', sets: setDefaults(ex).sets.map(s => ({...s, w: null}))};
+  return {...ex, name: swap.name, target: swap.target || '', load: null, log, videos: [], alt: '', setup: '', action: '', cues: '',
+    swappedFrom: ex.name, swapped: true,
+    en: {...(ex.en || {}), name: (swap.en && swap.en.name) || swap.name, target: (swap.en && swap.en.target) || swap.target || '', alt: '', setup: '', action: '', cues: ''}};
 }

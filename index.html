@@ -228,6 +228,23 @@ body.plan-mode .tabbar{display:none}
 .ex-log .bigbtn.primary{min-height:64px;font-size:19px}
 .ex-log .bigbtn.ghost{min-height:52px}
 .addbtn{width:100%;margin-top:18px}
+.timebar{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:14px 16px;margin:0 0 18px;display:flex;flex-direction:column;gap:10px}
+.timebar .k{display:block;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.timebar .chips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.timebar .chips button{min-height:50px;border-radius:14px;border:1px solid var(--line);background:var(--bg);font-size:16px;font-weight:600;color:var(--muted)}
+.timebar .chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.timebar .tnote{margin:0;font-size:15px;line-height:1.5;color:var(--ink)}
+details.skipped{margin-top:18px;border:1px dashed var(--line);border-radius:24px;padding:4px 14px}
+details.skipped>summary{list-style:none;cursor:pointer;min-height:56px;display:flex;align-items:center;font-size:16px;font-weight:600;color:var(--muted)}
+details.skipped>summary::-webkit-details-marker{display:none}
+details.skipped .exlist{padding-bottom:14px}
+.swapbox{background:var(--sunk);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.swapbox .note{margin:0 0 2px;font-size:14px;color:var(--muted)}
+.swapbox .bigbtn{flex-direction:column;align-items:flex-start;gap:2px;padding:10px 16px}
+.swapbox .bigbtn small{font-size:13px;font-weight:500;color:var(--muted)}
+.swaprow{display:grid;grid-template-columns:1fr auto;gap:8px}
+.swaprow input{min-height:54px;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:0 14px;font-size:17px;min-width:0}
+.swaprow .bigbtn{min-height:54px;padding:0 20px}
 .addbox{margin-top:10px;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:14px}
 .addbox .note{margin:0;font-size:14px;color:var(--muted)}
 .addgrp{display:flex;flex-direction:column;gap:8px}
@@ -400,7 +417,7 @@ import {PoseLandmarker,FilesetResolver} from "https://cdn.jsdelivr.net/npm/@medi
 import {SIDES,METRICS,mname,Tracker,RepCounter,analyzeReference,compareRep,fmtVal,median,summarizeSet,formNote,trainingLogRow,TRAINING_LOG_HEADER} from "./src/engine.js";
 import {PRESETS} from "./src/presets.js";
 import {reviewSet} from "./src/ai.js";
-import {loadLines,platesPerSide,exerciseSpeech,defaultDayId,allVideoIds,matchVideoId,validatePlan,dayTitle,dayTab,recordWorkout,pickDay,FEELS,feelById,setDefaults,suggestNext,sessionRows,weightStep,restSeconds} from "./src/plan.js";
+import {loadLines,platesPerSide,exerciseSpeech,defaultDayId,allVideoIds,matchVideoId,validatePlan,trimForTime,swapExercise,dayTitle,dayTab,recordWorkout,pickDay,FEELS,feelById,setDefaults,suggestNext,sessionRows,weightStep,restSeconds} from "./src/plan.js";
 import {t,setLang,getLang,isEn,loc} from "./src/i18n.js";
 import {CLIENT_ID,SCOPE,DRIVE_FOLDER,tokenValid,tokenFrom,ensureFolder,uploadCsv} from "./src/drive.js";
 const tr=t; // refFrame/liveFrame 的参数 t 是时间，会遮住 t()，那里用 tr()
@@ -967,6 +984,14 @@ function renderPlan(){
   const day=plan.days.find(d=>d.id===P.day);
   const extras=extraFor(plan,day.id);
   const n=(()=>{let k=0;return ex=>/热身/.test(ex.name)?'':String(++k)})();
+  // 编号按计划顺序先算好，跳过的动作挪到最下面也保持原来的编号
+  const mains=day.exercises.map(eff),num={};for(const ex of mains)num[ex.id]=n(ex);for(const x of extras)num[x.ex.id]=n(x.ex);
+  // 今天有多少时间：按时间精简（今天已经记过组的动作不跳过）
+  const s0=ses(),tmin=((s0.time||{})[day.id])||null;
+  const trim=trimForTime(mains,tmin,Object.keys(s0.sets||{}));
+  const kept=mains.filter(ex=>!trim.skip.includes(ex.id)),skipped=mains.filter(ex=>trim.skip.includes(ex.id));
+  const timebar=`<div class="timebar"><span class="k">${t('plan.timeQ')}</span><div class="chips">${[null,30,40].map(m=>`<button data-act="time" data-min="${m||''}" aria-pressed="${(m||null)===tmin}">${m?t('plan.timeMin',{n:m}):t('plan.timeAll')}</button>`).join('')}</div>
+    ${tmin?`<p class="tnote">${esc(t('plan.timeFit',{total:trim.total,full:trim.full}))}${skipped.length?' '+esc(t('plan.timeSkip',{n:skipped.length})):''}</p>`:''}</div>`;
   const notes=loc(day,'notes')||[], principles=planPrinciples(plan);
   const meta=[day.minutes?t('plan.minutes',{n:day.minutes}):'',t('plan.count',{n:day.exercises.length})].filter(Boolean).join(' · ');
   const lastDay=pk.last&&plan.days.find(d=>d.id===pk.last.dayId),md=x=>x.slice(5).replace('-','/');
@@ -975,7 +1000,9 @@ function renderPlan(){
   const gap=pk.gapHours!=null&&pk.gapHours<48&&lastDay?`<div class="banner">${esc(t('plan.gap',{day:dayTab(lastDay),h:Math.max(1,Math.round(pk.gapHours))}))}</div>`:'';
   body.innerHTML=pendingBanner()+gap+`<div class="dayhead"><span class="meta">${esc(meta)}</span><h2>${esc(dayTitle(day))}</h2>${rot}
     ${notes.length?`<ul>${notes.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div>
-    <div class="exlist">${day.exercises.map(ex=>exCard(ex,n(ex),plan)).join('')}${extras.map(x=>exCard(x.ex,n(x.ex),plan,x.day)).join('')}</div>
+    ${timebar}
+    <div class="exlist">${kept.map(ex=>exCard(ex,num[ex.id],plan)).join('')}${extras.map(x=>exCard(eff(x.ex),num[x.ex.id],plan,x.day)).join('')}</div>
+    ${skipped.length?`<details class="skipped"><summary>${esc(t('plan.skipped',{n:skipped.length}))}</summary><div class="exlist">${skipped.map(ex=>exCard(ex,num[ex.id],plan)).join('')}</div></details>`:''}
     ${addBlock(plan,day,extras)}
     <button class="bigbtn endbtn" data-act="end">${t('end.btn')}</button>
     ${principles.length?`<details class="principles"><summary>${t('plan.principles')}</summary><ul>${principles.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}`;
@@ -983,7 +1010,7 @@ function renderPlan(){
   body.querySelectorAll('[data-say]').forEach(b=>b.onclick=()=>{
     unlockWebAudio();
     if(b.dataset.on){try{speechSynthesis.cancel()}catch(e){}sayIdle();return}
-    const ex=day.exercises.find(e=>e.id===b.dataset.say),card=b.closest('.ex');
+    const ex=findEx(b.dataset.say),card=b.closest('.ex');
     card.querySelector('.say-msg')?.remove();sayIdle();
     speak(exerciseSpeech(ex,plan.plates),{interrupt:true,onSilent:why=>{
       sayIdle();const m=document.createElement('div');m.className='status err say-msg';
@@ -1003,7 +1030,8 @@ const ICON={
   say:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>',
   stop:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
   play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>',
-  link:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>'};
+  link:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  swap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4 3 8l4 4"/><path d="M3 8h14"/><path d="m17 20 4-4-4-4"/><path d="M21 16H7"/></svg>'};
 function sayIdle(){clearInterval(P.sayTimer);document.querySelectorAll('[data-say][data-on]').forEach(b=>{delete b.dataset.on;b.innerHTML=ICON.say+`<span>${t('plan.say')}</span>`})}
 function exCard(ex,num,plan,fromDay){
   const f=k=>loc(ex,k);
@@ -1024,7 +1052,14 @@ function exCard(ex,num,plan,fromDay){
   const perSide=isEn()?'per side':'每边';
   const plateHead=t('plan.plates')+(ex.load&&ex.load.kind==='smith'?` · ${t('plan.barExcl')}`:ex.load&&ex.load.kind==='barbell'?` · ${isEn()?`${ex.load.bar??35} lb bar`:`杆 ${ex.load.bar??35} 磅`}`:'');
   const detail=[[t('plan.setup'),f('setup')],[t('plan.action'),f('action')],[t('plan.cues'),f('cues')],['',f('alt')]].filter(x=>x[1]).map(([k,v])=>`<p>${k?`<b>${k}</b>`:''}${esc(v)}</p>`).join('');
-  const tags=[fromDay?t('plan.fromDay',{day:dayTab(fromDay)}):'',f('side'),ex.optional?t('plan.optional'):''].filter(Boolean);
+  const tags=[ex.swapped?t('plan.swappedFrom',{name:ex.swappedFrom.replace(/[（(].*?[）)]/g,'')}):'',fromDay?t('plan.fromDay',{day:dayTab(fromDay)}):'',f('side'),ex.optional?t('plan.optional'):''].filter(Boolean);
+  // 换一个动作：还没记组的时候才能换 / 换回
+  const noSets=!(ses().sets[ex.id]||[]).length;
+  const raw=rawEx(ex.id)||ex,opts=raw.swaps||[];
+  const swapBtn=!noSets?'':ex.swapped?`<button class="bigbtn ghost" data-act="unswap" data-ex="${esc(ex.id)}">${t('plan.swapBack')}</button>`:`<button class="bigbtn ghost" data-act="swapOpen" data-ex="${esc(ex.id)}">${ICON.swap}<span>${t('plan.swap')}</span></button>`;
+  const swapBox=P.swapOpen===ex.id&&noSets&&!ex.swapped?`<div class="swapbox"><p class="note">${opts.length?t('plan.swapTo'):t('plan.swapNone')}</p>
+    ${opts.map((o,i)=>`<button class="bigbtn" data-act="swapTo" data-i="${i}" data-ex="${esc(ex.id)}"><b>${esc(loc(o,'name'))}</b>${loc(o,'target')?`<small>${esc(loc(o,'target'))}</small>`:''}</button>`).join('')}
+    <div class="swaprow"><input type="text" id="swapname-${esc(ex.id)}" placeholder="${esc(t('plan.swapCustomPh'))}" enterkeyhint="done"><button class="bigbtn primary" data-act="swapCustom" data-ex="${esc(ex.id)}">${t('plan.swapGo')}</button></div></div>`:'';
   return `<article class="ex" id="ex-${esc(ex.id)}">
     <div class="ex-h"><span class="n">${num?String(num).padStart(2,'0'):t('plan.warm')}</span><h3 class="name">${esc(f('name').replace(/[（(](热身|warm-up)[）)]/i,'').trim())}</h3>${tags.length?`<div class="tags">${tags.map(x=>`<span>${esc(x)}</span>`).join('')}</div>`:''}</div>
     ${f('target')?`<div class="ex-target"><span class="k">${t('plan.target')}</span><span class="v">${esc(f('target'))}</span></div>`:''}
@@ -1032,7 +1067,8 @@ function exCard(ex,num,plan,fromDay){
     ${f('last')?`<p class="last">${esc(t('plan.last',{text:f('last')}))}</p>`:''}
     ${logBlock(ex,plan)}
     ${fromDay&&!(ses().sets[ex.id]||[]).length?`<button class="bigbtn ghost" data-act="unextra" data-ex="${esc(ex.id)}">${t('plan.removeExtra')}</button>`:''}
-    <div class="ex-actions"><button class="bigbtn" data-say="${esc(ex.id)}">${ICON.say}<span>${t('plan.say')}</span></button>${vids}${addedBtns}${addBtn}</div>
+    <div class="ex-actions"><button class="bigbtn" data-say="${esc(ex.id)}">${ICON.say}<span>${t('plan.say')}</span></button>${swapBtn}${ex.swapped?'':vids+addedBtns+addBtn}</div>
+    ${swapBox}
     <div class="ex-video" hidden></div>
     ${detail?`<details><summary>${t('plan.details')}</summary>${detail}</details>`:''}
   </article>`;
@@ -1102,11 +1138,24 @@ function logBlock(ex,plan){
     <button class="bigbtn ${done.length>=total?'ghost':'primary'}" data-act="done" data-ex="${esc(ex.id)}">${done.length>=total?t('log.extra'):t('log.done',{n})}</button>`}
   </div>`;
 }
-function findEx(id){for(const d of (P.plan?P.plan.days:[])){const e=d.exercises.find(x=>x.id===id);if(e)return e}return null}
+function rawEx(id){for(const d of (P.plan?P.plan.days:[])){const e=d.exercises.find(x=>x.id===id);if(e)return e}return null}
+/* 今天换过的动作（fm.session.swap[动作 id] = {name, target, en}）用替代动作；其他照计划 */
+function eff(ex){const sw=ex&&(ses().swap||{})[ex.id];return sw?swapExercise(ex,sw):ex}
+function findEx(id){const e=rawEx(id);return e?eff(e):null}
 function rerenderLog(id){const el=document.querySelector(`[data-log="${CSS.escape(id)}"]`),ex=findEx(id);if(el&&ex)el.outerHTML=logBlock(ex,P.plan)}
 $('planBody').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;const act=b.dataset.act,id=b.dataset.ex,ex=id&&findEx(id);
   if(act==='end'){openEnd();return}
+  if(act==='time'){const s=ses();s.time=s.time||{};s.time[P.day]=Number(b.dataset.min)||null;store.set('session',s);renderPlan();return}
+  // 记过组就不能再换（换了记录会对不上）
+  if(['swapOpen','swapTo','swapCustom','unswap'].includes(act)&&(ses().sets[id]||[]).length){P.swapOpen=null;renderPlan();return}
+  if(act==='swapOpen'){P.swapOpen=P.swapOpen===id?null:id;renderPlan();if(P.swapOpen)document.getElementById('ex-'+id)?.querySelector('.swapbox')?.scrollIntoView({block:'nearest',behavior:'smooth'});return}
+  if(act==='swapTo'||act==='swapCustom'||act==='unswap'){
+    const s=ses();s.swap=s.swap||{};
+    if(act==='unswap')delete s.swap[id];
+    else if(act==='swapTo'){const o=((rawEx(id)||{}).swaps||[])[+b.dataset.i];if(!o)return;s.swap[id]={name:o.name,target:o.target||'',en:o.en||null}}
+    else{const v=(document.getElementById('swapname-'+id)?.value||'').trim();if(!v){document.getElementById('swapname-'+id)?.focus();return}s.swap[id]={name:v,target:''}}
+    store.set('session',s);P.swapOpen=null;delete P.draft[id];renderPlan();document.getElementById('ex-'+id)?.scrollIntoView({block:'start',behavior:'smooth'});return}
   if(act==='addOpen'){P.addOpen=!P.addOpen;renderPlan();if(P.addOpen)document.querySelector('.addbox')?.scrollIntoView({block:'start',behavior:'smooth'});return}
   if(act==='addEx'){const s=ses();s.extra=s.extra||{};const a=s.extra[P.day]=s.extra[P.day]||[];if(!a.includes(id))a.push(id);store.set('session',s);
     P.addOpen=false;renderPlan();document.getElementById('ex-'+id)?.scrollIntoView({block:'start',behavior:'smooth'});return}
@@ -1120,8 +1169,9 @@ $('planBody').addEventListener('click',e=>{
   else if(act==='r+'||act==='r-'){dr.r=dr.r==null?10:Math.max(0,dr.r+(act==='r+'?1:-1))}
   else if(act==='done'){
     unlockAudio(); // 休息结束的"嘀"声和语音要在这次点击里先解锁
-    const s=ses();(s.sets[id]=s.sets[id]||[]).push({w:dr.w,r:dr.r,warm:dr.warm,feel:null,day:P.day,at:new Date().toISOString()});store.set('session',s);
+    const s=ses();(s.sets[id]=s.sets[id]||[]).push({w:dr.w,r:dr.r,warm:dr.warm,feel:null,day:P.day,at:new Date().toISOString(),...(ex.swapped?{name:ex.name,from:ex.swappedFrom}:{})});store.set('session',s);
     P.edit=null;P.draft[id]=draftFor(ex);startRest(restSeconds(ex));
+    if(s.sets[id].length===1){const c=document.getElementById('ex-'+id);c?.querySelectorAll('[data-act="swapOpen"],[data-act="unswap"],[data-act="unextra"],.swapbox').forEach(x=>x.remove())} // 第一组记下后，换动作 / 移除的按钮收起
   }
   else if(act==='feel'){const s=ses(),a=s.sets[id]||[];if(a.length){a[a.length-1].feel=b.dataset.feel;store.set('session',s)}}
   else if(act==='edit'){const i=+b.dataset.i;P.edit=P.edit&&P.edit.ex===id&&P.edit.i===i?null:{ex:id,i}}
@@ -1187,7 +1237,7 @@ function openEnd(){
       else setStatus($('endStatus'),t('end.cancel'),'err');
       return}
     const now=ses();for(const a of Object.values(now.sets))for(const x of a)x.saved=true;store.set('session',now);
-    for(const x of exSummary(now))store.set('exLast.'+x.id,{date:now.date,next:x.next,sets:x.sets.map(({w,r,warm,feel})=>({w,r,warm,feel}))});
+    for(const x of exSummary(now))if(!x.ex.swapped)store.set('exLast.'+x.id,{date:now.date,next:x.next,sets:x.sets.map(({w,r,warm,feel})=>({w,r,warm,feel}))});
     setStatus($('endStatus'),res.how==='drive'?t('end.savedDrive',{folder:DRIVE_FOLDER}):res.how==='share'?t('end.saved'):t('end.downloaded'),'ok');sv.remove();
   };
 }
