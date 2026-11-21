@@ -186,6 +186,8 @@ const ZH = {
   'plan.voiceOff': '语音被关掉了：到页面最下面"更多工具 → 对比 → 设置 → 语音"里选一个声音。',
   'plan.silent': '手机没有念出来。检查：手机侧面的静音键是不是打开了（橙色）、音量是不是太小、有没有连着别的蓝牙设备。再点一次"听要点"试试。',
   'plan.dayShort': v => v.name.split(' · ')[0],
+  'plan.rotation': v => `上次练了${v.day}（${v.date}），今天轮到这个`,
+  'plan.gap': v => `离上次训练（${v.day}）只隔了 ${v.h} 小时，不到 48 小时。建议今天休息或做轻量；要练也可以照常记。`,
   // 记一组 / 组间休息 / 结束训练
   'log.title': '记录', 'log.progress': v => `${v.done}/${v.total} 组`, 'log.setN': v => `第 ${v.n} 组`, 'log.warmTag': '热身',
   'log.weight': '重量', 'log.reps': '次数', 'log.level': v => `${v.n} 级`, 'log.lb': v => `${v.n} 磅`, 'log.levelK': '辅助级别',
@@ -373,6 +375,8 @@ const EN = {
   'plan.voiceOff': 'Voice is turned off: at the bottom, open "More tools → Compare → Settings → Voice" and pick a voice.',
   'plan.silent': "The phone didn't speak. Check the silent switch on the side (orange = silent), the volume, and any other Bluetooth device. Then tap \"Hear cues\" again.",
   'plan.dayShort': v => v.short || v.name.split(' · ')[0],
+  'plan.rotation': v => `Last time: ${v.day} (${v.date}) — this one is next`,
+  'plan.gap': v => `Only ${v.h} hours since your last workout (${v.day}) — under 48. Consider resting or going light today; you can still log as usual.`,
   // Set logging / rest / finish workout
   'log.title': 'Log', 'log.progress': v => `${v.done}/${v.total} sets`, 'log.setN': v => `Set ${v.n}`, 'log.warmTag': 'Warm-up',
   'log.weight': 'Weight', 'log.reps': 'Reps', 'log.level': v => `level ${v.n}`, 'log.lb': v => `${v.n} lb`, 'log.levelK': 'Assist level',

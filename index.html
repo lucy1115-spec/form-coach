@@ -186,6 +186,7 @@ body.plan-mode .tabbar{display:none}
 .lg-h{display:flex;justify-content:space-between;align-items:baseline;padding:0 4px}
 .ex .lg-h .k{margin:0}
 .lg-h .prog{font-size:15px;font-weight:650;color:var(--accent);font-variant-numeric:tabular-nums}
+.dayhead .rot{margin:2px 0 0;font-size:15px;color:var(--accent);font-weight:600}
 .lg-prev{margin:-4px 4px 0;font-size:14px;color:var(--muted);line-height:1.45}
 .lg-rows{list-style:none;margin:0;padding:0 4px}
 .lg-rows li{display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:8px;min-height:46px;border-bottom:1px solid var(--line);font-size:18px;font-variant-numeric:tabular-nums}
@@ -392,7 +393,7 @@ import {PoseLandmarker,FilesetResolver} from "https://cdn.jsdelivr.net/npm/@medi
 import {SIDES,METRICS,mname,Tracker,RepCounter,analyzeReference,compareRep,fmtVal,median,summarizeSet,formNote,trainingLogRow,TRAINING_LOG_HEADER} from "./src/engine.js";
 import {PRESETS} from "./src/presets.js";
 import {reviewSet} from "./src/ai.js";
-import {loadLines,platesPerSide,exerciseSpeech,defaultDayId,allVideoIds,matchVideoId,validatePlan,FEELS,feelById,setDefaults,suggestNext,sessionRows,weightStep,restSeconds} from "./src/plan.js";
+import {loadLines,platesPerSide,exerciseSpeech,defaultDayId,allVideoIds,matchVideoId,validatePlan,dayTitle,dayTab,recordWorkout,pickDay,FEELS,feelById,setDefaults,suggestNext,sessionRows,weightStep,restSeconds} from "./src/plan.js";
 import {t,setLang,getLang,isEn,loc} from "./src/i18n.js";
 import {CLIENT_ID,SCOPE,DRIVE_FOLDER,tokenValid,tokenFrom,ensureFolder,uploadCsv} from "./src/drive.js";
 const tr=t; // refFrame/liveFrame 的参数 t 是时间，会遮住 t()，那里用 tr()
@@ -948,15 +949,21 @@ const planPrinciples=plan=>(isEn()&&plan.en&&plan.en.principles)||plan.principle
 function renderPlan(){
   const plan=P.plan,body=$('planBody'),tabs=$('dayTabs');
   if(!plan){tabs.innerHTML='';body.innerHTML=`<div class="panel"><h2>${t('plan.empty')}</h2><p style="margin:0">${t('plan.emptyText')}</p></div>`;$('planAdmin').open=true;renderVideoList();renderDrive();return}
-  if(!P.day||!plan.days.some(d=>d.id===P.day))P.day=defaultDayId(plan);
+  // 默认选哪天：按顺序轮换（上次练了哪天，今天就是下一天；今天练过就停在今天那天）。fm.workouts 记每天练了哪一天
+  ses();const pk=pickDay(plan,store.get('workouts',[]),new Date(),today());
+  if(!P.day||!plan.days.some(d=>d.id===P.day))P.day=pk.id;
   tabs.innerHTML='';
-  for(const d of plan.days){const b=document.createElement('button');b.setAttribute('role','tab');b.textContent=t('plan.dayShort',{name:loc(d,'name'),short:loc(d,'short')});b.setAttribute('aria-selected',d.id===P.day);
+  for(const d of plan.days){const b=document.createElement('button');b.setAttribute('role','tab');b.textContent=dayTab(d);b.setAttribute('aria-selected',d.id===P.day);
     b.onclick=()=>{closeVideos();P.day=d.id;renderPlan()};tabs.append(b)}
   const day=plan.days.find(d=>d.id===P.day);
   const n=(()=>{let k=0;return ex=>/热身/.test(ex.name)?'':String(++k)})();
   const notes=loc(day,'notes')||[], principles=planPrinciples(plan);
   const meta=[day.minutes?t('plan.minutes',{n:day.minutes}):'',t('plan.count',{n:day.exercises.length})].filter(Boolean).join(' · ');
-  body.innerHTML=pendingBanner()+`<div class="dayhead"><span class="meta">${esc(meta)}</span><h2>${esc(loc(day,'name'))}</h2>
+  const lastDay=pk.last&&plan.days.find(d=>d.id===pk.last.dayId),md=x=>x.slice(5).replace('-','/');
+  const rot=pk.last&&pk.last.date!==today()&&lastDay?`<p class="rot">${esc(t('plan.rotation',{day:dayTab(lastDay),date:md(pk.last.date)}))}</p>`:'';
+  // 两次力量训练至少隔 48 小时（用户的规则）
+  const gap=pk.gapHours!=null&&pk.gapHours<48&&lastDay?`<div class="banner">${esc(t('plan.gap',{day:dayTab(lastDay),h:Math.max(1,Math.round(pk.gapHours))}))}</div>`:'';
+  body.innerHTML=pendingBanner()+gap+`<div class="dayhead"><span class="meta">${esc(meta)}</span><h2>${esc(dayTitle(day))}</h2>${rot}
     ${notes.length?`<ul>${notes.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div>
     <div class="exlist">${day.exercises.map(ex=>exCard(ex,n(ex),plan)).join('')}</div>
     <button class="bigbtn endbtn" data-act="end">${t('end.btn')}</button>
@@ -1099,7 +1106,16 @@ $('planBody').addEventListener('click',e=>{
   }
   else if(act==='undo'){const s=ses(),a=s.sets[id]||[];a.pop();if(!a.length)delete s.sets[id];store.set('session',s);P.draft[id]=draftFor(ex);stopRest()}
   rerenderLog(id);
+  if(['done','undo','edel'].includes(act))noteWorkout();
 });
+/* 今天练了哪一天（组最多的那天）记进 fm.workouts，下次打开 App 按它轮换 */
+function noteWorkout(){
+  const s=ses(),count={};let at='';
+  for(const [id,a] of Object.entries(s.sets||{})){const d=P.plan&&P.plan.days.find(d=>d.exercises.some(e=>e.id===id));if(!d)continue;
+    count[d.id]=(count[d.id]||0)+a.length;for(const x of a)if(x.at>at)at=x.at}
+  const dayId=Object.keys(count).sort((a,b)=>count[b]-count[a])[0]||null;
+  store.set('workouts',recordWorkout(store.get('workouts',[]),{date:s.date,dayId,at}));
+}
 
 /* 组间休息：按结束时间算，锁屏再回来也准。到点"嘀"两声 + 语音 */
 const REST={end:0,total:0,timer:null};

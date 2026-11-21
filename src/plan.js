@@ -211,3 +211,40 @@ export function sessionRows(session, plan) {
 }
 // 训练记录里的感受固定写中文（和电脑上其他记录一致）
 const FEEL_ZH = {easy: '轻松', ok: '刚好', hard: '吃力', fail: '做不完'};
+
+/* ---------- 训练日按顺序轮换（11/20 用户要求：不按星期几，按"上次练了哪天，今天练下一个"） ---------- */
+
+/* 去掉名字里的星期："周一 · 下肢" → "下肢"；tabs 用短的（再去掉括号）："全身（史密斯机）" → "全身" */
+export function dayTitle(d) {
+  const n = String(loc(d, 'name') || '');
+  const i = n.indexOf(' · ');
+  return i >= 0 ? n.slice(i + 3) : n;
+}
+export const dayTab = d => dayTitle(d).replace(/\s*[（(].*?[）)]\s*/g, '').trim() || dayTitle(d);
+
+/* 计划里排在它后面的那一天（最后一天之后回到第一天） */
+export function nextDayId(plan, lastId) {
+  const i = plan.days.findIndex(d => d.id === lastId);
+  return plan.days[(i + 1) % plan.days.length].id;
+}
+
+/* 记一次训练：history 是 [{date, dayId, at}]，同一天只留一条（练得最多的那一天，最后一组的时间）。
+   今天一组都没有了（全删了）就去掉今天那条。返回新的 history（最多留 30 条） */
+export function recordWorkout(history, {date, dayId, at}) {
+  const out = (history || []).filter(h => h.date !== date);
+  if (dayId) out.push({date, dayId, at});
+  return out.slice(-30);
+}
+
+/* 打开 App 时默认选哪一天：
+   - 今天已经练了 → 今天练的那一天
+   - 以前练过 → 上次那一天的下一天（轮换）
+   - 从没练过 → 按星期几（defaultDayId）
+   gapHours：今天还没练、离上次训练过了几小时（给"不到 48 小时"的提醒用），没有就是 null */
+export function pickDay(plan, history, now = new Date(), today) {
+  const h = (history || []).filter(x => plan.days.some(d => d.id === x.dayId));
+  const last = h[h.length - 1];
+  if (!last) return {id: defaultDayId(plan, now), gapHours: null, last: null};
+  if (last.date === today) return {id: last.dayId, gapHours: null, last};
+  return {id: nextDayId(plan, last.dayId), gapHours: (now - new Date(last.at)) / 3600000, last};
+}
