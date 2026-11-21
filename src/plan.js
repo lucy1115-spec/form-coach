@@ -179,18 +179,20 @@ export function suggestNext(ex, done, plan = setDefaults(ex)) {
   const ws = work.map(x => x.w).filter(x => x != null), wTop = ws.length ? Math.max(...ws) : null;
   const unit = plan.unit, step = weightStep(unit, wTop, ex && ex.load && ex.load.kind);
   const fmt = v => (v == null ? '' : unit === 'level' ? t('log.level', {n: v}) : t('log.lb', {n: v}));
+  // 辅助级别每组可能不同（7 级、6 级、6 级）：保持时按顺序列出用过的级别
+  const held = unit === 'level' && new Set(ws).size > 1 ? [...new Set(ws)].map(fmt).join(' / ') : fmt(wTop);
   // 计划的组没做完，不加重
-  if (work.length < tgt.length) return {kind: 'hold', text: t('next.hold', {w: fmt(wTop)})};
-  if (work.some(x => x.feel === 'fail') || work.some((x, i) => tg(i).r != null && x.r < tg(i).r)) return {kind: 'hold', text: t('next.hold', {w: fmt(wTop)})};
+  if (work.length < tgt.length) return {kind: 'hold', text: t('next.hold', {w: held})};
+  if (work.some(x => x.feel === 'fail') || work.some((x, i) => tg(i).r != null && x.r < tg(i).r)) return {kind: 'hold', text: t('next.hold', {w: held})};
   const allTop = work.every((x, i) => tg(i).rMax != null && x.r >= tg(i).rMax);
   const allOk = work.every(x => x.feel === 'easy' || x.feel === 'ok');
   if (allTop && allOk) {
-    if (/不加重|不再加重|不追重量|不变|就停/.test(String(ex && ex.target))) return {kind: 'keep', text: t('next.keep', {w: fmt(wTop)})};
+    if (/不加重|不再加重|不追重量|不变|就停/.test(String(ex && ex.target))) return {kind: 'keep', text: t('next.keep', {w: held})};
     if (unit === 'level') return {kind: 'up', text: t('next.levelUp')};
     if (wTop == null) return {kind: 'up', text: t('next.upNoW')};
     return {kind: 'up', w: wTop + step, text: t('next.up', {w: fmt(wTop + step)})};
   }
-  return {kind: 'reps', text: t('next.reps', {w: fmt(wTop)})};
+  return {kind: 'reps', text: t('next.reps', {w: held})};
 }
 
 /* 训练记录的行（和 data/training_log.csv 同一套列）：每组一行，sets=1。

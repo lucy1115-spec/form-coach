@@ -50,6 +50,7 @@ test('下次建议：双重进阶', () => {
   assert.equal(suggestNext({target: '热身 1 × 15，3 × 10 @ 85 磅', load: {kind: 'barbell'}}, [{warm: true, w: 35, r: 15, feel: 'hard'}, S(10, 'ok', 85), S(10, 'ok', 85), S(10, 'easy', 85)]).text, '都做满而且不吃力：可以加到 90 磅');
   assert.equal(suggestNext({target: '1 × 15 @ 100 磅，不加重'}, [S(15, 'easy', 100)]).kind, 'keep');
   assert.equal(suggestNext({target: '12 @ 7 级、10 @ 6 级'}, [S(12, 'ok', 7), S(10, 'ok', 6)]).text, '都做满而且不吃力：可以试更难一级');
+  assert.equal(suggestNext({target: '12 @ 7 级、10 @ 6 级'}, [S(12, 'ok', 7), S(9, 'hard', 6)]).text, '保持 7 级 / 6 级，先把每组都做完整');
   setLang('en');
   assert.equal(suggestNext(ex, [S(12, 'ok'), S(12, 'ok'), S(12, 'ok')]).text, 'All reps done, not hard: go to 55 lb');
 });
