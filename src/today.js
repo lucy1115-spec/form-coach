@@ -28,12 +28,11 @@ export function recommend(day, {gapHours = null, cycle = null} = {}) {
   // 月经周期（「吃练计划」的规则）：经前一周至少减量——每组留 2–3 次余力，感觉重就保持上次的重量，不做 HIIT；
   // 经期前几天痛经或腰酸就减量、不做冲刺；卵泡期状态好可以试着加重
   const tips = [];
-  if (cycle && cycle.phase === 'pms') { if (level === 'go') level = 'light'; reasons.push(t('today.pms', {day: cycle.day})); tips.push(t('today.pmsTip')); }
-  if (cycle && cycle.phase === 'period' && cycle.day <= 3) tips.push(t('today.periodTip'));
+  // 各阶段对训练的影响单独写在卡片的"阶段"一行（cycle.effect.*），这里只调整级别
+  if (cycle && cycle.phase === 'pms') { if (level === 'go') level = 'light'; reasons.push(t('today.pms', {day: cycle.day})); }
   if (!reasons.length) reasons.push(t('today.good'));
   if (level === 'light' && !(cycle && cycle.phase === 'pms')) tips.push(t('today.lightTip'));
   if (level === 'rest') tips.push(t('today.restTip'));
-  if (level === 'go' && cycle && cycle.phase === 'follicular') tips.push(t('today.follTip'));
   return {level, head: t('today.level.' + level), reasons, tips, why: cycle && cycle.phase === 'pms' ? 'pms' : null};
 }
 

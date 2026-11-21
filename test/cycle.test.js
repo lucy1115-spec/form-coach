@@ -18,7 +18,7 @@ test('第几天和阶段（只有一次开始日期，按 31 天估）', () => {
   const late = cycleInfo(['2026-11-14'], '2026-12-17');
   assert.equal(late.phase, 'pms'); assert.equal(late.late, true);
   assert.equal(cycleInfo([], '2026-11-21'), null);
-  assert.equal(phaseLabel(cycleInfo(['2026-11-14'], '2026-11-21')), '周期第 8 天 · 卵泡期');
+  assert.equal(phaseLabel(cycleInfo(['2026-11-14'], '2026-11-21')), '卵泡期 · 第 8 天');
 });
 
 test('平均长度：用实际间隔；太近的重复记录去掉', () => {
@@ -27,16 +27,15 @@ test('平均长度：用实际间隔；太近的重复记录去掉', () => {
   assert.deepEqual(cleanStarts(['2026-11-14', '2026-11-15', 'bad', '2026-10-14']), ['2026-10-14', '2026-11-15']);
 });
 
-test('建议：经前一周至少减量；经期前 3 天提醒；卵泡期状态好提示加重', () => {
+test('建议：经前一周至少减量；其他阶段只在卡片的阶段一行说明', () => {
   const day = {readiness: 84, temp_deviation: 0.1};
   const pms = recommend(day, {gapHours: 60, cycle: cycleInfo(['2026-11-14'], '2026-12-09')});
   assert.equal(pms.level, 'light'); assert.equal(pms.why, 'pms');
   assert.match(pms.reasons.join(), /经前一周（周期第 26 天）/);
-  assert.match(pms.tips.join(), /留 2–3 次余力/);
   const per = recommend(day, {gapHours: 60, cycle: cycleInfo(['2026-11-14'], '2026-11-15')});
-  assert.equal(per.level, 'go'); assert.match(per.tips.join(), /痛经/);
+  assert.equal(per.level, 'go'); assert.deepEqual(per.tips, []);
   const fol = recommend(day, {gapHours: 60, cycle: cycleInfo(['2026-11-14'], '2026-11-21')});
-  assert.equal(fol.level, 'go'); assert.match(fol.tips.join(), /加重/);
+  assert.equal(fol.level, 'go'); assert.deepEqual(fol.tips, []);
   assert.equal(recommend({readiness: 55}, {cycle: cycleInfo(['2026-11-14'], '2026-12-09')}).level, 'rest');
 });
 
