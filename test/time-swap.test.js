@@ -61,3 +61,11 @@ test('真实计划：每天的估时和计划写的分钟数差不多', {skip: !
     assert.ok(Math.abs(full - d.minutes) <= 15, `${d.id}: 估 ${full}，计划 ${d.minutes}`);
   }
 });
+
+test('真实计划：每个替代动作都有中英文名字，都读得出组数和次数', {skip: !fs.existsSync(real) && '没有 coach/plan/app-plan.json'}, () => {
+  const p = JSON.parse(fs.readFileSync(real, 'utf8'));
+  for (const d of p.days) for (const ex of d.exercises) for (const s of ex.swaps || []) {
+    assert.ok(s.name && s.target && s.en && s.en.name && s.en.target, `${ex.id} → ${s.name}`);
+    assert.ok(setDefaults(swapExercise(ex, s)).sets.every(x => x.r != null), `${ex.id} → ${s.name}: ${s.target}`);
+  }
+});
