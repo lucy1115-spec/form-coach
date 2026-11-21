@@ -60,3 +60,17 @@ test('上传：放进文件夹，文件名和内容对', async () => {
   assert.match(init.body, /"parents":\["F"\]/);
   assert.match(init.body, /2026-11-20/);
 });
+
+test('Oura 文件：找不到返回 null；建文件带 parents；读出 JSON', async () => {
+  const {findFile, createJson, readJson} = await import('../src/drive.js');
+  let f = fakeFetch([[u => u.includes('?q='), {body: {files: []}}]]);
+  assert.equal(await findFile(f, 'T', 'F', 'Oura 今天.json'), null);
+  assert.match(decodeURIComponent(f.calls[0].url), /name='Oura 今天\.json' and 'F' in parents/);
+  f = fakeFetch([[u => u.includes('uploadType=multipart'), {body: {id: 'O1'}}]]);
+  assert.equal(await createJson(f, 'T', 'F', 'Oura 今天.json', {}), 'O1');
+  assert.match(f.calls[0].init.body, /"parents":\["F"\]/);
+  const g = async () => ({ok: true, status: 200, text: async () => '{"days":[{"date":"2026-11-21","readiness":84}]}'});
+  assert.equal((await readJson(g, 'T', 'O1')).days[0].readiness, 84);
+  const empty = async () => ({ok: true, status: 200, text: async () => ''});
+  assert.deepEqual(await readJson(empty, 'T', 'O1'), {});
+});

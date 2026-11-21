@@ -57,3 +57,31 @@ export async function uploadCsv(fetch, token, {name, csv, folderId}) {
     body: multipartBody({name, mimeType: 'text/csv', parents: [folderId]}, csv, 'text/csv; charset=UTF-8', boundary),
   });
 }
+
+/* ---------- 读电脑写来的 Oura 数据（11/21） ----------
+   drive.file 权限只能看到 App 自己建的文件。所以由 App 在自己的文件夹里先建一个空的「Oura 今天.json」，
+   电脑上的 coach/scripts/oura.mjs save 每天早上在同一个文件里原地写入（不换文件），App 再读它。 */
+export const OURA_FILE = 'Oura 今天.json';
+
+/* 在文件夹里找某个名字的文件，没有返回 null */
+export async function findFile(fetch, token, folderId, name) {
+  const q = `name='${name.replace(/'/g, "\'")}' and '${folderId}' in parents and trashed=false`;
+  const list = await call(fetch, `${API}?q=${encodeURIComponent(q)}&fields=files(id,modifiedTime)&orderBy=modifiedTime desc&spaces=drive`, token);
+  return list.files && list.files.length ? list.files[0].id : null;
+}
+
+/* 建一个 JSON 文件，返回 id */
+export async function createJson(fetch, token, folderId, name, obj) {
+  const boundary = 'fc' + Math.random().toString(36).slice(2);
+  const r = await call(fetch, UPLOAD, token, {method: 'POST', headers: {'Content-Type': `multipart/related; boundary=${boundary}`},
+    body: multipartBody({name, mimeType: 'application/json', parents: [folderId]}, JSON.stringify(obj), 'application/json; charset=UTF-8', boundary)});
+  return r.id;
+}
+
+/* 读文件内容（JSON） */
+export async function readJson(fetch, token, fileId) {
+  const r = await fetch(`${API}/${encodeURIComponent(fileId)}?alt=media`, {headers: {Authorization: `Bearer ${token}`}});
+  if (!r.ok) { const e = new Error(`HTTP ${r.status}`); e.status = r.status; throw e; }
+  const text = await r.text();
+  try { return JSON.parse(text || '{}'); } catch (e) { return {}; }
+}

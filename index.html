@@ -228,6 +228,23 @@ body.plan-mode .tabbar{display:none}
 .ex-log .bigbtn.primary{min-height:64px;font-size:19px}
 .ex-log .bigbtn.ghost{min-height:52px}
 .addbtn{width:100%;margin-top:18px}
+#planView .today{margin:4px 0 18px}
+.today .hi{font:700 30px/1.15 var(--f-display);letter-spacing:-.02em;margin:6px 4px 14px}
+.today .tcard{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:20px 20px 14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px}
+.today .pill{align-self:flex-start;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600;background:var(--good-bg);color:var(--good)}
+.today.lvl-light .pill{background:var(--warn-bg);color:var(--warn)}
+.today.lvl-rest .pill{background:var(--bad-bg);color:var(--bad)}
+.today .big{font:700 30px/1.2 var(--f-display);letter-spacing:-.02em}
+.today .big span{color:var(--accent)}
+.today .why{margin:0;font-size:16px;line-height:1.5;color:var(--muted)}
+.today .chips{display:flex;flex-wrap:wrap;gap:6px}
+.today .chips span{background:var(--sunk);border-radius:999px;padding:6px 12px;font-size:14px;font-weight:550;font-variant-numeric:tabular-nums}
+.today .tmsg{margin:0;font-size:14px;line-height:1.5;color:var(--muted)}
+.today .tbtns{display:grid;grid-template-columns:1.2fr 1fr;gap:10px}
+.today .tbtns .bigbtn{min-height:58px}
+.today .tfoot{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted)}
+.today .tref{display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--muted);font-size:14px;font-weight:600;min-height:40px;padding:0 4px}
+.today .tref svg{width:16px;height:16px}
 .timebar{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:14px 16px;margin:0 0 18px;display:flex;flex-direction:column;gap:10px}
 .timebar .k{display:block;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .timebar .chips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -297,6 +314,7 @@ body.resting{padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))}
 
   <!-- 训练计划：每个动作的组数、重量、杠铃片、要点和教练视频。计划和视频都只存在这台设备上 -->
   <section id="planView" hidden>
+    <div id="todayBox"></div>
     <div class="daybar" role="tablist" id="dayTabs"></div>
     <div id="planBody" style="margin-top:12px"></div>
     <details class="panel" style="margin-top:16px" id="planAdmin">
@@ -419,7 +437,8 @@ import {PRESETS} from "./src/presets.js";
 import {reviewSet} from "./src/ai.js";
 import {loadLines,platesPerSide,exerciseSpeech,defaultDayId,allVideoIds,matchVideoId,validatePlan,trimForTime,swapExercise,dayTitle,dayTab,recordWorkout,pickDay,FEELS,feelById,setDefaults,suggestNext,sessionRows,weightStep,restSeconds} from "./src/plan.js";
 import {t,setLang,getLang,isEn,loc} from "./src/i18n.js";
-import {CLIENT_ID,SCOPE,DRIVE_FOLDER,tokenValid,tokenFrom,ensureFolder,uploadCsv} from "./src/drive.js";
+import {CLIENT_ID,SCOPE,DRIVE_FOLDER,OURA_FILE,tokenValid,tokenFrom,ensureFolder,uploadCsv,findFile,createJson,readJson} from "./src/drive.js";
+import {pickToday,recommend,claudePrompt,fmtSleep} from "./src/today.js";
 const tr=t; // refFrame/liveFrame 的参数 t 是时间，会遮住 t()，那里用 tr()
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem('fm.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('fm.'+k,JSON.stringify(v))}catch(e){}}};
@@ -851,7 +870,7 @@ $('driveBtn').onclick=()=>{
   const p=driveToken(true); // 同步弹出登录窗口
   setStatus($('driveStatus'),t('drive.waiting'));
   p.then(async tok=>{const folder=await ensureFolder(window.fetch.bind(window),tok,store.get('drive.folder',null));store.set('drive.folder',folder);
-      store.set('drive.on',true);setStatus($('driveStatus'),t('drive.connected',{folder:DRIVE_FOLDER}),'ok');renderDrive()})
+      store.set('drive.on',true);setStatus($('driveStatus'),t('drive.connected',{folder:DRIVE_FOLDER}),'ok');renderDrive();ouraRefresh(false)})
    .catch(e=>setStatus($('driveStatus'),t('drive.connectFail',{msg:e.message||e}),'err'));
 };
 async function saveSet(){
@@ -998,7 +1017,8 @@ function renderPlan(){
   const rot=pk.last&&pk.last.date!==today()&&lastDay?`<p class="rot">${esc(t('plan.rotation',{day:dayTab(lastDay),date:md(pk.last.date)}))}</p>`:'';
   // 两次力量训练至少隔 48 小时（用户的规则）
   const gap=pk.gapHours!=null&&pk.gapHours<48&&lastDay?`<div class="banner">${esc(t('plan.gap',{day:dayTab(lastDay),h:Math.max(1,Math.round(pk.gapHours))}))}</div>`:'';
-  body.innerHTML=pendingBanner()+gap+`<div class="dayhead"><span class="meta">${esc(meta)}</span><h2>${esc(dayTitle(day))}</h2>${rot}
+  const ouraRow=renderToday(day,pk);
+  body.innerHTML=pendingBanner()+(ouraRow?'':gap)+`<div class="dayhead"><span class="meta">${esc(meta)}</span><h2>${esc(dayTitle(day))}</h2>${rot}
     ${notes.length?`<ul>${notes.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div>
     ${timebar}
     <div class="exlist">${kept.map(ex=>exCard(ex,num[ex.id],plan)).join('')}${extras.map(x=>exCard(eff(x.ex),num[x.ex.id],plan,x.day)).join('')}</div>
@@ -1025,12 +1045,81 @@ function renderPlan(){
     const m=String(f.name).match(/(\d{3,5})/);await linkVideo(`ex:${inp.dataset.addex}:${m?m[1]:Date.now()}`,f)});
   renderVideoList();renderDrive();
 }
+/* ---------- 今天卡片（11/21，借鉴 Arvipace 的首页；用户选了 C 版"建议优先"） ----------
+   数据：电脑每天 7:30 把 Oura 写进 Drive「Form Coach 记录」里的「Oura 今天.json」——这个文件由 App 建
+   （drive.file 只能读 App 自己建的文件），电脑原地写入。App 读到后存 fm.oura，离线也能看上次的。
+   "问 Claude"：把今天的数据和建议复制到剪贴板，再打开 Claude，粘贴就能接着问（不把健康数据放进网址） */
+P.ouraBusy=false;P.ouraErr=null;P.ouraMsg=null;
+function renderToday(day,pk){
+  const box=$('todayBox');if(!box)return null;
+  if(!CLIENT_ID){box.innerHTML='';return null}
+  const h=new Date().getHours(),hi=t(h<12?'today.hi.morning':h<18?'today.hi.afternoon':'today.hi.evening');
+  const data=store.get('oura',null),row=data&&pickToday(data.days,today());
+  const msg=P.ouraBusy?t('today.refreshing'):P.ouraErr?t('today.fail',{msg:P.ouraErr}):P.ouraMsg||'';
+  const refresh=driveOn()?`<button class="tref" data-act="todayRefresh">${ICON.refresh}<span>${t('today.refresh')}</span></button>`:'';
+  if(!row){
+    box.innerHTML=`<div class="today"><div class="hi">${hi}</div><div class="tcard"><p class="tmsg">${driveOn()?t('today.noData'):t('today.noDrive')}</p>${msg?`<p class="tmsg">${esc(msg)}</p>`:''}${refresh}</div></div>`;
+    return null;
+  }
+  const trainedToday=pk&&pk.last&&pk.last.date===today();
+  const rec=recommend(row,{gapHours:trainedToday?null:pk&&pk.gapHours});
+  const dname=day?dayTab(day):'';
+  const tip=rec.level==='light'?t('today.lightTip'):rec.level==='rest'?t('today.restTip'):'';
+  const chips=[t('today.chip.r',{n:row.readiness}),row.total_sleep_min!=null?t('today.chip.sleep',{s:fmtSleep(row.total_sleep_min)}):'',row.avg_hrv!=null?t('today.chip.hrv',{n:row.avg_hrv}):'',
+    row.temp_deviation!=null?t('today.chip.temp',{n:(row.temp_deviation>0?'+':'')+row.temp_deviation}):''].filter(Boolean);
+  const upd=data.generated_at?(()=>{try{return new Date(data.generated_at).toLocaleString(isEn()?'en-US':'zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}catch(e){return ''}})():'';
+  const note=[row.stale?t('today.stale',{date:row.date.slice(5).replace('-','/')}):'',msg].filter(Boolean).join(' ');
+  box.innerHTML=`<div class="today lvl-${rec.level}"><div class="hi">${hi}</div><div class="tcard">
+    <span class="pill">${t('today.pill.'+(rec.level==='light'&&row.readiness>=75&&!(row.temp_deviation>=0.5)?'gap':rec.level))}</span>
+    <div class="big">${esc(rec.head)}${rec.level!=='rest'&&dname?`<br><span>${esc(dname)}</span>`:''}</div>
+    <p class="why">${esc(rec.reasons.join(t('list.sep')))}${tip?`。${esc(tip)}`:''}</p>
+    <div class="chips">${chips.map(c=>`<span>${esc(c)}</span>`).join('')}</div>
+    ${note?`<p class="tmsg">${esc(note)}</p>`:''}
+    <div class="tbtns"><button class="bigbtn primary" data-act="todayAsk">${t('today.ask')}</button><button class="bigbtn" data-act="todaySee">${t('today.seePlan')}</button></div>
+    <div class="tfoot"><span>${upd?esc(t('today.updated',{t:upd})):''}</span>${refresh}</div>
+  </div></div>`;
+  P.todayCtx={day:row,rec,dayName:day?dayTitle(day):''};
+  return row;
+}
+async function ouraRefresh(interactive){
+  if(!driveOn()||P.ouraBusy)return;
+  let tok;
+  try{
+    if(interactive)tok=await driveToken(); // 要授权时弹 Google 窗口：这一行必须是点击后的第一个 await
+    else{const tk=store.get('drive.token',null);if(!tokenValid(tk))return;tok=tk.access_token}
+    P.ouraBusy=true;P.ouraErr=null;P.ouraMsg=null;renderPlan();
+    const f=window.fetch.bind(window);
+    const folder=await ensureFolder(f,tok,store.get('drive.folder',null));store.set('drive.folder',folder);
+    let id=store.get('oura.file',null)||await findFile(f,tok,folder,OURA_FILE);
+    if(!id)id=await createJson(f,tok,folder,OURA_FILE,{});
+    store.set('oura.file',id);
+    let j;
+    try{j=await readJson(f,tok,id)}catch(e){if(e.status===404)store.set('oura.file',null);throw e}
+    if(j&&Array.isArray(j.days)&&j.days.length)store.set('oura',j);
+  }catch(e){P.ouraErr=e.message||String(e);if(e.status===401)store.set('drive.token',null)}
+  P.ouraBusy=false;renderPlan();
+}
+$('todayBox').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;
+  if(b.dataset.act==='todayRefresh'){ouraRefresh(true);return}
+  if(b.dataset.act==='todaySee'){document.querySelector('#dayTabs')?.scrollIntoView({block:'start',behavior:'smooth'});return}
+  if(b.dataset.act==='todayAsk'){
+    const c=P.todayCtx||{};const last=(store.get('workouts',[])).slice(-1)[0];
+    const lastTxt=last&&P.plan?(()=>{const d=P.plan.days.find(x=>x.id===last.dayId);return d?`${last.date.slice(5).replace('-','/')} ${dayTab(d)}`:''})():'';
+    const text=claudePrompt({date:today(),day:c.day,rec:c.rec,dayName:c.dayName,last:lastTxt});
+    try{navigator.clipboard&&navigator.clipboard.writeText(text)}catch(err){}
+    window.open('https://claude.ai/new','_blank'); // 同一次点击里打开，iPhone 才不会拦
+    P.ouraMsg=t('today.copied');renderPlan();
+  }
+});
+
 // 简单线条图标（继承文字颜色）
 const ICON={
   say:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>',
   stop:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
   play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>',
   link:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  refresh:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>',
   swap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4 3 8l4 4"/><path d="M3 8h14"/><path d="m17 20 4-4-4-4"/><path d="M21 16H7"/></svg>'};
 function sayIdle(){clearInterval(P.sayTimer);document.querySelectorAll('[data-say][data-on]').forEach(b=>{delete b.dataset.on;b.innerHTML=ICON.say+`<span>${t('plan.say')}</span>`})}
 function exCard(ex,num,plan,fromDay){
@@ -1327,6 +1416,7 @@ function applyLang(l){
 $('langZh').onclick=()=>applyLang('zh');$('langEn').onclick=()=>applyLang('en');
 
 loadGis();
+setTimeout(()=>ouraRefresh(false),400); // 打开 App 时，有现成的 Google 授权就顺手读一次 Oura
 (async()=>{S.profiles=await DB.all();applyLang(store.get('lang','zh'));await refreshLinked();setMode('plan');
   if(!window.isSecureContext)setStatus($('refStatus'),t('cam.insecureHint'),'err')})();
 </script>
