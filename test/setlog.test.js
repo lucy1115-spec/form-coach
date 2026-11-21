@@ -51,6 +51,8 @@ test('下次建议：双重进阶', () => {
   assert.equal(suggestNext({target: '1 × 15 @ 100 磅，不加重'}, [S(15, 'easy', 100)]).kind, 'keep');
   assert.equal(suggestNext({target: '12 @ 7 级、10 @ 6 级'}, [S(12, 'ok', 7), S(10, 'ok', 6)]).text, '都做满而且不吃力：可以试更难一级');
   assert.equal(suggestNext({target: '12 @ 7 级、10 @ 6 级'}, [S(12, 'ok', 7), S(9, 'hard', 6)]).text, '保持 7 级 / 6 级，先把每组都做完整');
+  // 经前一周：都做满也不加重
+  assert.equal(suggestNext(ex, [S(12, 'ok'), S(12, 'easy'), S(12, 'ok')], undefined, {noIncrease: true}).text, '都做满了，但在经前一周：先保持 50 磅，经期后再加');
   setLang('en');
   assert.equal(suggestNext(ex, [S(12, 'ok'), S(12, 'ok'), S(12, 'ok')]).text, 'All reps done, not hard: go to 55 lb');
 });

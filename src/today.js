@@ -16,7 +16,7 @@ export function pickToday(days, today) {
    - 离上次力量训练不到 48 小时 → 减量或换成休息日（用户的规则）
    - 其他 → 照常练
    返回 {level: 'go'|'light'|'rest', head, reasons[]} */
-export function recommend(day, {gapHours = null} = {}) {
+export function recommend(day, {gapHours = null, cycle = null} = {}) {
   if (!day || day.readiness == null) return null;
   const r = day.readiness, temp = day.temp_deviation;
   const reasons = [];
@@ -25,19 +25,28 @@ export function recommend(day, {gapHours = null} = {}) {
   else if (r < 75) { level = 'light'; reasons.push(t('today.rMid', {n: r})); }
   if (temp != null && temp >= 0.5) { if (level === 'go') level = 'light'; reasons.push(t('today.temp', {n: temp})); }
   if (gapHours != null && gapHours < 48) { if (level === 'go') level = 'light'; reasons.push(t('today.gap', {h: Math.max(1, Math.round(gapHours))})); }
+  // 月经周期（「吃练计划」的规则）：经前一周至少减量——每组留 2–3 次余力，感觉重就保持上次的重量，不做 HIIT；
+  // 经期前几天痛经或腰酸就减量、不做冲刺；卵泡期状态好可以试着加重
+  const tips = [];
+  if (cycle && cycle.phase === 'pms') { if (level === 'go') level = 'light'; reasons.push(t('today.pms', {day: cycle.day})); tips.push(t('today.pmsTip')); }
+  if (cycle && cycle.phase === 'period' && cycle.day <= 3) tips.push(t('today.periodTip'));
   if (!reasons.length) reasons.push(t('today.good'));
-  return {level, head: t('today.level.' + level), reasons};
+  if (level === 'light' && !(cycle && cycle.phase === 'pms')) tips.push(t('today.lightTip'));
+  if (level === 'rest') tips.push(t('today.restTip'));
+  if (level === 'go' && cycle && cycle.phase === 'follicular') tips.push(t('today.follTip'));
+  return {level, head: t('today.level.' + level), reasons, tips, why: cycle && cycle.phase === 'pms' ? 'pms' : null};
 }
 
 export const fmtSleep = min => (min == null ? '—' : `${Math.floor(min / 60)}h${String(min % 60).padStart(2, '0')}`);
 
 /* 点"问 Claude"时复制的一段话：今天的数据 + 建议 + 今天的训练，接着在 Claude 里问 */
-export function claudePrompt({date, day, rec, dayName, last}) {
+export function claudePrompt({date, day, rec, dayName, last, cycle}) {
   const lines = [t('ask.intro', {date})];
   if (day) {
     lines.push(t('ask.oura', {date: day.date, r: day.readiness ?? '—', sleep: fmtSleep(day.total_sleep_min), deep: day.deep_min ?? '—', hrv: day.avg_hrv ?? '—', hr: day.lowest_hr ?? '—',
       temp: day.temp_deviation == null ? '—' : (day.temp_deviation > 0 ? '+' : '') + day.temp_deviation}));
   }
+  if (cycle) lines.push(t('ask.cycle', {day: cycle.day, phase: t('cycle.phase.' + cycle.phase), next: cycle.nextStart.slice(5).replace('-', '/')}));
   if (rec) lines.push(t('ask.rec', {head: rec.head, why: rec.reasons.join(t('list.sep'))}));
   if (dayName) lines.push(t('ask.plan', {day: dayName}));
   if (last) lines.push(t('ask.last', {text: last}));

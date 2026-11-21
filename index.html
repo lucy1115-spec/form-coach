@@ -242,6 +242,8 @@ body.plan-mode .tabbar{display:none}
 .today .tmsg{margin:0;font-size:14px;line-height:1.5;color:var(--muted)}
 .today .tbtns{display:grid;grid-template-columns:1.2fr 1fr;gap:10px}
 .today .tbtns .bigbtn{min-height:58px}
+.today .tperiodbtn{min-height:48px;font-size:15px}
+.today .tperiod{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--muted);background:var(--sunk);border-radius:14px;padding:4px 6px 4px 14px}
 .today .tfoot{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted)}
 .today .tref{display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--muted);font-size:14px;font-weight:600;min-height:40px;padding:0 4px}
 .today .tref svg{width:16px;height:16px}
@@ -439,6 +441,7 @@ import {loadLines,platesPerSide,exerciseSpeech,defaultDayId,allVideoIds,matchVid
 import {t,setLang,getLang,isEn,loc} from "./src/i18n.js";
 import {CLIENT_ID,SCOPE,DRIVE_FOLDER,OURA_FILE,tokenValid,tokenFrom,ensureFolder,uploadCsv,findFile,createJson,readJson} from "./src/drive.js";
 import {pickToday,recommend,claudePrompt,fmtSleep} from "./src/today.js";
+import {cycleInfo,phaseLabel} from "./src/cycle.js";
 const tr=t; // refFrame/liveFrame 的参数 t 是时间，会遮住 t()，那里用 tr()
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem('fm.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('fm.'+k,JSON.stringify(v))}catch(e){}}};
@@ -1050,6 +1053,17 @@ function renderPlan(){
    （drive.file 只能读 App 自己建的文件），电脑原地写入。App 读到后存 fm.oura，离线也能看上次的。
    "问 Claude"：把今天的数据和建议复制到剪贴板，再打开 Claude，粘贴就能接着问（不把健康数据放进网址） */
 P.ouraBusy=false;P.ouraErr=null;P.ouraMsg=null;
+/* 经期开始日期：手机上点"经期开始了"存 fm.cycle；电脑的 data/cycle.csv 随 Oura 文件带过来（cycle_starts）。
+   点按钮时如果有 Google 授权，就在 Drive 文件夹里留一个「经期开始-日期.json」，电脑第二天早上把它记进 data/cycle.csv；
+   没授权就先存 fm.cyclePending，下次"更新"时再传 */
+function cycleStarts(){const d=store.get('oura',null);return [...(store.get('cycle',[])),...((d&&d.cycle_starts)||[])]}
+function cycleNow(){return cycleInfo(cycleStarts(),today())}
+async function uploadCycle(tok){
+  const pend=store.get('cyclePending',[]);if(!pend.length)return;
+  const f=window.fetch.bind(window);const folder=await ensureFolder(f,tok,store.get('drive.folder',null));store.set('drive.folder',folder);
+  for(const d of pend)await createJson(f,tok,folder,`经期开始-${d}.json`,{period_start:d});
+  store.set('cyclePending',[]);
+}
 function renderToday(day,pk){
   const box=$('todayBox');if(!box)return null;
   if(!CLIENT_ID){box.innerHTML='';return null}
@@ -1058,28 +1072,38 @@ function renderToday(day,pk){
   const msg=P.ouraBusy?t('today.refreshing'):P.ouraErr?t('today.fail',{msg:P.ouraErr}):P.ouraMsg||'';
   const refresh=driveOn()?`<button class="tref" data-act="todayRefresh">${ICON.refresh}<span>${t('today.refresh')}</span></button>`:'';
   if(!row){
-    box.innerHTML=`<div class="today"><div class="hi">${hi}</div><div class="tcard"><p class="tmsg">${driveOn()?t('today.noData'):t('today.noDrive')}</p>${msg?`<p class="tmsg">${esc(msg)}</p>`:''}${refresh}</div></div>`;
+    box.innerHTML=`<div class="today"><div class="hi">${hi}</div><div class="tcard"><p class="tmsg">${driveOn()?t('today.noData'):t('today.noDrive')}</p>${msg?`<p class="tmsg">${esc(msg)}</p>`:''}${periodBtn(cycleNow())}${refresh}</div></div>`;
     return null;
   }
   const trainedToday=pk&&pk.last&&pk.last.date===today();
-  const rec=recommend(row,{gapHours:trainedToday?null:pk&&pk.gapHours});
+  const cyc=cycleNow();
+  const rec=recommend(row,{gapHours:trainedToday?null:pk&&pk.gapHours,cycle:cyc});
   const dname=day?dayTab(day):'';
-  const tip=rec.level==='light'?t('today.lightTip'):rec.level==='rest'?t('today.restTip'):'';
+  const tip=rec.tips.join('；');
   const chips=[t('today.chip.r',{n:row.readiness}),row.total_sleep_min!=null?t('today.chip.sleep',{s:fmtSleep(row.total_sleep_min)}):'',row.avg_hrv!=null?t('today.chip.hrv',{n:row.avg_hrv}):'',
-    row.temp_deviation!=null?t('today.chip.temp',{n:(row.temp_deviation>0?'+':'')+row.temp_deviation}):''].filter(Boolean);
+    row.temp_deviation!=null?t('today.chip.temp',{n:(row.temp_deviation>0?'+':'')+row.temp_deviation}):'',cyc?phaseLabel(cyc)+(cyc.late?' · '+t('cycle.late',{n:cyc.day-cyc.length}):''):''].filter(Boolean);
   const upd=data.generated_at?(()=>{try{return new Date(data.generated_at).toLocaleString(isEn()?'en-US':'zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}catch(e){return ''}})():'';
   const note=[row.stale?t('today.stale',{date:row.date.slice(5).replace('-','/')}):'',msg].filter(Boolean).join(' ');
   box.innerHTML=`<div class="today lvl-${rec.level}"><div class="hi">${hi}</div><div class="tcard">
-    <span class="pill">${t('today.pill.'+(rec.level==='light'&&row.readiness>=75&&!(row.temp_deviation>=0.5)?'gap':rec.level))}</span>
+    <span class="pill">${t('today.pill.'+(rec.why==='pms'?'pms':rec.level==='light'&&row.readiness>=75&&!(row.temp_deviation>=0.5)?'gap':rec.level))}</span>
     <div class="big">${esc(rec.head)}${rec.level!=='rest'&&dname?`<br><span>${esc(dname)}</span>`:''}</div>
     <p class="why">${esc(rec.reasons.join(t('list.sep')))}${tip?`。${esc(tip)}`:''}</p>
     <div class="chips">${chips.map(c=>`<span>${esc(c)}</span>`).join('')}</div>
     ${note?`<p class="tmsg">${esc(note)}</p>`:''}
     <div class="tbtns"><button class="bigbtn primary" data-act="todayAsk">${t('today.ask')}</button><button class="bigbtn" data-act="todaySee">${t('today.seePlan')}</button></div>
+    ${periodBtn(cyc)}
     <div class="tfoot"><span>${upd?esc(t('today.updated',{t:upd})):''}</span>${refresh}</div>
   </div></div>`;
-  P.todayCtx={day:row,rec,dayName:day?dayTitle(day):''};
+  P.todayCtx={day:row,rec,dayName:day?dayTitle(day):'',cycle:cyc};
   return row;
+}
+/* "经期开始了"：今天已经记了就显示"撤销" */
+function periodBtn(c){
+  const todayIn=store.get('cycle',[]).includes(today());
+  if(todayIn)return `<div class="tperiod"><span>${t('cycle.started')}</span><button class="tref" data-act="periodUndo">${t('cycle.undo')}</button></div>`;
+  // 只在快来的时候显示（经前一周、黄体期、比预计晚、还没记过），平时不占地方
+  if(c&&!['pms','luteal'].includes(c.phase))return '';
+  return `<button class="bigbtn ghost tperiodbtn" data-act="periodStart">${t('cycle.start')}</button>`;
 }
 async function ouraRefresh(interactive){
   if(!driveOn()||P.ouraBusy)return;
@@ -1090,6 +1114,7 @@ async function ouraRefresh(interactive){
     P.ouraBusy=true;P.ouraErr=null;P.ouraMsg=null;renderPlan();
     const f=window.fetch.bind(window);
     const folder=await ensureFolder(f,tok,store.get('drive.folder',null));store.set('drive.folder',folder);
+    try{await uploadCycle(tok)}catch(e){}
     let id=store.get('oura.file',null)||await findFile(f,tok,folder,OURA_FILE);
     if(!id)id=await createJson(f,tok,folder,OURA_FILE,{});
     store.set('oura.file',id);
@@ -1102,11 +1127,17 @@ async function ouraRefresh(interactive){
 $('todayBox').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   if(b.dataset.act==='todayRefresh'){ouraRefresh(true);return}
+  if(b.dataset.act==='periodStart'){
+    if(!b.dataset.armed){b.dataset.armed='1';b.textContent=t('cycle.startConfirm');setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent=t('cycle.start')}},4000);return}
+    const d=today();store.set('cycle',[...new Set([...store.get('cycle',[]),d])].sort());store.set('cyclePending',[...new Set([...store.get('cyclePending',[]),d])]);
+    const tk=store.get('drive.token',null);if(driveOn()&&tokenValid(tk))uploadCycle(tk.access_token).catch(()=>{});
+    renderPlan();return}
+  if(b.dataset.act==='periodUndo'){const d=today();store.set('cycle',store.get('cycle',[]).filter(x=>x!==d));store.set('cyclePending',store.get('cyclePending',[]).filter(x=>x!==d));renderPlan();return}
   if(b.dataset.act==='todaySee'){document.querySelector('#dayTabs')?.scrollIntoView({block:'start',behavior:'smooth'});return}
   if(b.dataset.act==='todayAsk'){
     const c=P.todayCtx||{};const last=(store.get('workouts',[])).slice(-1)[0];
     const lastTxt=last&&P.plan?(()=>{const d=P.plan.days.find(x=>x.id===last.dayId);return d?`${last.date.slice(5).replace('-','/')} ${dayTab(d)}`:''})():'';
-    const text=claudePrompt({date:today(),day:c.day,rec:c.rec,dayName:c.dayName,last:lastTxt});
+    const text=claudePrompt({date:today(),day:c.day,rec:c.rec,dayName:c.dayName,last:lastTxt,cycle:c.cycle||cycleNow()});
     try{navigator.clipboard&&navigator.clipboard.writeText(text)}catch(err){}
     window.open('https://claude.ai/new','_blank'); // 同一次点击里打开，iPhone 才不会拦
     P.ouraMsg=t('today.copied');renderPlan();
@@ -1303,7 +1334,7 @@ $('restSkip').onclick=stopRest;
 function exSummary(s){
   const out=[];
   for(const [id,sets] of Object.entries(s.sets||{})){const ex=findEx(id);if(!ex||!sets.length)continue;const u=setDefaults(ex).unit;
-    const nx=suggestNext(ex,sets);
+    const nx=suggestNext(ex,sets,undefined,{noIncrease:(cycleNow()||{}).phase==='pms'});
     out.push({id,ex,sets,next:nx&&nx.text,line:sets.map(x=>`${x.warm?t('log.warmTag')+' ':''}${wTxt(u,x.w)} × ${fmtN(x.r)}${x.feel?' '+feelById(x.feel).emoji:''}`).join(' · ')})}
   return out;
 }

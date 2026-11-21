@@ -170,7 +170,7 @@ export const restSeconds = ex => (ex && ex.load && (ex.load.kind === 'barbell' |
    - 组数没做完、有一组"做不完"、或次数没到下限 → 保持
    - 正式组都做到上限、感受都是轻松或刚好 → 加重（级别：试更难一级）；计划写了不加重 → 保持
    - 其他 → 保持重量，争取多做 1 次 */
-export function suggestNext(ex, done, plan = setDefaults(ex)) {
+export function suggestNext(ex, done, plan = setDefaults(ex), {noIncrease = false} = {}) {
   const work = (done || []).filter(x => !x.warm && x.r != null);
   if (!work.length) return null;
   const tgt = plan.sets.filter(x => !x.warm);
@@ -188,6 +188,8 @@ export function suggestNext(ex, done, plan = setDefaults(ex)) {
   const allOk = work.every(x => x.feel === 'easy' || x.feel === 'ok');
   if (allTop && allOk) {
     if (/不加重|不再加重|不追重量|不变|就停/.test(String(ex && ex.target))) return {kind: 'keep', text: t('next.keep', {w: held})};
+    // 经前一周（「吃练计划」的规则）：感觉轻松也先不加重
+    if (noIncrease) return {kind: 'keep', text: t('next.keepPms', {w: held})};
     if (unit === 'level') return {kind: 'up', text: t('next.levelUp')};
     if (wTop == null) return {kind: 'up', text: t('next.upNoW')};
     return {kind: 'up', w: wTop + step, text: t('next.up', {w: fmt(wTop + step)})};
