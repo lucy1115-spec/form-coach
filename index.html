@@ -839,7 +839,9 @@ async function saveSet(){
     store.set('lastSet.'+S.preset.id,{weight,rir});
     L.savedId='s'+Date.now();
     const note=formNote(L.summary)+(L.ai&&L.ai.speech?t('note.ai',{text:L.ai.speech}):'');
-    log.push({id:L.savedId,date:today(),exercise:S.preset.name,reps:L.summary.n,weight_lb:weight,rir,note,at:new Date().toISOString(),exported:false});
+    // 动作名、训练日和计划一致（中文）：计划里有同 id 的动作就用计划的名字，否则用预设的中文名
+    const pd=P.plan&&P.plan.days.find(d=>d.exercises.some(e=>e.id===S.preset.id)),pe=pd&&pd.exercises.find(e=>e.id===S.preset.id);
+    log.push({id:L.savedId,date:today(),session:pd?pd.name:'',exercise:pe?pe.name:S.preset.zh,reps:L.summary.n,weight_lb:weight,rir,note,at:new Date().toISOString(),exported:false});
     store.set('log',log);
   }
   const rec=log.find(r=>r.id===L.savedId);
