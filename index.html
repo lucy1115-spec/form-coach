@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="theme-color" content="#F0E9E6">
+<meta name="theme-color" content="#F8F3F1">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Form Coach</title>
 <style>
@@ -10,9 +10,19 @@
    要配人脸 emoji，暖色浅底最衬）。之前试过墨绿 + 奶油（app 提交 d63c044）、炭黑 + 香槟金（8f80de0）。
    字体用 iPhone 系统字体（SF / 苹方）。只用浅色。 */
 :root{
-  --bg:#F0E9E6; --surface:#FBF7F5; --sunk:#EFE6E3; --ink:#3A2F2F; --muted:#86797A; --line:rgba(58,47,47,.10);
-  --accent:#A27877; --accent-ink:#FFFFFF; --accent-soft:#EFDCDA; --good:#6E8268; --warn:#A8823C; --bad:#B0574A;
-  --good-bg:#E4EADF; --warn-bg:#F3E9D6; --bad-bg:#F4E0DC; --stage:#2B2523;
+  --bg:#F8F3F1; --surface:#FFFFFF; --sunk:#F5EFEC; --ink:#3A2F2F; --muted:#6E6162; --line:rgba(58,47,47,.08);
+  --accent:#8B6261; --accent-ink:#FFFFFF; --accent-soft:#F2E3E1; --good:#4C5E47; --warn:#7A5C22; --bad:#9A4A3E;
+  --good-bg:#E4ECDF; --warn-bg:#F6ECD9; --bad-bg:#F6E2DE; --stage:#2B2523;
+  /* 质感（11/21 用户确认第二版效果图）：光从左上方来；背景三团柔光；浮在上面的用磨砂玻璃；
+     要按的凸起（顶边高光 + 轻影），放数值的凹进去（内阴影）。阴影都很轻 */
+  --lift:inset 0 1px 0 #fff,0 0 0 .5px rgba(110,70,65,.06),0 1px 2px rgba(110,70,65,.05),0 8px 22px rgba(110,70,65,.06);
+  --raise:inset 0 1px 0 #fff,0 0 0 .5px rgba(110,70,65,.09),0 1px 2px rgba(110,70,65,.07),0 3px 8px rgba(110,70,65,.05);
+  --press:inset 0 1px 2px rgba(110,70,65,.12),0 0 0 .5px rgba(110,70,65,.09);
+  --inset:inset 0 1px 2px rgba(110,70,65,.09);
+  --glass-bg:linear-gradient(180deg,rgba(255,255,255,.58),rgba(255,255,255,.34));
+  --glass-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 1px 1px rgba(110,70,65,.04),0 12px 32px rgba(110,70,65,.09);
+  --primary-bg:linear-gradient(180deg,#926867 0%,#815958 100%);
+  --primary-shadow:inset 0 1px 0 rgba(255,255,255,.26),0 1px 2px rgba(110,60,58,.18),0 6px 14px rgba(139,98,97,.20);
   --f-display:-apple-system,"SF Pro Display","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;
   --f-body:-apple-system,"SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;
   --r:20px; --shadow:0 1px 1px rgba(58,47,47,.04),0 10px 28px rgba(120,80,75,.08);
@@ -300,6 +310,80 @@ body.resting{padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))}
 #endSheet .acts{display:flex;flex-direction:column;gap:10px;margin-top:6px}
 .vid-ok{color:var(--good);font-weight:600}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* ===== 材质层（11/21）：柔光背景、磨砂玻璃、凸起和凹槽。放最后，覆盖前面的规则 ===== */
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(55% 40% at 0% 0%,rgba(235,195,192,.75),rgba(235,195,192,0) 70%),
+    radial-gradient(45% 35% at 100% 28%,rgba(207,221,200,.7),rgba(207,221,200,0) 70%),
+    radial-gradient(60% 40% at 15% 100%,rgba(243,214,194,.6),rgba(243,214,194,0) 70%)}
+/* 浮在上面的：磨砂玻璃 */
+.today .tcard,#restBar,#endSheet .sheet{background:var(--glass-bg);-webkit-backdrop-filter:blur(26px) saturate(1.6);backdrop-filter:blur(26px) saturate(1.6);
+  border:1px solid rgba(255,255,255,.85);box-shadow:var(--glass-shadow)}
+#endSheet{background:rgba(58,47,47,.22)}
+#endSheet .sheet{background:linear-gradient(180deg,rgba(255,255,255,.86),rgba(255,255,255,.74))}
+#restBar{color:var(--ink)}
+#restBar .k{color:var(--muted)}
+#restBar button{background:rgba(255,255,255,.68);color:var(--ink);box-shadow:var(--raise)}
+#restBar .bar{background:var(--accent);opacity:.5}
+/* 实色卡片：白，顶边高光，很轻的分层阴影 */
+.ex,.panel,.timebar,#planView details.principles,#planView .drivebox,.exrows,details.skipped,.banner,.alldone{background:linear-gradient(180deg,#FFFFFF 0%,#FCF9F8 100%);border:0;box-shadow:var(--lift)}
+.banner{background:linear-gradient(180deg,#FBF4E6,#F6ECD9)}
+/* 凸起的按钮 */
+.bigbtn,#dayTabs button,.timebar .chips button,.feel .opts button,.stp button,.exrow,.langpill button[aria-selected="true"]{border:0;background:linear-gradient(180deg,#FFFFFF,#FAF6F4);box-shadow:var(--raise);transition:transform .08s,box-shadow .08s}
+.bigbtn:active,#dayTabs button:active,.timebar .chips button:active,.feel .opts button:active,.stp button:active,.exrow:active{transform:translateY(1px);box-shadow:var(--press);opacity:1}
+.bigbtn.primary,#dayTabs button[aria-selected="true"],.timebar .chips button[aria-pressed="true"],.endbtn{background:var(--primary-bg);color:#fff;box-shadow:var(--primary-shadow)}
+.bigbtn.primary:active,#dayTabs button[aria-selected="true"]:active{box-shadow:inset 0 1px 3px rgba(60,30,30,.3)}
+.endbtn{border:0}
+.bigbtn.ghost{background:rgba(255,255,255,.45);box-shadow:inset 0 0 0 1px rgba(110,70,65,.14);color:var(--muted)}
+.today .tbtns .bigbtn:not(.primary),.today .tperiodbtn{background:rgba(255,255,255,.7)}
+/* 凹进去的：记录托盘、数值、小标签、进度条 */
+.ex-log{background:var(--sunk);box-shadow:var(--inset)}
+.stp{background:transparent;border:0;padding:0 2px 0 6px}
+.stp b{display:flex;align-items:center;justify-content:center;height:56px;border-radius:13px;background:#FBF8F6;box-shadow:var(--inset)}
+.feel{background:rgba(255,255,255,.6);border:0;box-shadow:var(--inset)}
+.today .chips span{background:rgba(255,255,255,.62);box-shadow:inset 0 0 0 .5px rgba(110,70,65,.1)}
+.today .tphase{background:rgba(255,255,255,.5);box-shadow:inset 0 0 0 .5px rgba(139,98,97,.14)}
+.today .tphase b{color:var(--accent)}
+/* 字：最小 14 号，去掉全大写、拉开字距的小标签（设计点评） */
+.brand .date{font-size:14px;letter-spacing:0;text-transform:none;font-weight:500}
+.ex .k,.lg-h .k{font-size:14px;letter-spacing:0;text-transform:none;font-weight:500;color:var(--muted)}
+.today .tfoot,.today .tphase span,.feel .opts button{font-size:14px}
+.today .tref{min-height:44px}
+.today .pill,.lg-rows .i,.lg-hint,.lg-rows small,.ex details p b{font-size:14px;letter-spacing:0;text-transform:none}
+/* 只用"今天"这一页时，卡片上已经有"早上好"，顶部不再重复大标题 */
+body.plan-mode:has(#todayBox .today) #pageTitle{display:none}
+/* B 版：进度、当前动作、接下来 / 已完成清单 */
+#planView .dayhead{margin:26px 4px 14px}
+#planView .dayhead h2{font-size:28px}
+details.daynotes{margin-top:8px}
+details.daynotes summary{list-style:none;cursor:pointer;font-size:15px;color:var(--muted);min-height:40px;display:flex;align-items:center}
+details.daynotes summary::-webkit-details-marker{display:none}
+details.daynotes summary::after{content:"";width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin-left:10px;margin-top:-4px}
+details.daynotes ul{margin:6px 0 0}
+details.timebar{padding:0 16px;margin:0 0 16px}
+details.timebar>summary{list-style:none;cursor:pointer;min-height:56px;display:flex;justify-content:space-between;align-items:center;font-size:16px;font-weight:600}
+details.timebar>summary::-webkit-details-marker{display:none}
+details.timebar>summary span{color:var(--muted);font-weight:500}
+details.timebar[open]{padding-bottom:14px}
+.dayprog{display:flex;justify-content:space-between;font-size:15px;color:var(--muted);margin:4px 4px 8px}
+.pbar{height:6px;border-radius:3px;background:rgba(255,255,255,.7);box-shadow:inset 0 0 0 .5px rgba(110,70,65,.12);margin:0 4px 16px;overflow:hidden}
+.pbar i{display:block;height:100%;border-radius:3px;background:var(--accent);transition:width .3s}
+.ex.focus{scroll-margin-top:16px}
+.ex-actions.two{grid-template-columns:1fr 1fr}
+.ex-actions.two [data-say]{grid-column:auto}
+.ex-actions.two .bigbtn svg{width:19px;height:19px}
+.ex details.more>summary{min-height:52px;font-size:15px;color:var(--muted);font-weight:500}
+.ex details.more>.ex-actions{padding-bottom:14px}
+.listh{font-size:15px;font-weight:600;color:var(--muted);margin:22px 4px 8px}
+.exrows{border-radius:20px;padding:6px;display:flex;flex-direction:column;gap:6px}
+.exrow{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;min-height:56px;padding:0 16px;border-radius:14px;text-align:left;font-size:17px;font-weight:550;color:var(--ink)}
+.exrow .nm{grid-column:2}.exrow:not(.done) .nm{grid-column:1/3}
+.exrow .mt{font-size:15px;font-weight:500;color:var(--muted);white-space:nowrap}
+.exrow.done{color:var(--muted)}
+.exrow .ck{width:24px;height:24px;border-radius:50%;background:var(--good-bg);color:var(--good);display:flex;align-items:center;justify-content:center}
+.exrow .ck svg{width:15px;height:15px}
+.alldone{border-radius:20px;padding:20px;font-size:17px;line-height:1.5}
+details.skipped{padding:4px 6px 6px;border-radius:20px}
+details.skipped>summary{padding:0 10px}
 </style>
 </head>
 <body>
@@ -1017,8 +1101,25 @@ function renderPlan(){
   const s0=ses(),tmin=((s0.time||{})[day.id])||null;
   const trim=trimForTime(mains,tmin,Object.keys(s0.sets||{}));
   const kept=mains.filter(ex=>!trim.skip.includes(ex.id)),skipped=mains.filter(ex=>trim.skip.includes(ex.id));
-  const timebar=`<div class="timebar"><span class="k">${t('plan.timeQ')}</span><div class="chips">${[null,30,40].map(m=>`<button data-act="time" data-min="${m||''}" aria-pressed="${(m||null)===tmin}">${m?t('plan.timeMin',{n:m}):t('plan.timeAll')}</button>`).join('')}</div>
-    ${tmin?`<p class="tnote">${esc(t('plan.timeFit',{total:trim.total,full:trim.full}))}${skipped.length?' '+esc(t('plan.timeSkip',{n:skipped.length})):''}</p>`:''}</div>`;
+  const timebar=`<details class="timebar"${tmin?' open':''}><summary>${t('plan.timeQ')}<span>${tmin?t('plan.timeMin',{n:tmin}):t('plan.timeAll')}</span></summary><div class="chips">${[null,30,40].map(m=>`<button data-act="time" data-min="${m||''}" aria-pressed="${(m||null)===tmin}">${m?t('plan.timeMin',{n:m}):t('plan.timeAll')}</button>`).join('')}</div>
+    ${tmin?`<p class="tnote">${esc(t('plan.timeFit',{total:trim.total,full:trim.full}))}${skipped.length?' '+esc(t('plan.timeSkip',{n:skipped.length})):''}</p>`:''}</details>`;
+  // B 版（11/21 用户选的）：只放大正在做的那个动作，其余是"接下来""已完成"清单，点一下切过去
+  const items=kept.map(ex=>({ex,from:null})).concat(extras.map(x=>({ex:eff(x.ex),from:x.day})));
+  const allItems=items.concat(skipped.map(ex=>({ex,from:null,skipped:true})));
+  const total=ex=>setDefaults(ex).sets.length,doneN=ex=>((s0.sets||{})[ex.id]||[]).length,finished=ex=>doneN(ex)>=total(ex);
+  if(P.focusDay!==day.id){P.focusDay=day.id;P.focus=null}
+  let cur=allItems.find(x=>x.ex.id===P.focus)||items.find(x=>!finished(x.ex))||null;
+  const nItems=items.length,nDone=items.filter(x=>finished(x.ex)).length;
+  const pos=cur?Math.max(1,items.findIndex(x=>x.ex.id===cur.ex.id)+1):nItems;
+  const feelsOf=ex=>((s0.sets||{})[ex.id]||[]).filter(x=>x.feel&&!x.warm).map(x=>feelById(x.feel).emoji).join('');
+  const row=(x,kind)=>`<button class="exrow${kind==='done'?' done':''}" data-act="focus" data-ex="${esc(x.ex.id)}">${kind==='done'?`<span class="ck">${ICON.check}</span>`:''}<span class="nm">${esc(loc(x.ex,'name').replace(/[（(](热身|warm-up)[）)]/i,'').trim())}</span><span class="mt">${kind==='done'?feelsOf(x.ex)||t('log.progress',{done:doneN(x.ex),total:total(x.ex)}):doneN(x.ex)?t('log.progress',{done:doneN(x.ex),total:total(x.ex)}):t('plan.sets',{n:total(x.ex)})}</span></button>`;
+  const upNext=items.filter(x=>!finished(x.ex)&&(!cur||x.ex.id!==cur.ex.id)),doneList=items.filter(x=>finished(x.ex)&&(!cur||x.ex.id!==cur.ex.id));
+  const focusHtml=`<div class="dayprog"><span>${esc(t('plan.progress',{n:pos,m:nItems}))}</span>${day.minutes?`<span>${esc(t('plan.minutes',{n:day.minutes}))}</span>`:''}</div>
+    <div class="pbar"><i style="width:${nItems?Math.round(100*nDone/nItems):0}%"></i></div>
+    ${cur?exCard(cur.ex,num[cur.ex.id],plan,cur.from,{focus:true,finished:finished(cur.ex)}):`<div class="alldone">${t('plan.allDone')}</div>`}
+    ${upNext.length?`<h3 class="listh">${t('plan.upNext')}</h3><div class="exrows">${upNext.map(x=>row(x,'next')).join('')}</div>`:''}
+    ${skipped.filter(ex=>!cur||ex.id!==cur.ex.id).length?`<details class="skipped"><summary>${esc(t('plan.skipped',{n:skipped.length}))}</summary><div class="exrows">${skipped.filter(ex=>!cur||ex.id!==cur.ex.id).map(ex=>row({ex},'next')).join('')}</div></details>`:''}
+    ${doneList.length?`<h3 class="listh">${t('plan.doneList')}</h3><div class="exrows">${doneList.map(x=>row(x,'done')).join('')}</div>`:''}`;
   const notes=loc(day,'notes')||[], principles=planPrinciples(plan);
   const meta=[day.minutes?t('plan.minutes',{n:day.minutes}):'',t('plan.count',{n:day.exercises.length})].filter(Boolean).join(' · ');
   const lastDay=pk.last&&plan.days.find(d=>d.id===pk.last.dayId),md=x=>x.slice(5).replace('-','/');
@@ -1026,11 +1127,10 @@ function renderPlan(){
   // 两次力量训练至少隔 48 小时（用户的规则）
   const gap=pk.gapHours!=null&&pk.gapHours<48&&lastDay?`<div class="banner">${esc(t('plan.gap',{day:dayTab(lastDay),h:Math.max(1,Math.round(pk.gapHours))}))}</div>`:'';
   const ouraRow=renderToday(day,pk);
-  body.innerHTML=pendingBanner()+(ouraRow?'':gap)+`<div class="dayhead"><span class="meta">${esc(meta)}</span><h2>${esc(dayTitle(day))}</h2>${rot}
-    ${notes.length?`<ul>${notes.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div>
+  body.innerHTML=pendingBanner()+(ouraRow?'':gap)+`<div class="dayhead"><h2>${esc(dayTitle(day))}</h2>${rot}
+    ${notes.length?`<details class="daynotes"><summary>${t('plan.dayNotes')}</summary><ul>${notes.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}</div>
     ${timebar}
-    <div class="exlist">${kept.map(ex=>exCard(ex,num[ex.id],plan)).join('')}${extras.map(x=>exCard(eff(x.ex),num[x.ex.id],plan,x.day)).join('')}</div>
-    ${skipped.length?`<details class="skipped"><summary>${esc(t('plan.skipped',{n:skipped.length}))}</summary><div class="exlist">${skipped.map(ex=>exCard(ex,num[ex.id],plan)).join('')}</div></details>`:''}
+    ${focusHtml}
     ${addBlock(plan,day,extras)}
     <button class="bigbtn endbtn" data-act="end">${t('end.btn')}</button>
     ${principles.length?`<details class="principles"><summary>${t('plan.principles')}</summary><ul>${principles.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}`;
@@ -1141,7 +1241,7 @@ $('todayBox').addEventListener('click',e=>{
     const tk=store.get('drive.token',null);if(driveOn()&&tokenValid(tk))uploadCycle(tk.access_token).catch(()=>{});
     renderPlan();return}
   if(b.dataset.act==='periodUndo'){const d=today();store.set('cycle',store.get('cycle',[]).filter(x=>x!==d));store.set('cyclePending',store.get('cyclePending',[]).filter(x=>x!==d));renderPlan();return}
-  if(b.dataset.act==='todaySee'){document.querySelector('#dayTabs')?.scrollIntoView({block:'start',behavior:'smooth'});return}
+  if(b.dataset.act==='todaySee'){(document.querySelector('#planBody .ex.focus')||document.querySelector('#dayTabs'))?.scrollIntoView({block:'start',behavior:'smooth'});return}
   if(b.dataset.act==='todayAsk'){
     const c=P.todayCtx||{};const last=(store.get('workouts',[])).slice(-1)[0];
     const lastTxt=last&&P.plan?(()=>{const d=P.plan.days.find(x=>x.id===last.dayId);return d?`${last.date.slice(5).replace('-','/')} ${dayTab(d)}`:''})():'';
@@ -1158,10 +1258,12 @@ const ICON={
   stop:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
   play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>',
   link:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+  next:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>',
   refresh:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>',
   swap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4 3 8l4 4"/><path d="M3 8h14"/><path d="m17 20 4-4-4-4"/><path d="M21 16H7"/></svg>'};
 function sayIdle(){clearInterval(P.sayTimer);document.querySelectorAll('[data-say][data-on]').forEach(b=>{delete b.dataset.on;b.innerHTML=ICON.say+`<span>${t('plan.say')}</span>`})}
-function exCard(ex,num,plan,fromDay){
+function exCard(ex,num,plan,fromDay,opt={}){
   const f=k=>loc(ex,k);
   const loads=loadLines(ex.load,plan.plates);
   const multi=(ex.videos||[]).length>1, vnum=v=>multi?v.replace(/\D/g,''):'';
@@ -1188,15 +1290,15 @@ function exCard(ex,num,plan,fromDay){
   const swapBox=P.swapOpen===ex.id&&noSets&&!ex.swapped?`<div class="swapbox"><p class="note">${opts.length?t('plan.swapTo'):t('plan.swapNone')}</p>
     ${opts.map((o,i)=>`<button class="bigbtn" data-act="swapTo" data-i="${i}" data-ex="${esc(ex.id)}"><b>${esc(loc(o,'name'))}</b>${loc(o,'target')?`<small>${esc(loc(o,'target'))}</small>`:''}</button>`).join('')}
     <div class="swaprow"><input type="text" id="swapname-${esc(ex.id)}" placeholder="${esc(t('plan.swapCustomPh'))}" enterkeyhint="done"><button class="bigbtn primary" data-act="swapCustom" data-ex="${esc(ex.id)}">${t('plan.swapGo')}</button></div></div>`:'';
-  return `<article class="ex" id="ex-${esc(ex.id)}">
+  return `<article class="ex${opt.focus?' focus':''}" id="ex-${esc(ex.id)}">
     <div class="ex-h"><span class="n">${num?String(num).padStart(2,'0'):t('plan.warm')}</span><h3 class="name">${esc(f('name').replace(/[（(](热身|warm-up)[）)]/i,'').trim())}</h3>${tags.length?`<div class="tags">${tags.map(x=>`<span>${esc(x)}</span>`).join('')}</div>`:''}</div>
     ${f('target')?`<div class="ex-target"><span class="k">${t('plan.target')}</span><span class="v">${esc(f('target'))}</span></div>`:''}
     ${loads.length?`<div class="ex-load"><span class="k">${esc(plateHead)}</span>${plateRows.map(r=>`<div class="pl"><span class="tot">${esc(r.a)}</span><span class="side">${r.b?`<small>${perSide}</small> ${esc(r.b)}`:''}</span></div>`).join('')}</div>`:''}
     ${f('last')?`<p class="last">${esc(t('plan.last',{text:f('last')}))}</p>`:''}
     ${logBlock(ex,plan)}
     ${fromDay&&!(ses().sets[ex.id]||[]).length?`<button class="bigbtn ghost" data-act="unextra" data-ex="${esc(ex.id)}">${t('plan.removeExtra')}</button>`:''}
-    <div class="ex-actions"><button class="bigbtn" data-say="${esc(ex.id)}">${ICON.say}<span>${t('plan.say')}</span></button>${swapBtn}${ex.swapped?'':vids+addedBtns+addBtn}</div>
-    ${swapBox}
+    <div class="ex-actions two"><button class="bigbtn" data-say="${esc(ex.id)}">${ICON.say}<span>${t('plan.say')}</span></button>${opt.focus?`<button class="bigbtn${opt.finished?' primary':''}" data-act="next" data-ex="${esc(ex.id)}"><span>${t('plan.next')}</span>${ICON.next}</button>`:''}</div>
+    <details class="more"${P.swapOpen===ex.id?' open':''}><summary>${t('plan.more')}</summary><div class="ex-actions">${swapBtn}${ex.swapped?'':vids+addedBtns+addBtn}</div>${swapBox}</details>
     <div class="ex-video" hidden></div>
     ${detail?`<details><summary>${t('plan.details')}</summary>${detail}</details>`:''}
   </article>`;
@@ -1270,10 +1372,17 @@ function rawEx(id){for(const d of (P.plan?P.plan.days:[])){const e=d.exercises.f
 /* 今天换过的动作（fm.session.swap[动作 id] = {name, target, en}）用替代动作；其他照计划 */
 function eff(ex){const sw=ex&&(ses().swap||{})[ex.id];return sw?swapExercise(ex,sw):ex}
 function findEx(id){const e=rawEx(id);return e?eff(e):null}
-function rerenderLog(id){const el=document.querySelector(`[data-log="${CSS.escape(id)}"]`),ex=findEx(id);if(el&&ex)el.outerHTML=logBlock(ex,P.plan)}
+function rerenderLog(id){const el=document.querySelector(`[data-log="${CSS.escape(id)}"]`),ex=findEx(id);if(el&&ex){el.outerHTML=logBlock(ex,P.plan);/* 组数做满后，"下一个"变成主按钮 */const nb=document.querySelector(`#ex-${CSS.escape(id)} [data-act="next"]`);if(nb)nb.classList.toggle("primary",(ses().sets[id]||[]).length>=setDefaults(ex).sets.length)}}
 $('planBody').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;const act=b.dataset.act,id=b.dataset.ex,ex=id&&findEx(id);
   if(act==='end'){openEnd();return}
+  if(act==='focus'){P.focus=id;renderPlan();document.querySelector('#planBody .ex.focus')?.scrollIntoView({block:'start',behavior:'smooth'});return}
+  if(act==='next'){
+    // 下一个：按顺序找下一个还没做完的动作（到最后就从头找）
+    const day=P.plan.days.find(d=>d.id===P.day),order=day.exercises.map(e=>e.id).concat(((ses().extra||{})[P.day])||[]);
+    const s=ses(),left=order.filter(x=>{const e=findEx(x);return e&&((s.sets[x]||[]).length<setDefaults(e).sets.length)&&x!==id});
+    const after=left.filter(x=>order.indexOf(x)>order.indexOf(id));P.focus=(after[0]||left[0]||null);
+    renderPlan();document.querySelector('#planBody .ex.focus, #planBody .alldone')?.scrollIntoView({block:'start',behavior:'smooth'});return}
   if(act==='time'){const s=ses();s.time=s.time||{};s.time[P.day]=Number(b.dataset.min)||null;store.set('session',s);renderPlan();return}
   // 记过组就不能再换（换了记录会对不上）
   if(['swapOpen','swapTo','swapCustom','unswap'].includes(act)&&(ses().sets[id]||[]).length){P.swapOpen=null;renderPlan();return}
