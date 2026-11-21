@@ -254,6 +254,15 @@ body.plan-mode .tabbar{display:none}
 .today .tbtns .bigbtn{min-height:58px}
 .today .tphase{background:var(--accent-soft);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
 .today .tphase .ph{display:flex;align-items:baseline;gap:8px}
+.today details.tphase>summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.today details.tphase>summary::-webkit-details-marker{display:none}
+.today .tphase .chev{margin-left:auto;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg) translateY(-3px);opacity:.7}
+.today details.tphase[open] .chev{transform:rotate(-135deg)}
+.today .ptools{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(110,70,65,.1);font-size:14px;color:var(--muted)}
+.today .ptools .tref{padding:0}
+.today .pdate{display:inline-flex;align-items:center;gap:6px;min-height:44px;font-weight:600;cursor:pointer}
+.today .pdate input{font-size:14px;border:0;background:rgba(255,255,255,.7);border-radius:10px;padding:6px 8px;color:var(--ink);box-shadow:var(--inset)}
+.today .plast{flex-basis:100%;font-size:14px}
 .today .tphase b{font-size:17px;font-weight:700;color:var(--ink)}
 .today .tphase span{font-size:13px;color:var(--muted)}
 .today .tphase p{margin:0;font-size:15px;line-height:1.5;color:var(--ink)}
@@ -378,6 +387,11 @@ details.timebar[open]{padding-bottom:14px}
 .exrows{border-radius:20px;padding:6px;display:flex;flex-direction:column;gap:6px}
 .exrow{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;min-height:56px;padding:0 16px;border-radius:14px;text-align:left;font-size:17px;font-weight:550;color:var(--ink)}
 .exrow .nm{grid-column:2}.exrow:not(.done) .nm{grid-column:1/3}
+.exrow{grid-template-columns:auto 1fr auto 18px}
+.exrow .go{color:var(--muted);display:flex}.exrow .go svg{width:18px;height:18px}
+.exrow.done .go{opacity:.5}
+.listh{display:flex;justify-content:space-between;align-items:baseline}
+.listh small{font-size:14px;font-weight:500;color:var(--muted)}
 .exrow .mt{font-size:15px;font-weight:500;color:var(--muted);white-space:nowrap}
 .exrow.done{color:var(--muted)}
 .exrow .ck{width:24px;height:24px;border-radius:50%;background:var(--good-bg);color:var(--good);display:flex;align-items:center;justify-content:center}
@@ -1114,12 +1128,12 @@ function renderPlan(){
   const nItems=items.length,nDone=items.filter(x=>finished(x.ex)).length;
   const pos=cur?Math.max(1,items.findIndex(x=>x.ex.id===cur.ex.id)+1):nItems;
   const feelsOf=ex=>((s0.sets||{})[ex.id]||[]).filter(x=>x.feel&&!x.warm).map(x=>feelById(x.feel).emoji).join('');
-  const row=(x,kind)=>`<button class="exrow${kind==='done'?' done':''}" data-act="focus" data-ex="${esc(x.ex.id)}">${kind==='done'?`<span class="ck">${ICON.check}</span>`:''}<span class="nm">${esc(loc(x.ex,'name').replace(/[（(](热身|warm-up)[）)]/i,'').trim())}</span><span class="mt">${kind==='done'?feelsOf(x.ex)||t('log.progress',{done:doneN(x.ex),total:total(x.ex)}):doneN(x.ex)?t('log.progress',{done:doneN(x.ex),total:total(x.ex)}):t('plan.sets',{n:total(x.ex)})}</span></button>`;
+  const row=(x,kind)=>`<button class="exrow${kind==='done'?' done':''}" data-act="focus" data-ex="${esc(x.ex.id)}">${kind==='done'?`<span class="ck">${ICON.check}</span>`:''}<span class="nm">${esc(loc(x.ex,'name').replace(/[（(](热身|warm-up)[）)]/i,'').trim())}</span><span class="mt">${kind==='done'?feelsOf(x.ex)||t('log.progress',{done:doneN(x.ex),total:total(x.ex)}):doneN(x.ex)?t('log.progress',{done:doneN(x.ex),total:total(x.ex)}):t('plan.sets',{n:total(x.ex)})}</span><span class="go">${ICON.chev}</span></button>`;
   const upNext=items.filter(x=>!finished(x.ex)&&(!cur||x.ex.id!==cur.ex.id)),doneList=items.filter(x=>finished(x.ex)&&(!cur||x.ex.id!==cur.ex.id));
   const focusHtml=`<div class="dayprog"><span>${esc(t('plan.progress',{n:pos,m:nItems}))}</span>${day.minutes?`<span>${esc(t('plan.minutes',{n:day.minutes}))}</span>`:''}</div>
     <div class="pbar"><i style="width:${nItems?Math.round(100*nDone/nItems):0}%"></i></div>
     ${cur?exCard(cur.ex,num[cur.ex.id],plan,cur.from,{focus:true,finished:finished(cur.ex)}):`<div class="alldone">${t('plan.allDone')}</div>`}
-    ${upNext.length?`<h3 class="listh">${t('plan.upNext')}</h3><div class="exrows">${upNext.map(x=>row(x,'next')).join('')}</div>`:''}
+    ${upNext.length?`<h3 class="listh">${t('plan.upNext')}<small>${t('plan.pickHint')}</small></h3><div class="exrows">${upNext.map(x=>row(x,'next')).join('')}</div>`:''}
     ${skipped.filter(ex=>!cur||ex.id!==cur.ex.id).length?`<details class="skipped"><summary>${esc(t('plan.skipped',{n:skipped.length}))}</summary><div class="exrows">${skipped.filter(ex=>!cur||ex.id!==cur.ex.id).map(ex=>row({ex},'next')).join('')}</div></details>`:''}
     ${doneList.length?`<h3 class="listh">${t('plan.doneList')}</h3><div class="exrows">${doneList.map(x=>row(x,'done')).join('')}</div>`:''}`;
   const notes=loc(day,'notes')||[], principles=planPrinciples(plan);
@@ -1189,7 +1203,8 @@ function renderToday(day,pk){
   const chips=[t('today.chip.r',{n:row.readiness}),row.total_sleep_min!=null?t('today.chip.sleep',{s:fmtSleep(row.total_sleep_min)}):'',row.avg_hrv!=null?t('today.chip.hrv',{n:row.avg_hrv}):'',
     row.temp_deviation!=null?t('today.chip.temp',{n:(row.temp_deviation>0?'+':'')+row.temp_deviation}):''].filter(Boolean);
   // 周期：阶段名最显眼，下面一句写这个阶段对训练的影响（11/21 用户要求，比"第几天"有用）
-  const phaseBox=cyc?`<div class="tphase"><div class="ph"><b>${t('cycle.phase.'+cyc.phase)}</b><span>${esc(t('cycle.day',{day:cyc.day})+(cyc.late?' · '+t('cycle.late',{n:cyc.day-cyc.length}):''))}</span></div><p>${esc(t('cycle.effect.'+cyc.phase))}</p></div>`:'';
+  // 11/21 用户："经期开始了"收进这一块，点开才出现（可以选日期），平时看不到
+  const phaseBox=cyc?`<details class="tphase"${P.phaseOpen?' open':''}><summary><div class="ph"><b>${t('cycle.phase.'+cyc.phase)}</b><span>${esc(t('cycle.day',{day:cyc.day})+(cyc.late?' · '+t('cycle.late',{n:cyc.day-cyc.length}):''))}</span><i class="chev"></i></div><p>${esc(t('cycle.effect.'+cyc.phase))}</p></summary>${periodTools()}</details>`:'';
   const upd=data.generated_at?(()=>{try{return new Date(data.generated_at).toLocaleString(isEn()?'en-US':'zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}catch(e){return ''}})():'';
   const note=[row.stale?t('today.stale',{date:row.date.slice(5).replace('-','/')}):'',msg].filter(Boolean).join(' ');
   box.innerHTML=`<div class="today lvl-${rec.level}"><div class="hi">${hi}</div><div class="tcard">
@@ -1200,12 +1215,19 @@ function renderToday(day,pk){
     <div class="chips">${chips.map(c=>`<span>${esc(c)}</span>`).join('')}</div>
     ${note?`<p class="tmsg">${esc(note)}</p>`:''}
     <div class="tbtns"><button class="bigbtn primary" data-act="todayAsk">${t('today.ask')}</button><button class="bigbtn" data-act="todaySee">${t('today.seePlan')}</button></div>
-    <div class="tfoot"><span>${upd?esc(t('today.updated',{t:upd})):''}</span><span class="tacts">${periodBtn(cyc)}${refresh}</span></div>
+    <div class="tfoot"><span>${upd?esc(t('today.updated',{t:upd})):''}</span><span class="tacts">${cyc?'':periodBtn(cyc)}${refresh}</span></div>
   </div></div>`;
   P.todayCtx={day:row,rec,dayName:day?dayTitle(day):'',cycle:cyc};
   return row;
 }
 /* "经期开始了"：今天已经记了就显示"撤销" */
+function periodTools(){
+  const last=(cycleNow()||{}).lastStart||'';
+  const todayIn=store.get('cycle',[]).includes(today());
+  return `<div class="ptools">${todayIn?`<span>${t('cycle.started')}</span><button class="tref" data-act="periodUndo">${t('cycle.undo')}</button>`:`<button class="tref" data-act="periodStart">${t('cycle.start')}</button>`}
+    <label class="pdate">${t('cycle.pick')}<input type="date" data-act="periodDate" max="${today()}" value=""></label>
+    ${last?`<span class="plast">${esc(t('cycle.lastStart',{date:last.slice(5).replace('-','/')}))}</span>`:''}</div>`;
+}
 function periodBtn(c){
   const todayIn=store.get('cycle',[]).includes(today());
   // 11/21 用户：按钮太显眼。改成卡片底部一行小字，和"更新"并排
@@ -1233,6 +1255,15 @@ async function ouraRefresh(interactive){
   }catch(e){P.ouraErr=e.message||String(e);if(e.status===401)store.set('drive.token',null)}
   P.ouraBusy=false;renderPlan();
 }
+/* 选一个以前的日期作为经期开始（比如前天来的，今天才记） */
+$('todayBox').addEventListener('change',e=>{
+  const inp=e.target.closest('[data-act="periodDate"]');if(!inp||!inp.value)return;
+  const d=inp.value;if(d>today())return;
+  store.set('cycle',[...new Set([...store.get('cycle',[]),d])].sort());store.set('cyclePending',[...new Set([...store.get('cyclePending',[]),d])]);
+  const tk=store.get('drive.token',null);if(driveOn()&&tokenValid(tk))uploadCycle(tk.access_token).catch(()=>{});
+  P.phaseOpen=true;P.ouraMsg=t('cycle.saved',{date:d.slice(5).replace('-','/')});renderPlan();
+});
+$('todayBox').addEventListener('toggle',e=>{if(e.target.classList&&e.target.classList.contains('tphase'))P.phaseOpen=e.target.open},true);
 $('todayBox').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   if(b.dataset.act==='todayRefresh'){ouraRefresh(true);return}
@@ -1241,6 +1272,7 @@ $('todayBox').addEventListener('click',e=>{
     const d=today();store.set('cycle',[...new Set([...store.get('cycle',[]),d])].sort());store.set('cyclePending',[...new Set([...store.get('cyclePending',[]),d])]);
     const tk=store.get('drive.token',null);if(driveOn()&&tokenValid(tk))uploadCycle(tk.access_token).catch(()=>{});
     renderPlan();return}
+  if(b.dataset.act==='periodStart'||b.dataset.act==='periodUndo')P.phaseOpen=true;
   if(b.dataset.act==='periodUndo'){const d=today();store.set('cycle',store.get('cycle',[]).filter(x=>x!==d));store.set('cyclePending',store.get('cyclePending',[]).filter(x=>x!==d));renderPlan();return}
   if(b.dataset.act==='todaySee'){(document.querySelector('#planBody .ex.focus')||document.querySelector('#dayTabs'))?.scrollIntoView({block:'start',behavior:'smooth'});return}
   if(b.dataset.act==='todayAsk'){
@@ -1259,6 +1291,7 @@ const ICON={
   stop:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
   play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>',
   link:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  chev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>',
   check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
   next:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>',
   refresh:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>',
