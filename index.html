@@ -947,7 +947,7 @@ function planStatus(msg,cls){setStatus($('planStatus'),msg,cls)}
 const planPrinciples=plan=>(isEn()&&plan.en&&plan.en.principles)||plan.principles||[];
 function renderPlan(){
   const plan=P.plan,body=$('planBody'),tabs=$('dayTabs');
-  if(!plan){tabs.innerHTML='';body.innerHTML=`<div class="panel"><h2>${t('plan.empty')}</h2><p style="margin:0">${t('plan.emptyText')}</p></div>`;$('planAdmin').open=true;renderVideoList();return}
+  if(!plan){tabs.innerHTML='';body.innerHTML=`<div class="panel"><h2>${t('plan.empty')}</h2><p style="margin:0">${t('plan.emptyText')}</p></div>`;$('planAdmin').open=true;renderVideoList();renderDrive();return}
   if(!P.day||!plan.days.some(d=>d.id===P.day))P.day=defaultDayId(plan);
   tabs.innerHTML='';
   for(const d of plan.days){const b=document.createElement('button');b.setAttribute('role','tab');b.textContent=t('plan.dayShort',{name:loc(d,'name'),short:loc(d,'short')});b.setAttribute('aria-selected',d.id===P.day);

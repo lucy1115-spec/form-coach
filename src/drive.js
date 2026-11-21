@@ -6,7 +6,7 @@
 
 // Google Cloud 里建的 OAuth 客户端 ID（Web 应用）。它不是密钥，公开也没关系：
 // 只有 https://lucy1115-spec.github.io 和本地 http://localhost:8080 能用它要授权。
-export const CLIENT_ID = ''; // 用户在 Google Cloud 建好后填上；空着时"连接 Google Drive"不显示，保存照旧用分享菜单
+export const CLIENT_ID = '13880796032-3tqdcb9tfddnfmddssuulcsb1mar1rbc.apps.googleusercontent.com';
 export const SCOPE = 'https://www.googleapis.com/auth/drive.file';
 export const DRIVE_FOLDER = 'Form Coach 记录';
 const API = 'https://www.googleapis.com/drive/v3/files';
