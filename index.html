@@ -279,7 +279,9 @@ body.plan-mode .tabbar{display:none}
 .mchip button{border:0;background:none;font-size:15px;font-weight:550;color:var(--ink);min-height:44px;padding:0 6px 0 12px;display:flex;align-items:center;gap:6px}
 .mchip button:first-child::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--cat,#999)}
 .mchip .sw{padding:0 10px;color:var(--muted);border-left:1px solid var(--line)}.mchip .sw svg{width:17px;height:17px}
-.cat-glute{--cat:#B07A79}.cat-cardio{--cat:#D49A94}.cat-core{--cat:#7F9879}.cat-mine{--cat:#C99A5B}
+.lv-high{--cat:#B0574C}.lv-mid{--cat:#C99A5B}.lv-low{--cat:#7F9879}
+.hlegend{display:flex;gap:16px;font-size:14px;color:var(--muted);margin:0 4px 6px}.hlegend span{display:inline-flex;align-items:center}
+.hlib em.mine{font-style:normal;font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:1px 7px;margin-left:8px;vertical-align:2px}
 i.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cat);margin-right:6px}
 .hbtns{display:grid;grid-template-columns:1.3fr 1fr;gap:10px;margin-top:12px}
 .hdemo{margin-top:10px}
@@ -608,7 +610,7 @@ import {t,setLang,getLang,isEn,loc} from "./src/i18n.js";
 import {CLIENT_ID,SCOPE,DRIVE_FOLDER,OURA_FILE,tokenValid,tokenFrom,ensureFolder,uploadCsv,findFile,createJson,readJson} from "./src/drive.js";
 import {pickToday,recommend,claudePrompt,fmtSleep} from "./src/today.js";
 import {cycleInfo} from "./src/cycle.js";
-import {allMoves,weekKey,buildLineup,swapMove,buildFlow,flowMinutes} from "./src/hiit.js";
+import {allMoves,weekKey,buildLineup,swapMove,buildFlow,flowMinutes,segSlots} from "./src/hiit.js";
 const tr=t; // refFrame/liveFrame 的参数 t 是时间，会遮住 t()，那里用 tr()
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem('fm.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('fm.'+k,JSON.stringify(v))}catch(e){}}};
@@ -1361,11 +1363,13 @@ $('todayBox').addEventListener('click',e=>{
 const moveName=m=>m?(isEn()?(m.en||m.zh):m.zh):'';
 const PHOTO='https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/';
 function hiitState(plan){
-  const moves=allMoves(plan),wk=weekKey(),n=(plan.hiit.segments||[]).filter(g=>!g.noBosu).length;
+  // v2（11/21）：按强度档位排（慢速段高强度、快速段之后恢复）；旧版按部位排的组合重排
+  // 计划改了（档位、自己的动作）也重排：sig 记下排的时候用的档位
+  const moves=allMoves(plan),wk=weekKey(),slots=segSlots(plan.hiit),sig=JSON.stringify([slots,moves.map(m=>m.id+':'+m.level)]);
   let st=store.get('hiit',null);
-  if(!st||st.week!==wk){const pool=st&&st.pool||null,avoid=st&&st.lineup?st.lineup.flat():[];
-    st={week:wk,pool,lineup:buildLineup(moves,{n,pool,seed:wk,avoid}),prev:avoid};store.set('hiit',st)}
-  return {st,moves,n};
+  if(!st||st.week!==wk||st.v!==2||st.sig!==sig){const pool=st&&st.pool||null,avoid=st&&st.week!==wk&&st.lineup?st.lineup.flat():(st&&st.prev)||[];
+    st={v:2,sig,week:wk,pool,lineup:buildLineup(moves,{slots,pool,seed:wk,avoid}),prev:avoid};store.set('hiit',st)}
+  return {st,moves,slots};
 }
 const fmtDur=s=>s>=60?t('hiit.min',{n:Math.round(s/60*10)/10}):t('hiit.sec',{n:s});
 function demoHtml(m){
@@ -1375,7 +1379,7 @@ function demoHtml(m){
   return '';
 }
 function renderHiit(plan,pk){
-  const body=$('planBody'),hp=plan.hiit,{st,moves}=hiitState(plan);
+  const body=$('planBody'),hp=plan.hiit,{st,moves}=hiitState(plan),lvs=['high','mid','low'];
   const ouraRow=renderToday(null,pk,{hiit:hp});void ouraRow;
   const mv=id=>moves.find(m=>m.id===id);
   const runSegs=(hp.segments||[]);
@@ -1384,16 +1388,16 @@ function renderHiit(plan,pk){
   const done=store.get('hiitDone',{})[today()];
   const seg=(g,i)=>{const pair=g.noBosu?[]:(st.lineup[i]||[]);
     const run=g.reps?t('hiit.segReps',{dur:fmtDur(g.sec),speed:g.speed,n:g.reps}):t('hiit.segRun',{dur:fmtDur(g.sec),speed:g.speed});
-    return `<div class="hseg"><span class="hn">${i+1}</span><div><div class="hr">${esc(run)}</div>${pair.length?`<div class="hchips">${pair.map((id,j)=>{const m=mv(id);return `<span class="mchip cat-${m?m.cat:''}"><button data-act="hdemo" data-mv="${esc(id)}">${esc(moveName(m))}</button><button class="sw" data-act="hswap" data-seg="${i}" data-slot="${j}" aria-label="${esc(t('hiit.swap'))}">${ICON.swap}</button></span>`}).join('')}</div>`:''}${P.hiitDemo&&pair.includes(P.hiitDemo)?demoHtml(mv(P.hiitDemo)):''}</div></div>`};
+    return `<div class="hseg"><span class="hn">${i+1}</span><div><div class="hr">${esc(run)}</div>${pair.length?`<div class="hchips">${pair.map((id,j)=>{const m=mv(id);return `<span class="mchip lv-${m?m.level:''}"><button data-act="hdemo" data-mv="${esc(id)}">${esc(moveName(m))}</button><button class="sw" data-act="hswap" data-seg="${i}" data-slot="${j}" aria-label="${esc(t('hiit.swap'))}">${ICON.swap}</button></span>`}).join('')}</div>`:''}${P.hiitDemo&&pair.includes(P.hiitDemo)?demoHtml(mv(P.hiitDemo)):''}</div></div>`};
   const pool=st.pool||moves.map(m=>m.id);
-  const cats=['glute','cardio','core','mine'];
-  const lib=cats.map(c=>{const ms=moves.filter(m=>m.cat===c);if(!ms.length)return '';
-    return `<div class="hcat"><span class="k"><i class="dot cat-${c}"></i>${t('hiit.cat.'+c)} ${ms.length}</span>${ms.map(m=>`<label class="hlib"><span><button data-act="hdemo" data-mv="${esc(m.id)}">${esc(moveName(m))}</button>${isEn()?'':`<small>${esc(m.en||'')}</small>`}</span><input type="checkbox" data-act="hpool" data-mv="${esc(m.id)}"${pool.includes(m.id)?' checked':''}></label>${P.hiitDemo===m.id&&!st.lineup.flat().includes(m.id)?demoHtml(m):''}`).join('')}</div>`}).join('');
+  const lib=lvs.map(c=>{const ms=moves.filter(m=>m.level===c);if(!ms.length)return '';
+    return `<div class="hcat"><span class="k"><i class="dot lv-${c}"></i>${t('hiit.lv.'+c)} ${ms.length}</span>${ms.map(m=>`<label class="hlib"><span><button data-act="hdemo" data-mv="${esc(m.id)}">${esc(moveName(m))}</button>${m.cat==='mine'?`<em class="mine">${t('hiit.mine')}</em>`:''}${isEn()?'':`<small>${esc(m.en||'')}</small>`}</span><input type="checkbox" data-act="hpool" data-mv="${esc(m.id)}"${pool.includes(m.id)?' checked':''}></label>${P.hiitDemo===m.id&&!st.lineup.flat().includes(m.id)?demoHtml(m):''}`).join('')}</div>`}).join('');
   body.innerHTML=pendingBanner()+`<div class="dayhead"><h2>${esc(loc(hp,'name'))}</h2><p class="rot">${esc(t('hiit.total',{n:flowMinutes(steps)}))}</p>
       <details class="daynotes"><summary>${t('hiit.notes')}</summary><ul><li>${esc(t('hiit.warmLabel'))}${esc(loc(hp,'warmup'))}</li><li>${esc(t('hiit.coolLabel'))}${esc(loc(hp,'cooldown'))}</li><li>${esc(loc(hp,'rules'))}</li></ul></details></div>
     ${done?`<div class="alldone">${esc(t('hiit.doneToday',{n:done.min}))}${done.saved?'':` <button class="tref" data-act="hsaveLast">${t('end.save')}</button>`}</div>`:''}
     <div class="hiitcard"><div class="hh"><b>${t('hiit.lineup')}</b><span>${esc(t('hiit.week',{a:wk.slice(5).replace('-','/'),b:end}))}</span></div>
       <p class="hhint">${t('hiit.hint')}</p>
+      <p class="hlegend">${lvs.map(l=>`<span><i class="dot lv-${l}"></i>${t('hiit.lvs.'+l)}</span>`).join('')}</p>
       ${runSegs.map(seg).join('')}
       <div class="hbtns"><button class="bigbtn primary" data-act="hstart">${ICON.play}<span>${t('hiit.start')}</span></button><button class="bigbtn" data-act="hreshuffle">${t('hiit.reshuffle')}</button></div>
     </div>
@@ -1409,10 +1413,10 @@ $('planBody').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b||!P.plan||!P.plan.hiit)return;const act=b.dataset.act;
   if(!/^h(demo|swap|reshuffle|start|saveLast)$/.test(act))return;
   e.preventDefault();
-  const {st,moves,n}=hiitState(P.plan);
+  const {st,moves,slots}=hiitState(P.plan);
   if(act==='hdemo'){P.hiitDemo=P.hiitDemo===b.dataset.mv?null:b.dataset.mv;P.hiitLibOpen=!!b.closest('.hlibbox');renderPlan();return}
   if(act==='hswap'){st.lineup=swapMove(moves,st.lineup,+b.dataset.seg,+b.dataset.slot,st.pool);store.set('hiit',st);P.hiitDemo=null;renderPlan();return}
-  if(act==='hreshuffle'){st.lineup=buildLineup(moves,{n,pool:st.pool,seed:st.week+':'+Date.now(),avoid:st.prev||[]});store.set('hiit',st);P.hiitDemo=null;renderPlan();return}
+  if(act==='hreshuffle'){st.lineup=buildLineup(moves,{slots,pool:st.pool,seed:st.week+':'+Date.now(),avoid:st.prev||[]});store.set('hiit',st);P.hiitDemo=null;renderPlan();return}
   if(act==='hstart'){startHiit(P.plan);return}
   if(act==='hsaveLast'){saveHiit();return}
 });
