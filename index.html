@@ -266,6 +266,61 @@ body.plan-mode .tabbar{display:none}
 .today .tphase b{font-size:17px;font-weight:700;color:var(--ink)}
 .today .tphase span{font-size:13px;color:var(--muted)}
 .today .tphase p{margin:0;font-size:15px;line-height:1.5;color:var(--ink)}
+/* HIIT 日 */
+.hiitcard{background:linear-gradient(180deg,#FFFFFF,#FCF9F8);border-radius:22px;box-shadow:var(--lift);padding:16px 14px 14px;margin-top:6px}
+.hiitcard .hh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:0 4px}
+.hiitcard .hh b{font-size:18px}.hiitcard .hh span{font-size:14px;color:var(--muted)}
+.hhint{font-size:14px;color:var(--muted);margin:4px 4px 8px}
+.hseg{display:grid;grid-template-columns:28px 1fr;gap:8px;padding:12px 4px;border-top:1px solid var(--line)}
+.hseg .hn{font-size:15px;font-weight:700;color:var(--muted);text-align:center;padding-top:2px}
+.hseg .hr{font-size:16px;font-weight:600;margin-bottom:6px}
+.hchips{display:flex;flex-wrap:wrap;gap:8px}
+.mchip{display:inline-flex;align-items:stretch;border-radius:14px;background:linear-gradient(180deg,#fff,#FAF6F4);box-shadow:var(--raise);overflow:hidden}
+.mchip button{border:0;background:none;font-size:15px;font-weight:550;color:var(--ink);min-height:44px;padding:0 6px 0 12px;display:flex;align-items:center;gap:6px}
+.mchip button:first-child::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--cat,#999)}
+.mchip .sw{padding:0 10px;color:var(--muted);border-left:1px solid var(--line)}.mchip .sw svg{width:17px;height:17px}
+.cat-glute{--cat:#B07A79}.cat-cardio{--cat:#D49A94}.cat-core{--cat:#7F9879}.cat-mine{--cat:#C99A5B}
+i.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cat);margin-right:6px}
+.hbtns{display:grid;grid-template-columns:1.3fr 1fr;gap:10px;margin-top:12px}
+.hdemo{margin-top:10px}
+.hdemo iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:14px;background:#000;display:block}
+.hdemo p{font-size:14px;color:var(--muted);margin:6px 2px 0}
+.hph{display:grid;grid-template-columns:1fr 1fr;gap:4px}.hph img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;display:block}
+details.hlibbox{background:linear-gradient(180deg,#FFFFFF,#FCF9F8);border-radius:22px;box-shadow:var(--lift);padding:2px 16px;margin-top:16px}
+details.hlibbox>summary{list-style:none;cursor:pointer;min-height:56px;display:flex;align-items:center;font-size:16px;font-weight:600}
+details.hlibbox>summary::-webkit-details-marker{display:none}
+.hcat{padding:6px 0 10px}.hcat .k{display:block;font-size:14px;font-weight:600;color:var(--muted);margin:6px 0}
+.hlib{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:50px;border-bottom:1px solid var(--line)}
+.hlib button{border:0;background:none;padding:0;font-size:16px;font-weight:550;color:var(--ink);text-align:left;text-decoration:underline;text-decoration-color:rgba(110,70,65,.25);text-underline-offset:4px}
+.hlib small{display:block;font-size:14px;color:var(--muted)}
+.hlib input{width:24px;height:24px;accent-color:var(--accent);flex:none}
+/* HIIT 跟练计时器：铺满屏幕 */
+#hiitTimer{position:fixed;inset:0;z-index:80;overflow:auto;background:rgba(248,243,241,.94);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+  padding:calc(14px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+body.hiit-on{overflow:hidden}
+.hsheet{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.htop{display:flex;align-items:center;gap:10px}.htop b{font-size:20px;flex:1}.htop span{font-size:14px;color:var(--muted)}
+.hbars{display:flex;gap:3px}.hbars i{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.8);box-shadow:inset 0 0 0 .5px rgba(110,70,65,.14)}
+.hbars i.d{background:#CBB0AF}.hbars i.c{background:var(--accent)}
+.hmain{background:var(--glass-bg);-webkit-backdrop-filter:blur(26px) saturate(1.6);backdrop-filter:blur(26px) saturate(1.6);border:1px solid rgba(255,255,255,.85);box-shadow:var(--glass-shadow);border-radius:26px;padding:20px 18px;text-align:center;display:flex;flex-direction:column;gap:8px}
+.hk{font-size:15px;color:var(--muted)}
+.hwhat{font:700 32px/1.2 var(--f-display);letter-spacing:-.01em}.hwhat em{font-style:normal;color:var(--accent)}
+.hsub{font-size:15px;color:var(--muted);margin:0}
+.hnum{font:700 76px/1 var(--f-display);letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin:6px 0}
+.hprog{height:8px;border-radius:4px;background:rgba(255,255,255,.75);box-shadow:inset 0 0 0 .5px rgba(110,70,65,.12);overflow:hidden;margin:0 8px}
+.hprog i{display:block;height:100%;background:var(--accent);border-radius:4px;transition:width .25s linear}
+.hready{min-height:72px!important;font-size:22px!important;margin:10px 0 4px}
+.hcue{font-size:15px;line-height:1.55;text-align:left;margin:4px 2px 0}
+.hnext{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;background:linear-gradient(180deg,#FFFFFF,#FCF9F8);box-shadow:var(--lift);border-radius:18px;padding:14px 16px}
+.hnext .k{font-size:14px;color:var(--muted);margin:0}.hnext b{font-size:16px}.hnext span:last-child{font-size:14px;color:var(--muted)}
+.hctl{display:flex;gap:10px}.hctl .bigbtn{flex:1}.hctl .bigbtn.primary{flex:1.25}.hctl .bigbtn{min-height:60px}
+#hiitTimer .tref,.alldone .tref{border:0;background:linear-gradient(180deg,#fff,#FAF6F4);box-shadow:var(--raise);border-radius:12px;min-height:44px;padding:0 16px;font-size:15px;font-weight:600;color:var(--muted)}
+.hdone{align-self:center}
+.hq{font-size:16px;font-weight:600;margin:10px 0 2px}
+.hfeel{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.hfeel button{display:flex;flex-direction:column;align-items:center;gap:4px;min-height:80px;border-radius:14px;border:0;background:linear-gradient(180deg,#fff,#FAF6F4);box-shadow:var(--raise);font-size:14px;font-weight:600;color:var(--muted)}
+.hfeel button span{font-size:32px;line-height:1}.hfeel button[aria-pressed="true"]{background:var(--accent-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--accent)}
+.hbtn2{display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-top:8px}
 .today .tacts{display:flex;align-items:center;gap:4px}
 .today .tperiod{display:inline-flex;align-items:center;gap:2px;font-size:14px;color:var(--muted)}
 
@@ -450,6 +505,7 @@ details.skipped>summary{padding:0 10px}
   <div id="restBar" hidden><div><span class="k" data-i18n="rest.label">组间休息</span><b id="restTime">2:00</b></div>
     <button id="restAdd" data-i18n="rest.add">+30 秒</button><button id="restSkip" data-i18n="rest.skip">跳过</button><div class="bar" id="restProg"></div></div>
   <div id="endSheet" hidden></div>
+  <div id="hiitTimer" hidden></div>
 
   <div class="grid">
     <div class="stage" id="stage">
@@ -552,6 +608,7 @@ import {t,setLang,getLang,isEn,loc} from "./src/i18n.js";
 import {CLIENT_ID,SCOPE,DRIVE_FOLDER,OURA_FILE,tokenValid,tokenFrom,ensureFolder,uploadCsv,findFile,createJson,readJson} from "./src/drive.js";
 import {pickToday,recommend,claudePrompt,fmtSleep} from "./src/today.js";
 import {cycleInfo} from "./src/cycle.js";
+import {allMoves,weekKey,buildLineup,swapMove,buildFlow,flowMinutes} from "./src/hiit.js";
 const tr=t; // refFrame/liveFrame 的参数 t 是时间，会遮住 t()，那里用 tr()
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem('fm.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('fm.'+k,JSON.stringify(v))}catch(e){}}};
@@ -1109,10 +1166,13 @@ function renderPlan(){
   if(!plan){tabs.innerHTML='';body.innerHTML=`<div class="panel"><h2>${t('plan.empty')}</h2><p style="margin:0">${t('plan.emptyText')}</p></div>`;$('planAdmin').open=true;renderVideoList();renderDrive();return}
   // 默认选哪天：按顺序轮换（上次练了哪天，今天就是下一天；今天练过就停在今天那天）。fm.workouts 记每天练了哪一天
   ses();const pk=pickDay(plan,store.get('workouts',[]),new Date(),today());
-  if(!P.day||!plan.days.some(d=>d.id===P.day))P.day=pk.id;
+  const hiitToday=plan.hiit&&(new Date().getDay()===plan.hiit.weekday)&&!(pk.last&&pk.last.date===today());
+  if(!P.day||(P.day==='hiit'&&!plan.hiit)||(P.day!=='hiit'&&!plan.days.some(d=>d.id===P.day)))P.day=hiitToday?'hiit':pk.id;
   tabs.innerHTML='';
   for(const d of plan.days){const b=document.createElement('button');b.setAttribute('role','tab');b.textContent=dayTab(d);b.setAttribute('aria-selected',d.id===P.day);
     b.onclick=()=>{closeVideos();P.day=d.id;renderPlan()};tabs.append(b)}
+  if(plan.hiit){const b=document.createElement('button');b.setAttribute('role','tab');b.textContent='HIIT';b.setAttribute('aria-selected',P.day==='hiit');b.onclick=()=>{closeVideos();P.day='hiit';renderPlan()};tabs.append(b)}
+  if(P.day==='hiit'){renderHiit(plan,pk);return}
   const day=plan.days.find(d=>d.id===P.day);
   const extras=extraFor(plan,day.id);
   const n=(()=>{let k=0;return ex=>/热身/.test(ex.name)?'':String(++k)})();
@@ -1191,7 +1251,7 @@ async function uploadCycle(tok){
   for(const d of pend)await createJson(f,tok,folder,`经期开始-${d}.json`,{period_start:d});
   store.set('cyclePending',[]);
 }
-function renderToday(day,pk){
+function renderToday(day,pk,opt={}){
   const box=$('todayBox');if(!box)return null;
   if(!CLIENT_ID){box.innerHTML='';return null}
   const h=new Date().getHours(),hi=t(h<12?'today.hi.morning':h<18?'today.hi.afternoon':'today.hi.evening');
@@ -1204,8 +1264,10 @@ function renderToday(day,pk){
   }
   const trainedToday=pk&&pk.last&&pk.last.date===today();
   const cyc=cycleNow();
-  const rec=recommend(row,{gapHours:trainedToday?null:pk&&pk.gapHours,cycle:cyc});
-  const dname=day?dayTab(day):'';
+  const rec=recommend(row,{gapHours:opt.hiit||trainedToday?null:pk&&pk.gapHours,cycle:cyc});
+  // HIIT 日（「吃练计划」规则）：经前一周、准备度低于 70 或要休息时，改单车课或低冲击有氧
+  if(opt.hiit){const bike=row.readiness<70||(cyc&&cyc.phase==='pms')||rec.level==='rest';rec.head=bike?t('hiit.bike'):t('hiit.go');if(bike&&rec.level==='go')rec.level='light'}
+  const dname=opt.hiit?loc(opt.hiit,'name'):day?dayTab(day):'';
   const tip=rec.tips.join('；');
   const chips=[t('today.chip.r',{n:row.readiness}),row.total_sleep_min!=null?t('today.chip.sleep',{s:fmtSleep(row.total_sleep_min)}):'',row.avg_hrv!=null?t('today.chip.hrv',{n:row.avg_hrv}):'',
     row.temp_deviation!=null?t('today.chip.temp',{n:(row.temp_deviation>0?'+':'')+row.temp_deviation}):''].filter(Boolean);
@@ -1221,10 +1283,10 @@ function renderToday(day,pk){
     ${phaseBox}
     <div class="chips">${chips.map(c=>`<span>${esc(c)}</span>`).join('')}</div>
     ${note?`<p class="tmsg">${esc(note)}</p>`:''}
-    <div class="tbtns"><button class="bigbtn primary" data-act="todayAsk">${t('today.ask')}</button><button class="bigbtn" data-act="todaySee">${t('today.seePlan')}</button></div>
+    <div class="tbtns"><button class="bigbtn primary" data-act="todayAsk">${t('today.ask')}</button><button class="bigbtn" data-act="${opt.hiit?'todayHiit':'todaySee'}">${opt.hiit?t('hiit.start'):t('today.seePlan')}</button></div>
     <div class="tfoot"><span>${upd?esc(t('today.updated',{t:upd})):''}</span><span class="tacts">${cyc?'':periodBtn(cyc)}${refresh}</span></div>
   </div></div>`;
-  P.todayCtx={day:row,rec,dayName:day?dayTitle(day):'',cycle:cyc};
+  P.todayCtx={day:row,rec,dayName:opt.hiit?loc(opt.hiit,'name'):day?dayTitle(day):'',cycle:cyc};
   return row;
 }
 /* "经期开始了"：今天已经记了就显示"撤销" */
@@ -1281,6 +1343,7 @@ $('todayBox').addEventListener('click',e=>{
     renderPlan();return}
   if(b.dataset.act==='periodStart'||b.dataset.act==='periodUndo')P.phaseOpen=true;
   if(b.dataset.act==='periodUndo'){const d=today();store.set('cycle',store.get('cycle',[]).filter(x=>x!==d));store.set('cyclePending',store.get('cyclePending',[]).filter(x=>x!==d));renderPlan();return}
+  if(b.dataset.act==='todayHiit'){startHiit(P.plan);return}
   if(b.dataset.act==='todaySee'){(document.querySelector('#planBody .ex.focus')||document.querySelector('#planBody .pickh')||document.querySelector('#dayTabs'))?.scrollIntoView({block:'start',behavior:'smooth'});return}
   if(b.dataset.act==='todayAsk'){
     const c=P.todayCtx||{};const last=(store.get('workouts',[])).slice(-1)[0];
@@ -1290,6 +1353,167 @@ $('todayBox').addEventListener('click',e=>{
     window.open('https://claude.ai/new','_blank'); // 同一次点击里打开，iPhone 才不会拦
     P.ouraMsg=t('today.copied');renderPlan();
   }
+});
+
+/* ---------- HIIT 日（11/21）：Ultra Fit = 跑步机分段 + BOSU 动作 ----------
+   分段结构和用户自己的动作在计划文件 plan.hiit（私人）；BOSU 官网动作库在 src/hiit.js。
+   本周组合存 fm.hiit = {week, pool, lineup, prev}；每周一换新的一套（尽量避开上周），可以单个换、重新排、勾选动作库 */
+const moveName=m=>m?(isEn()?(m.en||m.zh):m.zh):'';
+const PHOTO='https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/';
+function hiitState(plan){
+  const moves=allMoves(plan),wk=weekKey(),n=(plan.hiit.segments||[]).filter(g=>!g.noBosu).length;
+  let st=store.get('hiit',null);
+  if(!st||st.week!==wk){const pool=st&&st.pool||null,avoid=st&&st.lineup?st.lineup.flat():[];
+    st={week:wk,pool,lineup:buildLineup(moves,{n,pool,seed:wk,avoid}),prev:avoid};store.set('hiit',st)}
+  return {st,moves,n};
+}
+const fmtDur=s=>s>=60?t('hiit.min',{n:Math.round(s/60*10)/10}):t('hiit.sec',{n:s});
+function demoHtml(m){
+  if(!m)return '';
+  if(m.vimeo)return `<div class="hdemo"><iframe src="https://player.vimeo.com/video/${m.vimeo}?autoplay=1&loop=1&muted=1&controls=0&title=0&byline=0&portrait=0&dnt=1" allow="autoplay; fullscreen; picture-in-picture" title="${esc(moveName(m))}"></iframe><p>${esc(t('hiit.demoSrc'))}</p></div>`;
+  if(m.photo)return `<div class="hdemo"><div class="hph"><img src="${PHOTO}${m.photo}/0.jpg" alt=""><img src="${PHOTO}${m.photo}/1.jpg" alt=""></div><p>${esc(t('hiit.photoNote'))}</p></div>`;
+  return '';
+}
+function renderHiit(plan,pk){
+  const body=$('planBody'),hp=plan.hiit,{st,moves}=hiitState(plan);
+  const ouraRow=renderToday(null,pk,{hiit:hp});void ouraRow;
+  const mv=id=>moves.find(m=>m.id===id);
+  const runSegs=(hp.segments||[]);
+  const wk=st.week,end=(()=>{const d=new Date(wk+'T12:00:00');d.setDate(d.getDate()+6);return `${d.getMonth()+1}/${d.getDate()}`})();
+  const steps=buildFlow(hp,st.lineup);
+  const done=store.get('hiitDone',{})[today()];
+  const seg=(g,i)=>{const pair=g.noBosu?[]:(st.lineup[i]||[]);
+    const run=g.reps?t('hiit.segReps',{dur:fmtDur(g.sec),speed:g.speed,n:g.reps}):t('hiit.segRun',{dur:fmtDur(g.sec),speed:g.speed});
+    return `<div class="hseg"><span class="hn">${i+1}</span><div><div class="hr">${esc(run)}</div>${pair.length?`<div class="hchips">${pair.map((id,j)=>{const m=mv(id);return `<span class="mchip cat-${m?m.cat:''}"><button data-act="hdemo" data-mv="${esc(id)}">${esc(moveName(m))}</button><button class="sw" data-act="hswap" data-seg="${i}" data-slot="${j}" aria-label="${esc(t('hiit.swap'))}">${ICON.swap}</button></span>`}).join('')}</div>`:''}${P.hiitDemo&&pair.includes(P.hiitDemo)?demoHtml(mv(P.hiitDemo)):''}</div></div>`};
+  const pool=st.pool||moves.map(m=>m.id);
+  const cats=['glute','cardio','core','mine'];
+  const lib=cats.map(c=>{const ms=moves.filter(m=>m.cat===c);if(!ms.length)return '';
+    return `<div class="hcat"><span class="k"><i class="dot cat-${c}"></i>${t('hiit.cat.'+c)} ${ms.length}</span>${ms.map(m=>`<label class="hlib"><span><button data-act="hdemo" data-mv="${esc(m.id)}">${esc(moveName(m))}</button>${isEn()?'':`<small>${esc(m.en||'')}</small>`}</span><input type="checkbox" data-act="hpool" data-mv="${esc(m.id)}"${pool.includes(m.id)?' checked':''}></label>${P.hiitDemo===m.id&&!st.lineup.flat().includes(m.id)?demoHtml(m):''}`).join('')}</div>`}).join('');
+  body.innerHTML=pendingBanner()+`<div class="dayhead"><h2>${esc(loc(hp,'name'))}</h2><p class="rot">${esc(t('hiit.total',{n:flowMinutes(steps)}))}</p>
+      <details class="daynotes"><summary>${t('hiit.notes')}</summary><ul><li>${esc(t('hiit.warmLabel'))}${esc(loc(hp,'warmup'))}</li><li>${esc(t('hiit.coolLabel'))}${esc(loc(hp,'cooldown'))}</li><li>${esc(loc(hp,'rules'))}</li></ul></details></div>
+    ${done?`<div class="alldone">${esc(t('hiit.doneToday',{n:done.min}))}${done.saved?'':` <button class="tref" data-act="hsaveLast">${t('end.save')}</button>`}</div>`:''}
+    <div class="hiitcard"><div class="hh"><b>${t('hiit.lineup')}</b><span>${esc(t('hiit.week',{a:wk.slice(5).replace('-','/'),b:end}))}</span></div>
+      <p class="hhint">${t('hiit.hint')}</p>
+      ${runSegs.map(seg).join('')}
+      <div class="hbtns"><button class="bigbtn primary" data-act="hstart">${ICON.play}<span>${t('hiit.start')}</span></button><button class="bigbtn" data-act="hreshuffle">${t('hiit.reshuffle')}</button></div>
+    </div>
+    <details class="hlibbox"${P.hiitLibOpen?' open':''}><summary>${t('hiit.library',{n:moves.length})}</summary><p class="hhint">${t('hiit.libHint')}</p>${lib}</details>`;
+  renderDrive();
+}
+$('planBody').addEventListener('change',e=>{
+  const c=e.target.closest('[data-act="hpool"]');if(!c||!P.plan||!P.plan.hiit)return;
+  const {st,moves}=hiitState(P.plan);let pool=st.pool||moves.map(m=>m.id);
+  pool=c.checked?[...new Set([...pool,c.dataset.mv])]:pool.filter(x=>x!==c.dataset.mv);st.pool=pool;store.set('hiit',st);P.hiitLibOpen=true;
+});
+$('planBody').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b||!P.plan||!P.plan.hiit)return;const act=b.dataset.act;
+  if(!/^h(demo|swap|reshuffle|start|saveLast)$/.test(act))return;
+  e.preventDefault();
+  const {st,moves,n}=hiitState(P.plan);
+  if(act==='hdemo'){P.hiitDemo=P.hiitDemo===b.dataset.mv?null:b.dataset.mv;P.hiitLibOpen=!!b.closest('.hlibbox');renderPlan();return}
+  if(act==='hswap'){st.lineup=swapMove(moves,st.lineup,+b.dataset.seg,+b.dataset.slot,st.pool);store.set('hiit',st);P.hiitDemo=null;renderPlan();return}
+  if(act==='hreshuffle'){st.lineup=buildLineup(moves,{n,pool:st.pool,seed:st.week+':'+Date.now(),avoid:st.prev||[]});store.set('hiit',st);P.hiitDemo=null;renderPlan();return}
+  if(act==='hstart'){startHiit(P.plan);return}
+  if(act==='hsaveLast'){saveHiit();return}
+});
+
+/* ---------- HIIT 跟练计时器 ----------
+   跑步机、BOSU 动作、冲刺之间的休息是计时的；转换（下跑步机拿器械、换姿势）不计时：步骤 wait=true 时停在"准备好了"，点了才开始。
+   每步开始报内容；跑步机 30 秒以上的报"还剩 30 秒"；单边动作一半时报"换边"；最后 3 秒每秒嘀一声。按结束时间算，锁屏回来也准 */
+const H={steps:[],i:0,state:'idle',endAt:0,left:0,timer:null,said:{},start:0,lock:null,moves:[],lineup:[]};
+function hStepTitle(s){
+  if(!s)return '';
+  if(s.kind==='warm')return t('hiit.k.warm');if(s.kind==='cool')return t('hiit.k.cool');if(s.kind==='rest')return t('hiit.k.rest');
+  if(s.kind==='run')return t('hiit.k.run',{speed:s.speed})+(s.reps?' · '+t('hiit.rep',{n:s.rep,m:s.reps}):'');
+  return moveName(H.moves.find(m=>m.id===s.move));
+}
+function hSay(s){
+  if(s.kind==='warm')return t('hiit.say.warm');if(s.kind==='cool')return t('hiit.say.cool');if(s.kind==='rest')return t('hiit.say.rest');
+  if(s.kind==='run')return t('hiit.say.run',{seg:s.seg,speed:String(s.speed).replace('–',t('hiit.to')),dur:fmtDur(s.sec)})+(s.reps?t('hiit.say.rep',{n:s.rep,m:s.reps}):'');
+  const m=H.moves.find(x=>x.id===s.move);return t('hiit.say.bosu',{name:moveName(m),dur:fmtDur(s.sec)})+(m&&m.perSide?t('hiit.say.perSide'):'')+(m&&m.cue?' '+loc(m,'cue'):'');
+}
+async function wakeLock(on){try{if(on&&'wakeLock' in navigator)H.lock=await navigator.wakeLock.request('screen');else if(!on&&H.lock){await H.lock.release();H.lock=null}}catch(e){}}
+function startHiit(plan){
+  unlockAudio(); // 计时器的语音和嘀声要在这次点击里先解锁
+  const {st,moves}=hiitState(plan);H.moves=moves;H.lineup=st.lineup;H.steps=buildFlow(plan.hiit,st.lineup);H.start=Date.now();H.feel=null;H.closeArmed=false;
+  $('hiitTimer').hidden=false;document.body.classList.add('hiit-on');wakeLock(true);hEnter(0);
+}
+function hEnter(i){
+  clearInterval(H.timer);H.i=i;H.said={};const s=H.steps[i];
+  if(!s){hFinish();return}
+  if(s.wait){H.state='wait';speak(t('hiit.say.wait',{what:hStepTitle(s)}),{interrupt:true});hRender();return}
+  hBegin();
+}
+function hBegin(){const s=H.steps[H.i];H.state='run';H.endAt=Date.now()+s.sec*1000;H.left=s.sec;hRender();speak(hSay(s),{interrupt:true,beepIfSilent:true});clearInterval(H.timer);H.timer=setInterval(hTick,250);hTick()}
+function hTick(){
+  const s=H.steps[H.i];if(!s||H.state!=='run')return;
+  const left=Math.max(0,Math.ceil((H.endAt-Date.now())/1000));H.left=left;
+  const m=s.kind==='bosu'&&H.moves.find(x=>x.id===s.move);
+  if(m&&m.perSide&&!H.said.half&&left<=Math.floor(s.sec/2)){H.said.half=1;speak(t('hiit.say.half'))}
+  if(s.kind==='run'&&s.sec>=60&&!H.said.thirty&&left<=30&&left>3){H.said.thirty=1;speak(t('hiit.say.thirty'))}
+  if(left<=3&&left>0&&!H.said['b'+left]){H.said['b'+left]=1;beep()}
+  if(left<=0){beep();setTimeout(beep,220);hEnter(H.i+1);return}
+  hUpdate();
+}
+/* 每秒只改数字和进度条，不重画（不然示范视频会一直重新加载） */
+function hUpdate(){
+  const box=$('hiitTimer'),n=box.querySelector('.hnum'),p=box.querySelector('.hprog i'),e=box.querySelector('.htop span'),s=H.steps[H.i];
+  if(!n||!p||!s){hRender();return}
+  const mm=x=>`${Math.floor(x/60)}:${pad2(x%60)}`;
+  n.textContent=mm(H.left);p.style.width=Math.round(100*(1-H.left/s.sec))+'%';
+  if(e)e.textContent=t('hiit.elapsed',{t:mm(Math.round((Date.now()-H.start)/1000))});
+}
+function hFinish(){clearInterval(H.timer);H.state='done';H.min=Math.max(1,Math.round((Date.now()-H.start)/60000));speak(t('hiit.say.done'),{interrupt:true});hRender()}
+function hClose(){clearInterval(H.timer);H.state='idle';$('hiitTimer').hidden=true;$('hiitTimer').innerHTML='';document.body.classList.remove('hiit-on');wakeLock(false);renderPlan()}
+function hRender(){
+  const box=$('hiitTimer'),s=H.steps[H.i],next=H.steps[H.i+1];
+  const el=Math.round((Date.now()-H.start)/1000),mm=x=>`${Math.floor(x/60)}:${pad2(x%60)}`;
+  const bars=H.steps.map((x,k)=>`<i class="${k<H.i?'d':k===H.i?'c':''}"></i>`).join('');
+  if(H.state==='done'){
+    const names=[...new Set(H.lineup.flat())].map(id=>moveName(H.moves.find(m=>m.id===id))).join(t('list.sep'));
+    box.innerHTML=`<div class="hsheet"><div class="htop"><b>${esc(loc(P.plan.hiit,'name'))}</b></div>
+      <div class="hmain"><div class="hk">${t('hiit.finished')}</div><div class="hnum">${esc(t('hiit.min',{n:H.min}))}</div><p class="hsub">${esc(names)}</p>
+      <p class="hq">${t('hiit.feelQ')}</p><div class="hfeel">${FEELS.map(f=>`<button data-h="feel" data-feel="${f.id}" aria-pressed="${H.feel===f.id}"><span>${f.emoji}</span>${t('feel.'+f.id)}</button>`).join('')}</div>
+      <div class="status" id="hStatus" hidden></div>
+      <div class="hbtn2"><button class="bigbtn primary" data-h="save">${t('hiit.save')}</button><button class="bigbtn" data-h="close">${t('hiit.close')}</button></div></div></div>`;
+    return}
+  const kind=s.kind,isRun=kind==='run',m=kind==='bosu'?H.moves.find(x=>x.id===s.move):null;
+  const what=isRun?`${t('hiit.speed')} <em>${esc(s.speed)}</em>`:esc(hStepTitle(s));
+  const sub=isRun&&s.reps?t('hiit.rep',{n:s.rep,m:s.reps}):kind==='bosu'&&m&&m.perSide?t('hiit.perSide'):'';
+  const left=H.state==='run'?H.left:H.state==='pause'?H.left:s.sec;
+  box.innerHTML=`<div class="hsheet"><div class="htop"><b>${esc(loc(P.plan.hiit,'name'))}</b><span>${esc(t('hiit.elapsed',{t:mm(el)}))}</span><button class="tref" data-h="close">${H.closeArmed?t('hiit.closeConfirm'):t('hiit.stop')}</button></div>
+    <div class="hbars">${bars}</div>
+    <div class="hmain"><div class="hk">${esc(kind==='bosu'?t('hiit.k.bosuSeg',{n:s.seg}):kind==='run'?t('hiit.k.runSeg',{n:s.seg}):'')}</div>
+      <div class="hwhat">${what}</div>${sub?`<p class="hsub">${esc(sub)}</p>`:''}
+      ${H.state==='wait'?`<button class="bigbtn primary hready" data-h="go">${t('hiit.ready')}</button><p class="hsub">${esc(t('hiit.waitHint',{dur:fmtDur(s.sec)}))}</p>`:`<div class="hnum">${mm(left)}</div><div class="hprog"><i style="width:${Math.round(100*(1-left/s.sec))}%"></i></div>`}
+      ${kind==='warm'||kind==='cool'?`<p class="hcue">${esc(loc(P.plan.hiit,kind==='warm'?'warmup':'cooldown'))}</p>`:''}${m?demoHtml(m):''}${m&&m.cue?`<p class="hcue">${esc(loc(m,'cue'))}</p>`:''}</div>
+    ${next?`<div class="hnext"><span class="k">${t('hiit.next')}</span><b>${esc(hStepTitle(next))}</b><span>${esc(fmtDur(next.sec))}</span></div>`:''}
+    <div class="hctl"><button class="bigbtn" data-h="prev">${t('hiit.prev')}</button>${H.state==='wait'?`<button class="bigbtn" data-h="skip">${t('hiit.skip')}</button>`:`<button class="bigbtn primary" data-h="${H.state==='pause'?'resume':'pause'}">${H.state==='pause'?t('hiit.resume'):t('hiit.pause')}</button><button class="bigbtn" data-h="${kind==='bosu'?'more':'skip'}">${kind==='bosu'?t('hiit.plus'):t('hiit.skip')}</button>`}</div>
+    ${kind==='bosu'&&H.state!=='wait'?`<button class="tref hdone" data-h="skip">${t('hiit.doneMove')}</button>`:''}
+  </div>`;
+}
+function saveHiit(row){
+  row=row||store.get('hiitLast',null);if(!row)return Promise.resolve({ok:false});
+  return shareCsv([row]).then(res=>{if(res.ok){const d=store.get('hiitDone',{});if(d[row.date])d[row.date].saved=true;store.set('hiitDone',d)}return res});
+}
+$('hiitTimer').addEventListener('click',e=>{
+  const b=e.target.closest('[data-h]');if(!b)return;const a=b.dataset.h;
+  if(a==='close'){if(H.state==='done'||H.closeArmed){hClose();return}H.closeArmed=true;hRender();setTimeout(()=>{H.closeArmed=false;if(H.state!=='idle')hRender()},3000);return}
+  if(a==='go'){unlockWebAudio();hBegin();return}
+  if(a==='pause'){clearInterval(H.timer);H.left=Math.max(0,Math.ceil((H.endAt-Date.now())/1000));H.state='pause';hRender();return}
+  if(a==='resume'){H.state='run';H.endAt=Date.now()+H.left*1000;clearInterval(H.timer);hRender();H.timer=setInterval(hTick,250);hTick();return}
+  if(a==='skip'){hEnter(H.i+1);return}
+  if(a==='prev'){hEnter(Math.max(0,H.i-1));return}
+  if(a==='more'){H.endAt+=15000;H.steps[H.i]={...H.steps[H.i],sec:H.steps[H.i].sec+15};hTick();return}
+  if(a==='feel'){H.feel=b.dataset.feel;hRender();return}
+  if(a==='save'){
+    // 训练记录：一行，session = HIIT，备注写时长、BOSU 动作和感受（中文，和电脑上的记录一致）
+    const f=feelById(H.feel),FZ={easy:'轻松',ok:'刚好',hard:'吃力',fail:'做不完'};
+    const names=[...new Set(H.lineup.flat())].map(id=>(H.moves.find(m=>m.id===id)||{}).zh).filter(Boolean).join('、');
+    const row={date:today(),session:'HIIT',exercise:P.plan.hiit.name,sets:1,reps:'',weight_lb:'',rir:f?f.rir:'',note:[`${H.min} 分钟`,`BOSU：${names}`,f?`${f.emoji} ${FZ[f.id]}`:''].filter(Boolean).join('；')};
+    store.set('hiitLast',row);const d=store.get('hiitDone',{});d[row.date]={min:H.min,saved:false};store.set('hiitDone',d);
+    saveHiit(row).then(res=>{const st=$('hStatus');if(st)setStatus(st,res.ok?(res.how==='drive'?t('end.savedDrive',{folder:DRIVE_FOLDER}):t('end.saved')):res.how==='driveFail'?t('drive.fail',{msg:res.msg}):t('end.cancel'),res.ok?'ok':'err')});
+    return}
 });
 
 // 简单线条图标（继承文字颜色）
