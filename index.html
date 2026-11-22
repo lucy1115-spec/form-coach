@@ -489,7 +489,7 @@ details.skipped>summary{padding:0 10px}
     <details class="panel" style="margin-top:16px" id="planAdmin">
       <summary style="cursor:pointer;font-weight:600" data-i18n="plan.admin">计划和视频</summary>
       <div class="row" style="margin-top:10px">
-        <label class="btn primary" for="planFile" data-i18n="plan.import">导入训练计划</label><input type="file" id="planFile" accept="application/json,.json" hidden>
+        <label class="btn primary" for="planFile" data-i18n="plan.import">导入训练计划</label><input type="file" id="planFile" hidden><!-- 不限文件类型：iPhone 从 Google Drive 选 .json 时，accept 会让文件变灰点不了（11/21）；内容在 change 里检查 -->
         <label class="btn" for="videoBulk" data-i18n="plan.bulk">一次关联多个视频</label><input type="file" id="videoBulk" accept="video/*" multiple hidden>
       </div>
       <p class="note" id="planMeta"></p>
@@ -591,7 +591,7 @@ details.skipped>summary{padding:0 10px}
       <div class="lib" id="lib"></div>
       <div class="row">
         <button class="btn" id="libExport" data-i18n="lib.export">导出全部</button>
-        <label class="btn" for="libImport" data-i18n="lib.import">导入</label><input type="file" id="libImport" accept="application/json,.json" hidden>
+        <label class="btn" for="libImport" data-i18n="lib.import">导入</label><input type="file" id="libImport" hidden>
       </div>
       <p class="note" data-i18n="lib.note">换设备时（比如电脑录好、手机上用），先导出，再在另一台设备导入。</p>
     </section>
