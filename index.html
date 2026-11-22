@@ -1435,7 +1435,7 @@ function hSay(s){
 async function wakeLock(on){try{if(on&&'wakeLock' in navigator)H.lock=await navigator.wakeLock.request('screen');else if(!on&&H.lock){await H.lock.release();H.lock=null}}catch(e){}}
 function startHiit(plan){
   unlockAudio(); // 计时器的语音和嘀声要在这次点击里先解锁
-  const {st,moves}=hiitState(plan);H.moves=moves;H.lineup=st.lineup;H.steps=buildFlow(plan.hiit,st.lineup);H.start=Date.now();H.feel=null;H.closeArmed=false;
+  const {st,moves}=hiitState(plan);H.moves=moves;H.lineup=st.lineup;H.steps=buildFlow(plan.hiit,st.lineup);H.start=Date.now();H.closeArmed=false;
   $('hiitTimer').hidden=false;document.body.classList.add('hiit-on');wakeLock(true);hEnter(0);
 }
 function hEnter(i){
@@ -1473,8 +1473,7 @@ function hRender(){
     const names=[...new Set(H.lineup.flat())].map(id=>moveName(H.moves.find(m=>m.id===id))).join(t('list.sep'));
     box.innerHTML=`<div class="hsheet"><div class="htop"><b>${esc(loc(P.plan.hiit,'name'))}</b></div>
       <div class="hmain"><div class="hk">${t('hiit.finished')}</div><div class="hnum">${esc(t('hiit.min',{n:H.min}))}</div><p class="hsub">${esc(names)}</p>
-      <p class="hq">${t('hiit.feelQ')}</p><div class="hfeel">${FEELS.map(f=>`<button data-h="feel" data-feel="${f.id}" aria-pressed="${H.feel===f.id}"><span>${f.emoji}</span>${t('feel.'+f.id)}</button>`).join('')}</div>
-      <div class="status" id="hStatus" hidden></div>
+            <div class="status" id="hStatus" hidden></div>
       <div class="hbtn2"><button class="bigbtn primary" data-h="save">${t('hiit.save')}</button><button class="bigbtn" data-h="close">${t('hiit.close')}</button></div></div></div>`;
     return}
   const kind=s.kind,isRun=kind==='run',m=kind==='bosu'?H.moves.find(x=>x.id===s.move):null;
@@ -1505,12 +1504,10 @@ $('hiitTimer').addEventListener('click',e=>{
   if(a==='skip'){hEnter(H.i+1);return}
   if(a==='prev'){hEnter(Math.max(0,H.i-1));return}
   if(a==='more'){H.endAt+=15000;H.steps[H.i]={...H.steps[H.i],sec:H.steps[H.i].sec+15};hTick();return}
-  if(a==='feel'){H.feel=b.dataset.feel;hRender();return}
   if(a==='save'){
     // 训练记录：一行，session = HIIT，备注写时长、BOSU 动作和感受（中文，和电脑上的记录一致）
-    const f=feelById(H.feel),FZ={easy:'轻松',ok:'刚好',hard:'吃力',fail:'做不完'};
     const names=[...new Set(H.lineup.flat())].map(id=>(H.moves.find(m=>m.id===id)||{}).zh).filter(Boolean).join('、');
-    const row={date:today(),session:'HIIT',exercise:P.plan.hiit.name,sets:1,reps:'',weight_lb:'',rir:f?f.rir:'',note:[`${H.min} 分钟`,`BOSU：${names}`,f?`${f.emoji} ${FZ[f.id]}`:''].filter(Boolean).join('；')};
+    const row={date:today(),session:'HIIT',exercise:P.plan.hiit.name,sets:1,reps:'',weight_lb:'',rir:'',note:[`${H.min} 分钟`,`BOSU：${names}`].join('；')};
     store.set('hiitLast',row);const d=store.get('hiitDone',{});d[row.date]={min:H.min,saved:false};store.set('hiitDone',d);
     saveHiit(row).then(res=>{const st=$('hStatus');if(st)setStatus(st,res.ok?(res.how==='drive'?t('end.savedDrive',{folder:DRIVE_FOLDER}):t('end.saved')):res.how==='driveFail'?t('drive.fail',{msg:res.msg}):t('end.cancel'),res.ok?'ok':'err')});
     return}
