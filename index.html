@@ -266,6 +266,17 @@ body.plan-mode .tabbar{display:none}
 .today .tphase b{font-size:17px;font-weight:700;color:var(--ink)}
 .today .tphase span{font-size:13px;color:var(--muted)}
 .today .tphase p{margin:0;font-size:15px;line-height:1.5;color:var(--ink)}
+/* 声音 */
+.vrows{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.vrow{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:58px;padding:8px 14px;border:0;border-radius:14px;background:linear-gradient(180deg,#fff,#FAF6F4);box-shadow:var(--raise);text-align:left;color:var(--ink)}
+.vrow span{display:flex;flex-direction:column;gap:2px}.vrow b{font-size:16px;font-weight:600}.vrow small{font-size:14px;color:var(--muted)}
+.vrow i{width:24px;height:24px;color:var(--accent);flex:none}.vrow i svg{width:22px;height:22px}
+.vrow[aria-pressed="true"]{background:var(--accent-soft);box-shadow:inset 0 0 0 1.5px var(--accent)}
+.vh{font-size:15px;font-weight:600;margin:16px 2px 8px}
+.vrate{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.vrate button{min-height:52px;border:0;border-radius:14px;background:linear-gradient(180deg,#fff,#FAF6F4);box-shadow:var(--raise);font-size:16px;font-weight:600;color:var(--ink)}
+.vrate button[aria-pressed="true"]{background:var(--accent-soft);box-shadow:inset 0 0 0 1.5px var(--accent)}
+details.vmore{margin-top:14px}details.vmore summary{cursor:pointer;font-size:15px;font-weight:600;color:var(--accent);min-height:44px;display:flex;align-items:center}
 /* HIIT 日 */
 .hiitcard{background:linear-gradient(180deg,#FFFFFF,#FCF9F8);border-radius:22px;box-shadow:var(--lift);padding:16px 14px 14px;margin-top:6px}
 .hiitcard .hh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:0 4px}
@@ -497,6 +508,10 @@ details.skipped>summary{padding:0 10px}
       <div id="videoList" class="lib"></div>
       <p class="note" data-i18n="plan.adminNote">计划文件在 Google Drive 的 coach 文件夹里（训练计划.json）。视频从相册选，按文件名里的编号自动对上（如 IMG_0688）；对不上的到对应动作下面单独关联。计划和视频都只存在这台手机上。</p>
     </details>
+    <details class="panel" style="margin-top:16px" id="voicePanel">
+      <summary style="cursor:pointer;font-weight:600" data-i18n="vp.title">声音</summary>
+      <div id="voiceBox"></div>
+    </details>
     <div class="panel drivebox" id="driveBox" hidden>
       <div><b>Google Drive</b><p class="note" id="driveText"></p></div>
       <button class="bigbtn" id="driveBtn"></button>
@@ -665,9 +680,41 @@ function loadVoices(){voices=(speechSynthesis.getVoices()||[]).filter(v=>(isEn()
   const off=document.createElement('option');off.value='off';off.textContent=t('voice.off');sel.append(off);
   voices.forEach(v=>{const o=document.createElement('option');o.value=v.name;o.textContent=`${v.name} (${v.lang})`;sel.append(o)});
   if(!voices.length){const o=document.createElement('option');o.value='';o.textContent=t('voice.default');sel.append(o)}
-  sel.value=[...sel.options].some(o=>o.value===saved)?saved:(sel.options[1]?sel.options[1].value:'off')}
+  sel.value=[...sel.options].some(o=>o.value===saved)?saved:(sel.options[1]?sel.options[1].value:'off');setTimeout(renderVoiceBox,0)}
 if('speechSynthesis' in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
-$('voiceSel').addEventListener('change',e=>store.set(voiceKey(),e.target.value));
+$('voiceSel').addEventListener('change',e=>{store.set(voiceKey(),e.target.value);renderVoiceBox()});
+/* "今天"页底部的"声音"（11/21 用户：想多点选择）：列出这台手机上的中文（或英文）声音，点一下就换并试听；语速三档。
+   iPhone 的 Siri 声音网页用不了；在 设置 → 辅助功能 → 朗读内容 → 声音 里下载"增强版 / 高级版"，重开 App 后一般会出现在列表里 */
+const RATES={slow:0.95,normal:1.08,fast:1.2};
+function voiceRate(){return RATES[store.get('voiceRate','normal')]||1.08}
+const isHQ=v=>/premium|enhanced|增强|高级/i.test(v.name);
+function voiceLabel(v){
+  const region={'zh-CN':'vp.r.cn','zh-TW':'vp.r.tw','zh-HK':'vp.r.hk','en-US':'vp.r.us','en-GB':'vp.r.gb','en-AU':'vp.r.au','en-IE':'vp.r.ie','en-IN':'vp.r.in','en-ZA':'vp.r.za'}[String(v.lang).replace('_','-')];
+  const q=/premium|高级/i.test(v.name)?t('vp.premium'):/enhanced|增强/i.test(v.name)?t('vp.enhanced'):'';
+  const name=v.name.replace(/\s*\((enhanced|premium|增强版|高级版)\)\s*/i,'').replace(/^com\.apple\.\S+\./,'');
+  return {name,sub:[region?t(region):v.lang,q].filter(Boolean).join(' · ')};
+}
+function renderVoiceBox(){
+  const box=$('voiceBox');if(!box)return;
+  const cur=$('voiceSel').value,rate=store.get('voiceRate','normal');
+  const row=(val,name,sub)=>`<button class="vrow" data-voice="${esc(val)}" aria-pressed="${cur===val}"><span><b>${esc(name)}</b><small>${esc(sub)}</small></span><i>${cur===val?ICON.check:''}</i></button>`;
+  const list=voices.slice().sort((a,b)=>(isHQ(b)-isHQ(a))||String(a.lang).localeCompare(b.lang)||a.name.localeCompare(b.name));
+  const rows=list.map(v=>{const l=voiceLabel(v);return row(v.name,l.name,l.sub)}).join('');
+  box.innerHTML=`<p class="note">${t('vp.hint')}</p>
+    <div class="vrows">${rows||`<p class="note">${t('vp.none')}</p>`}${row('off',t('voice.off'),t('vp.offSub'))}</div>
+    <p class="vh">${t('vp.rate')}</p>
+    <div class="vrate">${Object.keys(RATES).map(k=>`<button data-rate="${k}" aria-pressed="${rate===k}">${t('vp.rate.'+k)}</button>`).join('')}</div>
+    <details class="vmore"><summary>${t('vp.moreQ')}</summary><p class="note">${t('vp.moreA')}</p></details>`;
+}
+$('voiceBox').addEventListener('click',e=>{
+  const b=e.target.closest('[data-voice],[data-rate]');if(!b)return;
+  unlockWebAudio();
+  if(b.dataset.rate){store.set('voiceRate',b.dataset.rate)}
+  else{const sel=$('voiceSel');if(![...sel.options].some(o=>o.value===b.dataset.voice))return;sel.value=b.dataset.voice;store.set(voiceKey(),sel.value)}
+  renderVoiceBox();
+  if($('voiceSel').value!=='off')speak(t('vp.sample'),{interrupt:true,beepIfSilent:true});
+});
+
 /* iPhone Safari 只在用户点按钮的那一刻允许网页出声，之后自动触发的语音（报数）可能被静音。
    做法：① 点"开始"时 unlockAudio() 先解锁语音和 Web Audio；② 报数排队说，不先 cancel()
    （iOS 上 cancel() 紧接 speak() 会把新的一句吞掉）；③ 报数 0.8 秒内没开始说，就"嘀"一声代替。 */
@@ -693,7 +740,7 @@ function speak(text,{interrupt=false,beepIfSilent=false,onSilent=null}={}){try{
   const busy=s.speaking||s.pending;
   const chunks=String(text).replace(/([。；！？])/g,'$1\n').replace(/([.;!?])\s+/g,'$1\n').split('\n').map(x=>x.trim()).filter(Boolean);
   let started=false;
-  chunks.forEach((c,i)=>{const u=new SpeechSynthesisUtterance(c);u.lang=isEn()?'en-US':'zh-CN';u.rate=1.08;const v=voices.find(x=>x.name===vn);if(v)u.voice=v;
+  chunks.forEach((c,i)=>{const u=new SpeechSynthesisUtterance(c);u.lang=isEn()?'en-US':'zh-CN';u.rate=voiceRate();const v=voices.find(x=>x.name===vn);if(v)u.voice=v;
     if(i===0)u.onstart=()=>{started=true};s.speak(u)});
   if(!busy||interrupt){
     if(beepIfSilent)setTimeout(()=>{if(!started){beep();S.speechMuted=(S.speechMuted||0)+1}},800);
