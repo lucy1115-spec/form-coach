@@ -179,15 +179,10 @@ table.sum th{font-weight:600;color:var(--muted);font-size:13px;letter-spacing:.0
 .ex details p{margin:0 0 18px;font-size:17px;line-height:1.65}
 .ex details p b{display:block;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
 .say-msg{font-size:15px;border-radius:14px}
-#planView details.principles{margin-top:22px;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:4px 22px;box-shadow:var(--shadow)}
-#planView details.principles summary{list-style:none;cursor:pointer;min-height:60px;display:flex;align-items:center;font-size:18px;font-weight:600}
-#planView details.principles ul{margin:0 0 18px;padding-left:20px;font-size:16px;line-height:1.65;color:var(--muted)}
 #planView details.principles li+li{margin-top:8px}
-#planView #planAdmin{margin-top:22px;border-radius:24px;box-shadow:none}
-#planView #planAdmin summary{min-height:44px;display:flex;align-items:center;font-size:17px}
 /* 只用"今天"一页：其他三页的底部导航只在进了"更多工具"后出现 */
 body.plan-mode .tabbar{display:none}
-#moreTools{width:100%;margin-top:14px}
+#moreTools{width:100%}
 #planView .drivebox{margin-top:16px;border-radius:24px;display:flex;flex-direction:column;gap:12px}
 #planView .drivebox b{font-size:17px}
 #planView .drivebox .note{margin:4px 0 0;font-size:15px;line-height:1.5}
@@ -277,6 +272,42 @@ body.plan-mode .tabbar{display:none}
 .vrate button{min-height:52px;border:0;border-radius:14px;background:linear-gradient(180deg,#fff,#FAF6F4);box-shadow:var(--raise);font-size:16px;font-weight:600;color:var(--ink)}
 .vrate button[aria-pressed="true"]{background:var(--accent-soft);box-shadow:inset 0 0 0 1.5px var(--accent)}
 details.vmore{margin-top:14px}details.vmore summary{cursor:pointer;font-size:15px;font-weight:600;color:var(--accent);min-height:44px;display:flex;align-items:center}
+/* 11/27 按钮好用一点 */
+.ex-h.tap{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;cursor:pointer;margin:-6px -8px 0;padding:6px 8px;border-radius:16px}
+.ex-h.tap:active{background:var(--accent-soft)}
+.ex-h .up{flex:none;width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;color:var(--muted);background:linear-gradient(180deg,#fff,#FAF6F4);box-shadow:var(--raise)}
+.ex-h .up svg{width:22px;height:22px;transform:rotate(-90deg)}
+.ex-target .sub{display:block;margin-top:6px;font-size:15px;line-height:1.5;color:var(--muted)}
+.lg-plates{margin:-2px 4px 2px;font-size:15px;color:var(--muted);font-variant-numeric:tabular-nums}
+.lg-rest{display:flex;align-items:center;gap:8px;background:#fff;border-radius:16px;padding:8px 8px 8px 14px;box-shadow:var(--raise)}
+.lg-rest span{flex:1;display:flex;flex-direction:column}.lg-rest small{font-size:14px;color:var(--muted)}
+.lg-rest b{font:700 28px/1.1 var(--f-display);font-variant-numeric:tabular-nums}
+.lg-rest button{min-height:52px;min-width:72px;border:0;border-radius:14px;background:linear-gradient(180deg,#fff,#FAF6F4);box-shadow:var(--raise);font-size:16px;font-weight:600;color:var(--ink);padding:0 12px}
+.feel .opts{grid-template-columns:1fr 1fr}
+.feel .opts button{flex-direction:row;justify-content:flex-start;gap:10px;min-height:60px;padding:0 14px;font-size:17px;color:var(--ink);white-space:nowrap}
+.feel .opts button span{font-size:28px}
+.endbtn.idle{background:rgba(255,255,255,.45);box-shadow:inset 0 0 0 1px rgba(110,70,65,.14);color:var(--muted);min-height:56px;font-size:16px}
+.setlist{margin-top:22px;background:var(--surface);border-radius:22px;box-shadow:var(--lift);overflow:hidden}
+.setlist>details,.setlist>.srow{display:block;border-top:1px solid var(--line);padding:0 18px}
+.setlist>:first-child,.setlist>[hidden]+*{border-top:0}
+.setlist>details>summary,.setlist>.srow{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:60px;font-size:17px;font-weight:600;color:var(--ink)}
+.setlist>.srow{width:100%;border-left:0;border-right:0;border-bottom:0;background:none;text-align:left}
+.setlist>details>summary::-webkit-details-marker{display:none}
+.setlist>details>summary span,.setlist>.srow span{flex:1}
+.setlist>details>summary small{font-size:14px;font-weight:500;color:var(--muted);max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.setlist>details>summary::after,.setlist>.srow::after{content:"";flex:none;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);margin-right:6px;transition:transform .2s}
+.setlist>details[open]>summary::after{transform:rotate(45deg)}
+.setlist>details[open]{padding-bottom:18px}
+.setlist>details>:not(summary)+:not(summary){margin-top:12px}
+.setlist .principles ul{margin:0;padding-left:20px;font-size:16px;line-height:1.6}
+.hchips{flex-direction:column;flex-wrap:nowrap}
+.mchip{display:flex;width:100%}
+.mchip button:first-child{flex:1;min-height:52px;text-align:left}
+.mchip .mn{flex:1}.mchip .pl{display:flex;color:var(--accent)}.mchip .pl svg{width:16px;height:16px}
+.mchip .sw{min-width:60px;justify-content:center;font-size:15px;font-weight:600;color:var(--ink)}
+.hlib button{min-height:44px}
+.langpill button{min-height:48px}
+.today .tref[data-act="periodStart"]{border-radius:12px;padding:0 14px;box-shadow:inset 0 0 0 1px rgba(110,70,65,.18);min-height:44px}
 /* HIIT 日 */
 .hiitcard{background:linear-gradient(180deg,#FFFFFF,#FCF9F8);border-radius:22px;box-shadow:var(--lift);padding:16px 14px 14px;margin-top:6px}
 .hiitcard .hh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:0 4px}
@@ -403,7 +434,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 #restBar button{background:rgba(255,255,255,.68);color:var(--ink);box-shadow:var(--raise)}
 #restBar .bar{background:var(--accent);opacity:.5}
 /* 实色卡片：白，顶边高光，很轻的分层阴影 */
-.ex,.panel,.timebar,#planView details.principles,#planView .drivebox,.exrows,details.skipped,.banner,.alldone{background:linear-gradient(180deg,#FFFFFF 0%,#FCF9F8 100%);border:0;box-shadow:var(--lift)}
+.ex,.panel,.timebar,.exrows,details.skipped,.banner,.alldone{background:linear-gradient(180deg,#FFFFFF 0%,#FCF9F8 100%);border:0;box-shadow:var(--lift)}
 .banner{background:linear-gradient(180deg,#FBF4E6,#F6ECD9)}
 /* 凸起的按钮 */
 .bigbtn,#dayTabs button,.timebar .chips button,.feel .opts button,.stp button,.exrow,.langpill button[aria-selected="true"]{border:0;background:linear-gradient(180deg,#FFFFFF,#FAF6F4);box-shadow:var(--raise);transition:transform .08s,box-shadow .08s}
@@ -497,8 +528,10 @@ details.skipped>summary{padding:0 10px}
     <div id="todayBox"></div>
     <div class="daybar" role="tablist" id="dayTabs"></div>
     <div id="planBody" style="margin-top:12px"></div>
-    <details class="panel" style="margin-top:16px" id="planAdmin">
-      <summary style="cursor:pointer;font-weight:600" data-i18n="plan.admin">计划和视频</summary>
+    <div class="setlist">
+    <details id="principlesBox" class="principles" hidden><summary><span data-i18n="plan.principles">通用原则</span></summary><ul id="principlesList"></ul></details>
+    <details id="planAdmin">
+      <summary><span data-i18n="plan.admin">计划和视频</span></summary>
       <div class="row" style="margin-top:10px">
         <label class="btn primary" for="planFile" data-i18n="plan.import">导入训练计划</label><input type="file" id="planFile" hidden><!-- 不限文件类型：iPhone 从 Google Drive 选 .json 时，accept 会让文件变灰点不了（11/21）；内容在 change 里检查 -->
         <label class="btn" for="videoBulk" data-i18n="plan.bulk">一次关联多个视频</label><input type="file" id="videoBulk" accept="video/*" multiple hidden>
@@ -508,16 +541,18 @@ details.skipped>summary{padding:0 10px}
       <div id="videoList" class="lib"></div>
       <p class="note" data-i18n="plan.adminNote">计划文件在 Google Drive 的 coach 文件夹里（训练计划.json）。视频从相册选，按文件名里的编号自动对上（如 IMG_0688）；对不上的到对应动作下面单独关联。计划和视频都只存在这台手机上。</p>
     </details>
-    <details class="panel" style="margin-top:16px" id="voicePanel">
-      <summary style="cursor:pointer;font-weight:600" data-i18n="vp.title">声音</summary>
+    <details id="voicePanel">
+      <summary><span data-i18n="vp.title">声音</span><small id="voiceSum"></small></summary>
       <div id="voiceBox"></div>
     </details>
-    <div class="panel drivebox" id="driveBox" hidden>
-      <div><b>Google Drive</b><p class="note" id="driveText"></p></div>
+    <details id="driveBox" hidden>
+      <summary><span>Google Drive</span><small id="driveSum"></small></summary>
+      <p class="note" id="driveText"></p>
       <button class="bigbtn" id="driveBtn"></button>
       <div class="status" id="driveStatus" hidden></div>
+    </details>
+    <button class="srow" id="moreTools"><span data-i18n="more.tools">更多工具：录标准 · 对比 · 标准库</span></button>
     </div>
-    <button class="bigbtn ghost" id="moreTools" data-i18n="more.tools">更多工具：录标准 · 对比 · 标准库</button>
   </section>
   <div id="restBar" hidden><div><span class="k" data-i18n="rest.label">组间休息</span><b id="restTime">2:00</b></div>
     <button id="restAdd" data-i18n="rest.add">+30 秒</button><button id="restSkip" data-i18n="rest.skip">跳过</button><div class="bar" id="restProg"></div></div>
@@ -700,6 +735,7 @@ function renderVoiceBox(){
   const row=(val,name,sub)=>`<button class="vrow" data-voice="${esc(val)}" aria-pressed="${cur===val}"><span><b>${esc(name)}</b><small>${esc(sub)}</small></span><i>${cur===val?ICON.check:''}</i></button>`;
   const list=voices.slice().sort((a,b)=>(isHQ(b)-isHQ(a))||String(a.lang).localeCompare(b.lang)||a.name.localeCompare(b.name));
   const rows=list.map(v=>{const l=voiceLabel(v);return row(v.name,l.name,l.sub)}).join('');
+  const cv=voices.find(v=>v.name===cur);$('voiceSum').textContent=[cur==='off'?t('voice.off'):cv?voiceLabel(cv).name:t('voice.default'),t('vp.rate.'+rate)].join(' · ');
   box.innerHTML=`<p class="note">${t('vp.hint')}</p>
     <div class="vrows">${rows||`<p class="note">${t('vp.none')}</p>`}${row('off',t('voice.off'),t('vp.offSub'))}</div>
     <p class="vh">${t('vp.rate')}</p>
@@ -1079,6 +1115,7 @@ async function driveUpload(token,name,csv){
 }
 function renderDrive(){
   const box=$('driveBox');if(!box)return;box.hidden=!CLIENT_ID;if(!CLIENT_ID)return;
+  $('driveSum').textContent=driveOn()?t('drive.sumOn'):t('drive.sumOff');
   $('driveText').textContent=driveOn()?t('drive.on',{folder:DRIVE_FOLDER}):t('drive.off');
   $('driveBtn').textContent=driveOn()?t('drive.disconnect'):t('drive.connect');
   $('driveBtn').className='bigbtn'+(driveOn()?'':' primary');
@@ -1263,8 +1300,8 @@ function renderPlan(){
     ${notes.length?`<details class="daynotes"><summary>${t('plan.dayNotes')}</summary><ul>${notes.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}</div>
     ${focusHtml}
     ${addBlock(plan,day,extras)}
-    <button class="bigbtn endbtn" data-act="end">${t('end.btn')}</button>
-    ${principles.length?`<details class="principles"><summary>${t('plan.principles')}</summary><ul>${principles.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}`;
+    ${(()=>{const n=nSets(ses());return `<button class="bigbtn endbtn${n?'':' idle'}" data-act="end">${n?t('end.btnN',{n}):t('end.btn')}</button>`})()}`;
+  $('principlesBox').hidden=!principles.length;$('principlesList').innerHTML=principles.map(x=>`<li>${esc(x)}</li>`).join('');
   // "听要点"按钮念的时候变成"停"，念完自动变回来
   body.querySelectorAll('[data-say]').forEach(b=>b.onclick=()=>{
     unlockWebAudio();
@@ -1435,7 +1472,7 @@ function renderHiit(plan,pk){
   const done=store.get('hiitDone',{})[today()];
   const seg=(g,i)=>{const pair=g.noBosu?[]:(st.lineup[i]||[]);
     const run=g.reps?t('hiit.segReps',{dur:fmtDur(g.sec),speed:g.speed,n:g.reps}):t('hiit.segRun',{dur:fmtDur(g.sec),speed:g.speed});
-    return `<div class="hseg"><span class="hn">${i+1}</span><div><div class="hr">${esc(run)}</div>${pair.length?`<div class="hchips">${pair.map((id,j)=>{const m=mv(id);return `<span class="mchip lv-${m?m.level:''}"><button data-act="hdemo" data-mv="${esc(id)}">${esc(moveName(m))}</button><button class="sw" data-act="hswap" data-seg="${i}" data-slot="${j}" aria-label="${esc(t('hiit.swap'))}">${ICON.swap}</button></span>`}).join('')}</div>`:''}${P.hiitDemo&&pair.includes(P.hiitDemo)?demoHtml(mv(P.hiitDemo)):''}</div></div>`};
+    return `<div class="hseg"><span class="hn">${i+1}</span><div><div class="hr">${esc(run)}</div>${pair.length?`<div class="hchips">${pair.map((id,j)=>{const m=mv(id);return `<span class="mchip lv-${m?m.level:''}"><button data-act="hdemo" data-mv="${esc(id)}"><span class="mn">${esc(moveName(m))}</span><i class="pl">${ICON.play}</i></button><button class="sw" data-act="hswap" data-seg="${i}" data-slot="${j}" aria-label="${esc(t('hiit.swap'))}">${t('hiit.swapS')}</button></span>`}).join('')}</div>`:''}${P.hiitDemo&&pair.includes(P.hiitDemo)?demoHtml(mv(P.hiitDemo)):''}</div></div>`};
   const pool=st.pool||moves.map(m=>m.id);
   const lib=lvs.map(c=>{const ms=moves.filter(m=>m.level===c);if(!ms.length)return '';
     return `<div class="hcat"><span class="k"><i class="dot lv-${c}"></i>${t('hiit.lv.'+c)} ${ms.length}</span>${ms.map(m=>`<label class="hlib"><span><button data-act="hdemo" data-mv="${esc(m.id)}">${esc(moveName(m))}</button>${m.cat==='mine'?`<em class="mine">${t('hiit.mine')}</em>`:''}${isEn()?'':`<small>${esc(m.en||'')}</small>`}</span><input type="checkbox" data-act="hpool" data-mv="${esc(m.id)}"${pool.includes(m.id)?' checked':''}></label>${P.hiitDemo===m.id&&!st.lineup.flat().includes(m.id)?demoHtml(m):''}`).join('')}</div>`}).join('');
@@ -1578,22 +1615,16 @@ const ICON={
 function sayIdle(){clearInterval(P.sayTimer);document.querySelectorAll('[data-say][data-on]').forEach(b=>{delete b.dataset.on;b.innerHTML=ICON.say+`<span>${t('plan.say')}</span>`})}
 function exCard(ex,num,plan,fromDay,opt={}){
   const f=k=>loc(ex,k);
-  const loads=loadLines(ex.load,plan.plates);
   const multi=(ex.videos||[]).length>1, vnum=v=>multi?v.replace(/\D/g,''):'';
   // 用户自己加的视频：存为 ex:<动作 id>:<编号>（编号取文件名里的数字，没有就用时间戳）
   const added=[...P.linked].filter(k=>k.startsWith(`ex:${ex.id}:`)).sort();
   const addedNum=(k,i)=>{const n=k.split(':')[2];return /^\d{3,5}$/.test(n)?n:String(i+1)};
-  const addedBtns=added.map((k,i)=>`<button class="bigbtn" data-play="${esc(k)}" data-ex="${esc(ex.id)}">${ICON.play}<span>${esc(t('plan.play',{num:(added.length+(ex.videos||[]).length)>1?addedNum(k,i):''}))}</span></button>`).join('');
+  const addedBtns=added.map((k,i)=>({v:k,html:`<button class="bigbtn" data-play="${esc(k)}" data-ex="${esc(ex.id)}">${ICON.play}<span>${esc(t('plan.play',{num:(added.length+(ex.videos||[]).length)>1?addedNum(k,i):''}))}</span></button>`}));
   const addBtn=`<label class="bigbtn ghost" for="add-${esc(ex.id)}">${ICON.link}<span>${t('plan.addVideo')}</span></label><input type="file" accept="video/*" hidden id="add-${esc(ex.id)}" data-addex="${esc(ex.id)}">`;
-  const vids=(ex.videos||[]).map(v=>P.linked.has(v)
+  const vids=(ex.videos||[]).map(v=>({v,html:P.linked.has(v)
     ?`<button class="bigbtn" data-play="${esc(v)}" data-ex="${esc(ex.id)}">${ICON.play}<span>${esc(t('plan.play',{num:vnum(v)}))}</span></button>`
-    :`<label class="bigbtn ghost" for="lk-${esc(ex.id)}-${esc(v)}" title="${esc(v)}">${ICON.link}<span>${esc(t('plan.link',{num:vnum(v)}))}</span></label><input type="file" accept="video/*" hidden id="lk-${esc(ex.id)}-${esc(v)}" data-link="${esc(v)}">`).join('');
-  // 杠铃片：每行拆成"总重量 | 每边加多少"两列；史密斯的"不含杆"只在标题写一次
-  const unit=isEn()?'lb':'磅', L=ex.load;
-  const plateRows=L&&Array.isArray(L.weights)?L.weights.map(w=>{const ps=platesPerSide(L.kind==='barbell'?(w-(L.bar??35))/2:w/2,plan.plates);
-    return {a:`${w} ${unit}`,b:ps?(ps.length?`${ps.join(' + ')} ${unit}`:(isEn()?'none':'不加')):''}}):[];
-  const perSide=isEn()?'per side':'每边';
-  const plateHead=t('plan.plates')+(ex.load&&ex.load.kind==='smith'?` · ${t('plan.barExcl')}`:ex.load&&ex.load.kind==='barbell'?` · ${isEn()?`${ex.load.bar??35} lb bar`:`杆 ${ex.load.bar??35} 磅`}`:'');
+    :`<label class="bigbtn ghost" for="lk-${esc(ex.id)}-${esc(v)}" title="${esc(v)}">${ICON.link}<span>${esc(t('plan.link',{num:vnum(v)}))}</span></label><input type="file" accept="video/*" hidden id="lk-${esc(ex.id)}-${esc(v)}" data-link="${esc(v)}">`}));
+  const firstVid=ex.swapped?'':(ex.videos||[]).find(v=>P.linked.has(v))||added[0]||'';
   const detail=[[t('plan.setup'),f('setup')],[t('plan.action'),f('action')],[t('plan.cues'),f('cues')],['',f('alt')]].filter(x=>x[1]).map(([k,v])=>`<p>${k?`<b>${k}</b>`:''}${esc(v)}</p>`).join('');
   const tags=[ex.swapped?t('plan.swappedFrom',{name:ex.swappedFrom.replace(/[（(].*?[）)]/g,'')}):'',fromDay?t('plan.fromDay',{day:dayTab(fromDay)}):'',f('side'),ex.optional?t('plan.optional'):''].filter(Boolean);
   // 换一个动作：还没记组的时候才能换 / 换回
@@ -1603,17 +1634,20 @@ function exCard(ex,num,plan,fromDay,opt={}){
   const swapBox=P.swapOpen===ex.id&&noSets&&!ex.swapped?`<div class="swapbox"><p class="note">${opts.length?t('plan.swapTo'):t('plan.swapNone')}</p>
     ${opts.map((o,i)=>`<button class="bigbtn" data-act="swapTo" data-i="${i}" data-ex="${esc(ex.id)}"><b>${esc(loc(o,'name'))}</b>${loc(o,'target')?`<small>${esc(loc(o,'target'))}</small>`:''}</button>`).join('')}
     <div class="swaprow"><input type="text" id="swapname-${esc(ex.id)}" placeholder="${esc(t('plan.swapCustomPh'))}" enterkeyhint="done"><button class="bigbtn primary" data-act="swapCustom" data-ex="${esc(ex.id)}">${t('plan.swapGo')}</button></div></div>`:'';
+  // 11/27 用户：收起不方便 → 点标题栏收起；正式组摘要大字（"3 × 10 @ 85 磅"），原文小字；第一个能播的视频放到"听要点"旁边
+  const sum=targetSum(ex);
+  const restVids=ex.swapped?'':vids.filter(x=>x.v!==firstVid).map(x=>x.html).join('')+addedBtns.filter(x=>x.v!==firstVid).map(x=>x.html).join('')+addBtn;
+  const head=`<span class="n">${num?String(num).padStart(2,'0'):t('plan.warm')}</span><h3 class="name">${esc(f('name').replace(/[（(](热身|warm-up)[）)]/i,'').trim())}</h3>${tags.length?`<div class="tags">${tags.map(x=>`<span>${esc(x)}</span>`).join('')}</div>`:''}`;
   return `<article class="ex${opt.focus?' focus':''}" id="ex-${esc(ex.id)}">
-    <div class="ex-h"><span class="n">${num?String(num).padStart(2,'0'):t('plan.warm')}</span><h3 class="name">${esc(f('name').replace(/[（(](热身|warm-up)[）)]/i,'').trim())}</h3>${tags.length?`<div class="tags">${tags.map(x=>`<span>${esc(x)}</span>`).join('')}</div>`:''}</div>
-    ${f('target')?`<div class="ex-target"><span class="k">${t('plan.target')}</span><span class="v">${esc(f('target'))}</span></div>`:''}
-    ${loads.length?`<div class="ex-load"><span class="k">${esc(plateHead)}</span>${plateRows.map(r=>`<div class="pl"><span class="tot">${esc(r.a)}</span><span class="side">${r.b?`<small>${perSide}</small> ${esc(r.b)}`:''}</span></div>`).join('')}</div>`:''}
+    ${opt.focus?`<div class="ex-h tap" data-act="collapse" data-ex="${esc(ex.id)}" role="button" tabindex="0" aria-expanded="true"><div>${head}</div><span class="up" aria-label="${esc(t('plan.collapse'))}">${ICON.chev}</span></div>`:`<div class="ex-h">${head}</div>`}
+    ${f('target')?`<div class="ex-target">${sum?`<span class="v">${esc(sum)}</span><span class="sub">${esc(f('target'))}</span>`:`<span class="k">${t('plan.target')}</span><span class="v">${esc(f('target'))}</span>`}</div>`:''}
     ${f('last')?`<p class="last">${esc(t('plan.last',{text:f('last')}))}</p>`:''}
     ${logBlock(ex,plan)}
     ${fromDay&&!(ses().sets[ex.id]||[]).length?`<button class="bigbtn ghost" data-act="unextra" data-ex="${esc(ex.id)}">${t('plan.removeExtra')}</button>`:''}
-    <div class="ex-actions two"><button class="bigbtn" data-say="${esc(ex.id)}">${ICON.say}<span>${t('plan.say')}</span></button>${opt.focus?`<button class="bigbtn" data-act="collapse" data-ex="${esc(ex.id)}"><span>${t('plan.collapse')}</span></button>`:''}</div>
-    <details class="more"${P.swapOpen===ex.id?' open':''}><summary>${t('plan.more')}</summary><div class="ex-actions">${swapBtn}${ex.swapped?'':vids+addedBtns+addBtn}</div>${swapBox}</details>
+    <div class="ex-actions two"><button class="bigbtn" data-say="${esc(ex.id)}">${ICON.say}<span>${t('plan.say')}</span></button>${firstVid?`<button class="bigbtn" data-play="${esc(firstVid)}" data-ex="${esc(ex.id)}">${ICON.play}<span>${t('plan.watch')}</span></button>`:''}</div>
     <div class="ex-video" hidden></div>
     ${detail?`<details><summary>${t('plan.details')}</summary>${detail}</details>`:''}
+    <details class="more"${P.swapOpen===ex.id?' open':''}><summary>${t('plan.more')}</summary><div class="ex-actions">${swapBtn}${restVids}</div>${swapBox}</details>
   </article>`;
 }
 /* ---------- 记一组 ----------
@@ -1629,6 +1663,20 @@ function ses(){
 const fmtN=n=>n==null?'—':String(Math.round(n*100)/100);
 const unitLbl=u=>u==='level'?(isEn()?'level':'级'):(isEn()?'lb':'磅');
 const wTxt=(u,w)=>w==null?'—':u==='level'?t('log.level',{n:fmtN(w)}):t('log.lb',{n:fmtN(w)});
+/* 目标摘要：正式组都一样时写成"3 × 10 @ 85 磅"；不一样（或读不出）就不写，只显示原文 */
+function targetSum(ex){
+  const d=setDefaults(ex),w=d.sets.filter(x=>!x.warm),a=w[0];
+  if(!a||a.r==null||w.some(x=>x.w!==a.w||x.r!==a.r||x.rMax!==a.rMax))return '';
+  return `${w.length} × ${a.rMax&&a.rMax!==a.r?`${fmtN(a.r)}–${fmtN(a.rMax)}`:fmtN(a.r)}${a.w!=null?` @ ${wTxt(d.unit,a.w)}`:''}`;
+}
+/* 杠铃片跟着当前要做的重量算（11/27：原来列的是计划里的重量，和 +/− 调过的对不上） */
+function plateLine(ex,w,plates){
+  const L=ex.load;if(!L||w==null||(L.kind!=='barbell'&&L.kind!=='smith'))return '';
+  const bar=L.bar??35,ps=platesPerSide(L.kind==='barbell'?(w-bar)/2:w/2,plates);
+  if(!ps)return t('log.plBad');
+  const p=ps.length?ps.join(' + '):t('log.plNone');
+  return L.kind==='barbell'?t('log.plBar',{bar,p}):t('log.plSide',{p});
+}
 P.draft={};
 function draftFor(ex){
   const d=setDefaults(ex),done=ses().sets[ex.id]||[],i=done.length;
@@ -1669,15 +1717,15 @@ function logBlock(ex,plan){
   const rows=done.map((x,i)=>`<li${x.saved?' class="saved"':` data-act="edit" data-ex="${esc(ex.id)}" data-i="${i}"${i===ed?' class="on"':''}`}><span class="i">${i+1}</span><span>${esc(wTxt(u,x.w))} × ${fmtN(x.r)}${x.warm?`<small>${t('log.warmTag')}</small>`:''}${x.saved?`<small>${t('log.savedTag')}</small>`:''}</span><span class="fe">${x.feel?feelById(x.feel).emoji:''}</span><span class="chev">${x.saved?'':'›'}</span></li>${i===ed?editBox(x):''}`).join('');
   const canEdit=done.some(x=>!x.saved);
   const askFeel=ed<0&&last&&!last.feel;
-  const feel=askFeel?`<div class="feel"><p class="q">${t('log.feelQ')}</p><div class="opts">${FEELS.map(f=>`<button data-act="feel" data-feel="${f.id}" data-ex="${esc(ex.id)}"><span>${f.emoji}</span>${t('feel.'+f.id)}</button>`).join('')}</div>
-    <button class="undo" data-act="undo" data-ex="${esc(ex.id)}">${t('log.undo')}</button></div>`:'';
+  const feel=askFeel?`<div class="feel"><p class="q">${t('log.feelQ')}</p><div class="opts">${FEELS.map(f=>`<button data-act="feel" data-feel="${f.id}" data-ex="${esc(ex.id)}"><span>${f.emoji}</span>${t('feel.'+f.id)}</button>`).join('')}</div></div>`:'';
   const prev=store.get('exLast.'+ex.id,null);
   const prevLine=prev&&prev.date!==today()&&prev.next?`<p class="lg-prev">${esc(t('plan.last',{text:`${prev.date.slice(5).replace('-','/')} · ${prev.next}`}))}</p>`:'';
   return `<div class="ex-log" data-log="${esc(ex.id)}">
     <div class="lg-h"><span class="k">${t('log.title')}</span><span class="prog">${t('log.progress',{done:done.length,total})}</span></div>
-    ${prevLine}${rows?`<ol class="lg-rows">${rows}</ol>`:''}${canEdit&&ed<0&&!askFeel?`<p class="lg-hint">${t('log.tapEdit')}</p>`:''}${feel}
+    ${prevLine}${rows?`<ol class="lg-rows">${rows}</ol>`:''}${canEdit&&ed<0?`<p class="lg-hint">${t('log.tapEdit')}</p>`:''}${feel}
     ${ed>=0?'':`<div class="lg-next"><span class="which">${t('log.setN',{n})}${dr.warm?` · ${t('log.warmTag')}`:''}</span>
-      ${stp('w',wLab,dr.w,unitLbl(u))}${stp('r',t('log.reps'),dr.r,'')}</div>
+      ${stp('w',wLab,dr.w,unitLbl(u))}${plateLine(ex,dr.w,plan.plates)?`<p class="lg-plates">${esc(plateLine(ex,dr.w,plan.plates))}</p>`:''}${stp('r',t('log.reps'),dr.r,'')}</div>
+    ${REST.timer&&REST.ex===ex.id?`<div class="lg-rest"><span><small>${t('rest.label')}</small><b data-rest-time></b></span><button data-act="restAdd" data-ex="${esc(ex.id)}">${t('rest.add')}</button><button data-act="restSkip" data-ex="${esc(ex.id)}">${t('rest.skip')}</button></div>`:''}
     <button class="bigbtn ${done.length>=total?'ghost':'primary'}" data-act="done" data-ex="${esc(ex.id)}">${done.length>=total?t('log.extra'):t('log.done',{n})}</button>`}
   </div>`;
 }
@@ -1714,6 +1762,8 @@ $('planBody').addEventListener('click',e=>{
   if(act==='drop'){if(!b.dataset.armed){b.dataset.armed='1';b.textContent=t('end.dropConfirm');return}
     const p=store.get('pendingSessions',[]);p.splice(+b.dataset.i,1);store.set('pendingSessions',p);renderPlan();return}
   if(act==='savePrev'){savePending(+b.dataset.i);return}
+  if(act==='restAdd'){REST.end+=30000;REST.total+=30;tickRest();return}
+  if(act==='restSkip'){stopRest();return}
   if(!ex)return;
   const d=setDefaults(ex),dr=P.draft[id]||(P.draft[id]=draftFor(ex));
   if(act==='w+'||act==='w-'){const st=weightStep(d.unit,dr.w,ex.load&&ex.load.kind);dr.w=dr.w==null?(d.unit==='level'?5:10):Math.max(0,Math.round((dr.w+(act==='w+'?st:-st))*100)/100)}
@@ -1721,7 +1771,7 @@ $('planBody').addEventListener('click',e=>{
   else if(act==='done'){
     unlockAudio(); // 休息结束的"嘀"声和语音要在这次点击里先解锁
     const s=ses();(s.sets[id]=s.sets[id]||[]).push({w:dr.w,r:dr.r,warm:dr.warm,feel:null,day:P.day,at:new Date().toISOString(),...(ex.swapped?{name:ex.name,from:ex.swappedFrom}:{})});store.set('session',s);
-    P.edit=null;P.draft[id]=draftFor(ex);startRest(restSeconds(ex));
+    P.edit=null;P.draft[id]=draftFor(ex);startRest(restSeconds(ex),id);
     if(s.sets[id].length===1){const c=document.getElementById('ex-'+id);c?.querySelectorAll('[data-act="swapOpen"],[data-act="unswap"],[data-act="unextra"],.swapbox').forEach(x=>x.remove())} // 第一组记下后，换动作 / 移除的按钮收起
   }
   else if(act==='feel'){const s=ses(),a=s.sets[id]||[];if(a.length){a[a.length-1].feel=b.dataset.feel;store.set('session',s)}
@@ -1740,6 +1790,7 @@ $('planBody').addEventListener('click',e=>{
   }
   else if(act==='undo'){const s=ses(),a=s.sets[id]||[];a.pop();if(!a.length)delete s.sets[id];store.set('session',s);P.draft[id]=draftFor(ex);stopRest()}
   rerenderLog(id);
+  if(act==='done')document.querySelector(`[data-log="${CSS.escape(id)}"] .lg-rest`)?.scrollIntoView({block:'nearest',behavior:'smooth'});
   if(['done','undo','edel'].includes(act))noteWorkout();
 });
 /* 今天练了哪一天（组最多的那天）记进 fm.workouts，下次打开 App 按它轮换 */
@@ -1752,12 +1803,14 @@ function noteWorkout(){
 }
 
 /* 组间休息：按结束时间算，锁屏再回来也准。到点"嘀"两声 + 语音 */
-const REST={end:0,total:0,timer:null};
-function startRest(sec){REST.total=sec;REST.end=Date.now()+sec*1000;$('restBar').hidden=false;document.body.classList.add('resting');clearInterval(REST.timer);REST.timer=setInterval(tickRest,250);tickRest()}
-function stopRest(){clearInterval(REST.timer);REST.timer=null;$('restBar').hidden=true;document.body.classList.remove('resting')}
+const REST={end:0,total:0,timer:null,ex:null};
+function startRest(sec,ex){REST.ex=ex||null;REST.total=sec;REST.end=Date.now()+sec*1000;$('restBar').hidden=false;document.body.classList.add('resting');clearInterval(REST.timer);REST.timer=setInterval(tickRest,250);tickRest()}
+function stopRest(){clearInterval(REST.timer);REST.timer=null;$('restBar').hidden=true;document.body.classList.remove('resting');if(REST.ex){const id=REST.ex;REST.ex=null;rerenderLog(id)}}
 function tickRest(){
   const left=Math.max(0,Math.ceil((REST.end-Date.now())/1000));
-  $('restTime').textContent=`${Math.floor(left/60)}:${pad2(left%60)}`;$('restProg').style.width=(100*left/REST.total)+'%';
+  const txt=`${Math.floor(left/60)}:${pad2(left%60)}`;$('restTime').textContent=txt;document.querySelectorAll('[data-rest-time]').forEach(el=>el.textContent=txt);
+  // 卡片里的休息计时看得见时，底部浮条就不出来（11/27：浮条挡住了"完成第 N 组"）
+  const row=document.querySelector('.lg-rest'),rb=row&&row.getBoundingClientRect();$('restBar').hidden=!!(rb&&rb.bottom>0&&rb.top<innerHeight);$('restProg').style.width=(100*left/REST.total)+'%';
   if(left<=0){stopRest();beep();setTimeout(beep,260);speak(t('rest.over'));try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}
 }
 $('restAdd').onclick=()=>{REST.end+=30000;REST.total+=30;tickRest()};
