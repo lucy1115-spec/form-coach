@@ -35,3 +35,13 @@ test('问 Claude 的文字：数据、建议、今天的训练', () => {
   setLang('en');
   assert.doesNotMatch(claudePrompt({date: '2026-11-21', day, rec: recommend(day), dayName: 'Upper body'}), /[一-鿿]/);
 });
+
+test('本周力量：周一到周日，同一天只算一次，上周的不算', async () => {
+  const {weekStrength} = await import('../src/today.js');
+  // 2026-11-27 是周五；这周一是 11/23
+  const w = weekStrength([{date: '2026-11-22'}, {date: '2026-11-23'}, {date: '2026-11-23'}, {date: '2026-11-25'}], '2026-11-27');
+  assert.equal(w.n, 2);
+  assert.deepEqual(w.days.map(x => x.date.slice(8)), ['23', '24', '25', '26', '27', '28', '29']);
+  assert.equal(w.days[4].today, true);
+  assert.equal(weekStrength([], '2026-11-29').days[0].date, '2026-11-23'); // 周日还在同一周
+});

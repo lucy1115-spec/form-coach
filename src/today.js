@@ -52,3 +52,13 @@ export function claudePrompt({date, day, rec, dayName, last, cycle}) {
   lines.push(t('ask.q'));
   return lines.join('\n');
 }
+
+// 本周力量（周一到周日）：fm.workouts 只记力量训练（HIIT 不写），同一天只算一次
+export function weekStrength(workouts, todayStr) {
+  const [y, m, d] = todayStr.split('-').map(Number), base = new Date(y, m - 1, d);
+  const mon = new Date(y, m - 1, d - ((base.getDay() + 6) % 7));
+  const iso = x => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+  const done = new Set((workouts || []).map(w => w.date));
+  const days = Array.from({length: 7}, (_, i) => { const s = iso(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i)); return {date: s, on: done.has(s), today: s === todayStr}; });
+  return {days, n: days.filter(x => x.on).length};
+}
