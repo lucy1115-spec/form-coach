@@ -878,9 +878,13 @@ $('voiceBox').addEventListener('click',e=>{
    做法：① 点"开始"时 unlockAudio() 先解锁语音和 Web Audio；② 报数排队说，不先 cancel()
    （iOS 上 cancel() 紧接 speak() 会把新的一句吞掉）；③ 报数 0.8 秒内没开始说，就"嘀"一声代替。 */
 let audioCtx=null;
+/* 11/27 用户：健身时听歌，一开始计数音乐就停。iPhone 上网页出声默认会打断别的 App 的音乐；
+   ambient = 和音乐混着放（Safari 16.4+ 的 Audio Session API）。代价：手机静音开关打开时网页不出声 */
+try{if(navigator.audioSession)navigator.audioSession.type='ambient'}catch(e){}
 function unlockAudio(){
   try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state!=='running')audioCtx.resume()}catch(e){}
-  try{if('speechSynthesis' in window){speechSynthesis.resume();const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u)}}catch(e){}
+  // 声音选了"关闭（只嘀）"就不垫无声语音：语音本身也可能打断音乐
+  try{if('speechSynthesis' in window&&$('voiceSel').value!=='off'){speechSynthesis.resume();const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u)}}catch(e){}
 }
 function beep(){try{if(!audioCtx)return;const t=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();
   o.frequency.value=880;g.gain.setValueAtTime(.3,t);g.gain.exponentialRampToValueAtTime(.001,t+.18);o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+.2)}catch(e){}}
